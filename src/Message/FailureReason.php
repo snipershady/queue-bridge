@@ -40,11 +40,11 @@ final readonly class FailureReason
     }
 
     public static function fromThrowable(
-        FailureKind $failureKind,
-        MessageId $messageId,
+        FailureKind $kind,
+        MessageId $originalId,
         DateTimeImmutable $failedAt,
         Throwable $throwable,
     ): self {
-        return new self($failureKind, $messageId, $failedAt, $throwable->getMessage(), $throwable::class);
+        return new self($kind, $originalId, $failedAt, $throwable->getMessage(), $throwable::class);
     }
 }

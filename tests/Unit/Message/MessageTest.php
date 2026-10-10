@@ -75,6 +75,17 @@ final class MessageTest extends TestCase
         self::assertSame($message->headers, $retried->headers);
     }
 
+    public function testWithAttempts(): void
+    {
+        $message = $this->message()->withAttempts(4);
+
+        self::assertSame(4, $message->attempts);
+        self::assertSame(0, $message->withAttempts(0)->attempts);
+
+        $this->expectException(InvalidArgumentException::class);
+        $message->withAttempts(-1);
+    }
+
     public function testIsExpired(): void
     {
         $message = new Message(

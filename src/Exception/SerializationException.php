@@ -18,8 +18,8 @@ final class SerializationException extends QueueException
         return new self(\sprintf('Unsupported wire format version "%s".', $version));
     }
 
-    public static function invalidField(string $field, string $reason, ?Throwable $throwable = null): self
+    public static function invalidField(string $field, string $reason, ?Throwable $previous = null): self
     {
-        return new self(\sprintf('Invalid wire format field "%s": %s', $field, $reason), 0, $throwable);
+        return new self(\sprintf('Invalid wire format field "%s": %s', $field, $reason), 0, $previous);
     }
 }

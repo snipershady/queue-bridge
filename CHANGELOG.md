@@ -15,3 +15,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 - `Text/`: `TextDecoder` che restituisce JSON decodificato se valido, altrimenti il testo grezzo, senza mai lanciare eccezioni sul contenuto.
 - `Codec/`: wire format versionato (v1) con `EnvelopeCodec`.
 - `Config/QueueConfig` con validazione dei limiti (incluso `maxDeliveries >= maxAttempts + 1`).
+- Contratto del transport: `TransportInterface` (con `release()` e `ping()`), interfacce opzionali `SetupAwareInterface`, `MaintenanceAwareInterface`, `StatsAwareInterface`, `DeadLetterAwareInterface`, `BatchAckAwareInterface`, e i value object `TransportCapabilities`, `QueueStats`, `MaintenanceReport`, `DeadLetter`.
+- `BackendException` (astratta), `ConnectionException`, `BatchSendException`.
+- `InMemoryTransport`, implementazione di riferimento del contratto, con consumer concorrenti (`newConsumer()`), differiti, orfani, DLQ e statistiche.
+- `TransportContractTestCase`: scenari comuni a tutti i backend.

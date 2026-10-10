@@ -57,12 +57,22 @@ final readonly class Message
      */
     public function withIncrementedAttempts(): self
     {
+        return $this->withAttempts($this->attempts + 1);
+    }
+
+    /**
+     * Copia con il numero di tentativi indicato (es. 0 quando si riaccoda dalla DLQ).
+     *
+     * @throws InvalidArgumentException se $attempts < 0
+     */
+    public function withAttempts(int $attempts): self
+    {
         return new self(
             $this->id,
             $this->channel,
             $this->text,
             $this->createdAt,
-            $this->attempts + 1,
+            $attempts,
             $this->expiresAt,
             $this->headers,
         );

@@ -25,7 +25,8 @@ return RectorConfig::configure()
                     typeDeclarations: true,
                     typeDeclarationDocblocks: true,
                     privatization: true,
-                    naming: true,
+                    // naming disattivato: le regole Rename*ToMatch* rinominano parametri e proprietà promosse,
+                    // che con i named arguments fanno parte delle firme pubbliche (CLAUDE.md §5).
                     namedArgs: true,
                     instanceOf: true,
                     earlyReturn: true,

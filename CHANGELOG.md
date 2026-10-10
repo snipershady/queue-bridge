@@ -19,3 +19,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 - `BackendException` (astratta), `ConnectionException`, `BatchSendException`.
 - `InMemoryTransport`, implementazione di riferimento del contratto, con consumer concorrenti (`newConsumer()`), differiti, orfani, DLQ e statistiche.
 - `TransportContractTestCase`: scenari comuni a tutti i backend.
+- `Producer` (limiti in byte, ID UUIDv7, scadenza, pipeline di middleware) con `CorrelationIdMiddleware` (`correlation_id`/`causation_id` tramite `CorrelationContext`) e `TraceContextMiddleware` (W3C `traceparent`).
+- `Worker`: registry degli handler con fallback `*`, middleware, retry con `RetryStrategyInterface` (`ExponentialBackoff`, `FixedDelay`, `NoRetry`), DLQ, `maxDeliveries` contro i messaggi che fanno crashare il worker, scadenza, politiche per canali sconosciuti e messaggi scaduti, ack in batch, manutenzione periodica, limiti di messaggi/tempo/memoria, graceful shutdown con `release()`, eventi del ciclo di vita.
+- Middleware del worker: `LoggingMiddleware`, `TimeoutMiddleware`, `IdempotencyMiddleware` (con `IdempotencyStoreInterface` e `InMemoryIdempotencyStore`), `CorrelationContextMiddleware`.
+- `RetryableException`, `UnrecoverableMessageException`, `UnknownChannelException`.

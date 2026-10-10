@@ -86,6 +86,17 @@ final class MessageTest extends TestCase
         $message->withAttempts(-1);
     }
 
+    public function testWithHeadersReplacesAllHeaders(): void
+    {
+        $message = new Message(MessageId::fromString(self::ID), 'test', 'x', new DateTimeImmutable(), headers: ['a' => '1']);
+
+        self::assertSame(['b' => '2'], $message->withHeaders(['b' => '2'])->headers);
+        self::assertSame(['a' => '1'], $message->headers);
+
+        $this->expectException(InvalidArgumentException::class);
+        $message->withHeaders(['1a' => 'x']);
+    }
+
     public function testIsExpired(): void
     {
         $message = new Message(

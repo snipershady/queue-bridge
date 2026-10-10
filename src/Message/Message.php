@@ -78,6 +78,26 @@ final readonly class Message
         );
     }
 
+    /**
+     * Copia con gli header indicati al posto di quelli attuali.
+     *
+     * @param array<string, string> $headers
+     *
+     * @throws InvalidArgumentException se un header non è valido
+     */
+    public function withHeaders(array $headers): self
+    {
+        return new self(
+            $this->id,
+            $this->channel,
+            $this->text,
+            $this->createdAt,
+            $this->attempts,
+            $this->expiresAt,
+            $headers,
+        );
+    }
+
     public function isExpired(DateTimeImmutable $now): bool
     {
         return $this->expiresAt instanceof DateTimeImmutable && $now >= $this->expiresAt;

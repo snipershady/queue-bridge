@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace snipershady\Queue\Producer\Middleware;
+
+/**
+ * Ponte verso il sistema di tracing dell'applicazione (es. OpenTelemetry).
+ *
+ * @api
+ */
+interface TraceContextProviderInterface
+{
+    /**
+     * @return ?string header W3C `traceparent` dello span corrente; null se non c'è uno span attivo
+     */
+    public function currentTraceparent(): ?string;
+}

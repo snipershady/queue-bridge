@@ -23,7 +23,7 @@ final readonly class FailureReason
     public DateTimeImmutable $failedAt;
 
     /**
-     * @param ?class-string<Throwable> $errorClass null se il motivo non deriva da un'eccezione
+     * @param ?string $errorClass nome della classe dell'eccezione; null se il motivo non deriva da un'eccezione
      */
     public function __construct(
         public FailureKind $kind,

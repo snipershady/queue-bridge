@@ -88,8 +88,7 @@ jobs:
           coverage: none
       - uses: ramsey/composer-install@v3
       - run: composer test:integration -- --group redis
-        # La suite di integrazione arriva con le fasi 4-5 della roadmap: fino ad allora il job non esegue nulla.
-        if: hashFiles('tests/Integration/**/*Test.php') != ''
+        if: hashFiles('tests/Integration/Redis/**/*Test.php') != ''
         env:
           REDIS_DSN: redis://127.0.0.1:6379
 
@@ -117,7 +116,7 @@ jobs:
           coverage: none
       - uses: ramsey/composer-install@v3
       - run: composer test:integration -- --group rabbitmq
-        # La suite di integrazione arriva con le fasi 4-5 della roadmap: fino ad allora il job non esegue nulla.
-        if: hashFiles('tests/Integration/**/*Test.php') != ''
+        # I test RabbitMQ arrivano con la fase 5 della roadmap: fino ad allora il job non esegue nulla.
+        if: hashFiles('tests/Integration/RabbitMq/**/*Test.php') != ''
         env:
           AMQP_DSN: amqp://guest:guest@127.0.0.1:5672

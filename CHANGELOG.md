@@ -23,3 +23,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 - `Worker`: registry degli handler con fallback `*`, middleware, retry con `RetryStrategyInterface` (`ExponentialBackoff`, `FixedDelay`, `NoRetry`), DLQ, `maxDeliveries` contro i messaggi che fanno crashare il worker, scadenza, politiche per canali sconosciuti e messaggi scaduti, ack in batch, manutenzione periodica, limiti di messaggi/tempo/memoria, graceful shutdown con `release()`, eventi del ciclo di vita.
 - Middleware del worker: `LoggingMiddleware`, `TimeoutMiddleware`, `IdempotencyMiddleware` (con `IdempotencyStoreInterface` e `InMemoryIdempotencyStore`), `CorrelationContextMiddleware`.
 - `RetryableException`, `UnrecoverableMessageException`, `UnknownChannelException`.
+- Backend Redis (>= 6.0, Streams): `RedisTransport` con script Lua atomici e controllo di proprietà delle consegne, orfani rimessi in coda con il conteggio delle consegne, differiti in sorted set, DLQ con motivo del fallimento, trim di sicurezza che non perde messaggi, statistiche; `RedisIdempotencyStore`.
+- Rilevamento della versione Redis (`VersionDetector`, `RedisVersionEnum` GE60 → GE84) e strategie per capability scelte da `FeatureSelector` (`XPENDING IDLE`, `XACKDEL`, `XTRIM ACKED`, `XREADGROUP CLAIM`, `DELEX`).
+- Adapter `PhpRedisClient` (ext-redis, riconnessione tramite factory) e `PredisClient` dietro `RedisClientInterface`.
+- `CommandFailedException`, `VersionMismatchException`.

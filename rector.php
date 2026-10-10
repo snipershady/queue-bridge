@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Rector\CodeQuality\Rector\Attribute\ExplicitAttributeNamedArgsRector;
 use Rector\Config\RectorConfig;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\PreferPHPUnitThisCallRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\AddParamArrayDocblockBasedOnCallableNativeFuncCallRector;
+use Rector\TypeDeclarationDocblocks\Rector\ClassMethod\AddReturnDocblockForArrayDimAssignedObjectRector;
 
 return RectorConfig::configure()
                 ->withPaths([
@@ -40,6 +42,10 @@ return RectorConfig::configure()
                     PreferPHPUnitThisCallRector::class,
                     // Gli attributi PHPUnit sono @no-named-arguments (PHPStan argument.named): niente named args nei test.
                     ExplicitAttributeNamedArgsRector::class => [__DIR__.'/tests'],
+                    // Aggiungono docblock più generici dei tipi ereditati dall'interfaccia (es. mixed[][] al posto di
+                    // non-empty-list<non-empty-list<string>>), degradando le firme verificate da PHPStan.
+                    AddParamArrayDocblockBasedOnCallableNativeFuncCallRector::class,
+                    AddReturnDocblockForArrayDimAssignedObjectRector::class,
                 ])
                 ->withCache(__DIR__.'/.rector.cache')
                 ->withAttributesSets(phpunit: true)

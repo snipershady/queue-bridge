@@ -29,3 +29,6 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 - `CommandFailedException`, `VersionMismatchException`.
 - Backend RabbitMQ (AMQP 0-9-1, quorum queue): `RabbitMqTransport` con publisher confirms, ricevute legate al canale, recupero nativo degli orfani, differiti e retry tramite code di attesa a scaglioni (`RetryTiers`, header `x-qb-due-at`), DLQ classic ispezionabile e riaccodabile, `x-delivery-limit` con dead-letter at-least-once come rete di sicurezza, statistiche; `Topology`.
 - `AmqpChannelInterface` e `AmqpConnectorInterface` con gli adapter `PhpAmqpLibChannel` e `PhpAmqpLibConnector` (riapertura del canale dopo ogni errore, riconnessione tramite factory).
+- `QueueFactory` con dispatch dei DTO ai builder registrati, `QueueInterface`/`Queue` (producer, worker, setup, ping, stats, DLQ) e `QueueBridge::factory()` con i builder di InMemory, Redis e RabbitMQ: si cambia backend sostituendo solo il DTO.
+- DTO `StrategyDtoInMemory`, `StrategyDtoRedis` (`fromPhpRedis`, `fromPredis`), `StrategyDtoRabbitMq` (`fromPhpAmqpLib`, `fromConnection`, `fromConnectionFactory`) e i builder `InMemoryTransportBuilder`, `RedisTransportBuilder` (rilevamento e verifica della versione), `RabbitMqTransportBuilder`.
+- `RedisIdempotencyStore::create()`, `UnsupportedStrategyException`.

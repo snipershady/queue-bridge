@@ -6,14 +6,21 @@ namespace snipershady\Queue\Transport\Redis;
 
 use InvalidArgumentException;
 use Override;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use snipershady\Queue\Config\QueueConfig;
+use snipershady\Queue\Exception\VersionMismatchException;
 use snipershady\Queue\Idempotency\IdempotencyStoreInterface;
 use snipershady\Queue\Idempotency\LockToken;
 use snipershady\Queue\Message\MessageId;
 use snipershady\Queue\System\NativeRandom;
 use snipershady\Queue\System\RandomInterface;
 use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
+use snipershady\Queue\Transport\Redis\Feature\FeatureSelector;
 use snipershady\Queue\Transport\Redis\Feature\LockReleaseStrategyInterface;
+use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
+use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
+use snipershady\Queue\Transport\Redis\Version\VersionDetector;
 
 /**
  * Store di idempotenza su Redis: `SET NX PX` per il lock, rilascio condizionato al token (DELEX su
@@ -34,6 +41,22 @@ final readonly class RedisIdempotencyStore implements IdempotencyStoreInterface
         private RandomInterface $random = new NativeRandom(),
     ) {
         $this->keys = new RedisKeys($config);
+    }
+
+    /**
+     * Sceglie il rilascio del lock in base alla versione del server (DELEX su Redis >= 8.4, Lua prima).
+     *
+     * @throws VersionMismatchException se il livello forzato supera la versione del server
+     */
+    public static function create(
+        RedisClientInterface $client,
+        QueueConfig $config = new QueueConfig(),
+        ?RedisVersionEnum $version = null,
+        LoggerInterface $logger = new NullLogger(),
+    ): self {
+        $level = (new VersionDetector($client, $logger))->resolve($version);
+
+        return new self($client, FeatureSelector::select(RedisCapabilities::forVersion($level))->lockRelease, $config);
     }
 
     /**

@@ -106,7 +106,7 @@ jobs:
         image: rabbitmq:${{ matrix.rabbitmq }}-management
         ports: ['5672:5672']
         options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping" --health-interval 5s --health-timeout 5s --health-retries 20
+          --health-cmd "rabbitmq-diagnostics -q check_port_connectivity" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2

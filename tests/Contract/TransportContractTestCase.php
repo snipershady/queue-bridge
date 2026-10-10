@@ -99,7 +99,7 @@ abstract class TransportContractTestCase extends TestCase
         self::assertCount(2, $deliveries);
         $transport->ackBatch($deliveries);
 
-        $this->maintain($transport, self::CLAIM_IDLE_MS);
+        $this->crash($transport);
         self::assertSame([], $this->receive($transport, 10));
     }
 
@@ -117,7 +117,7 @@ abstract class TransportContractTestCase extends TestCase
             self::assertSame($delivery, $deliveries[0]->deliveryCount);
             self::assertSame(0, $deliveries[0]->message->attempts);
 
-            $this->maintain($transport, self::CLAIM_IDLE_MS);
+            $this->crash($transport);
         }
     }
 
@@ -142,7 +142,7 @@ abstract class TransportContractTestCase extends TestCase
         $transport->send($this->message('test', 'reclaimed'));
         [$stale] = $this->receive($transport, 1);
 
-        $this->maintain($transport, self::CLAIM_IDLE_MS);
+        $this->crash($transport);
         $consumer = $this->createConsumer($transport);
         [$current] = $this->receive($consumer, 1);
 
@@ -150,14 +150,14 @@ abstract class TransportContractTestCase extends TestCase
         $transport->release($stale);
 
         // L'ack della vecchia consegna non ha confermato quella nuova: dopo claimIdle torna di nuovo.
-        $this->maintain($consumer, self::CLAIM_IDLE_MS);
+        $this->crash($consumer);
         $again = $this->receive($consumer, 1);
         self::assertCount(1, $again);
         self::assertSame(3, $again[0]->deliveryCount);
 
         $consumer->ack($again[0]);
         $consumer->ack($current);
-        $this->maintain($consumer, self::CLAIM_IDLE_MS);
+        $this->crash($consumer);
         self::assertSame([], $this->receive($consumer, 10));
     }
 
@@ -176,7 +176,7 @@ abstract class TransportContractTestCase extends TestCase
         self::assertSame(1, $second->deliveryCount);
 
         $transport->ack($second);
-        $this->maintain($transport, self::CLAIM_IDLE_MS);
+        $this->crash($transport);
         self::assertSame([], $this->receive($transport, 1));
     }
 
@@ -466,6 +466,16 @@ abstract class TransportContractTestCase extends TestCase
         }
 
         return $all;
+    }
+
+    /**
+     * Il consumer si ferma senza confermare: le sue consegne diventano orfane e vengono recuperate.
+     * Di default trascorre claimIdleMs e si esegue la manutenzione; i backend con recupero nativo
+     * (RabbitMQ) chiudono invece il canale.
+     */
+    protected function crash(TransportInterface $transport): void
+    {
+        $this->maintain($transport, self::CLAIM_IDLE_MS);
     }
 
     /**

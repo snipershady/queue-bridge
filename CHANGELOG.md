@@ -27,3 +27,5 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 - Rilevamento della versione Redis (`VersionDetector`, `RedisVersionEnum` GE60 → GE84) e strategie per capability scelte da `FeatureSelector` (`XPENDING IDLE`, `XACKDEL`, `XTRIM ACKED`, `XREADGROUP CLAIM`, `DELEX`).
 - Adapter `PhpRedisClient` (ext-redis, riconnessione tramite factory) e `PredisClient` dietro `RedisClientInterface`.
 - `CommandFailedException`, `VersionMismatchException`.
+- Backend RabbitMQ (AMQP 0-9-1, quorum queue): `RabbitMqTransport` con publisher confirms, ricevute legate al canale, recupero nativo degli orfani, differiti e retry tramite code di attesa a scaglioni (`RetryTiers`, header `x-qb-due-at`), DLQ classic ispezionabile e riaccodabile, `x-delivery-limit` con dead-letter at-least-once come rete di sicurezza, statistiche; `Topology`.
+- `AmqpChannelInterface` e `AmqpConnectorInterface` con gli adapter `PhpAmqpLibChannel` e `PhpAmqpLibConnector` (riapertura del canale dopo ogni errore, riconnessione tramite factory).

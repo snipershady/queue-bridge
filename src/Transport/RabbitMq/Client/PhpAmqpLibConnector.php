@@ -1,0 +1,91 @@
+<?php
+
+declare(strict_types=1);
+
+namespace snipershady\Queue\Transport\RabbitMq\Client;
+
+use Closure;
+use Override;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AbstractConnection;
+use snipershady\Queue\Exception\ConnectionException;
+use Throwable;
+
+/**
+ * Connector per `php-amqplib`. Riapre il canale dopo ogni errore; con una factory ricrea anche la
+ * connessione quando è caduta.
+ *
+ * @api
+ */
+final class PhpAmqpLibConnector implements AmqpConnectorInterface
+{
+    private ?AbstractConnection $connection;
+
+    private ?AmqpChannelInterface $channel = null;
+
+    private int $generation = 0;
+
+    /** @var ?Closure(): AbstractConnection */
+    private readonly ?Closure $factory;
+
+    /**
+     * @param AbstractConnection|Closure(): AbstractConnection $connection connessione aperta, o factory che ne crea una
+     */
+    public function __construct(
+        AbstractConnection|Closure $connection,
+        private readonly bool $publisherConfirms = true,
+    ) {
+        $this->connection = $connection instanceof AbstractConnection ? $connection : null;
+        $this->factory = $connection instanceof Closure ? $connection : null;
+    }
+
+    #[Override]
+    public function channel(): AmqpChannelInterface
+    {
+        if ($this->channel instanceof AmqpChannelInterface && $this->channel->isOpen()) {
+            return $this->channel;
+        }
+
+        $this->channel = new PhpAmqpLibChannel($this->openChannel(), $this->publisherConfirms);
+        ++$this->generation;
+
+        return $this->channel;
+    }
+
+    #[Override]
+    public function generation(): int
+    {
+        return $this->generation;
+    }
+
+    #[Override]
+    public function reset(): void
+    {
+        $this->channel?->close();
+        $this->channel = null;
+    }
+
+    /**
+     * @throws ConnectionException
+     */
+    private function openChannel(): AMQPChannel
+    {
+        if ($this->factory instanceof Closure && (!$this->connection instanceof AbstractConnection || !$this->connection->isConnected())) {
+            try {
+                $this->connection = ($this->factory)();
+            } catch (Throwable $throwable) {
+                throw ConnectionException::unreachable('RabbitMQ', $throwable->getMessage(), $throwable);
+            }
+        }
+
+        if (!$this->connection instanceof AbstractConnection || !$this->connection->isConnected()) {
+            throw ConnectionException::unreachable('RabbitMQ', 'the connection is closed');
+        }
+
+        try {
+            return $this->connection->channel();
+        } catch (Throwable $throwable) {
+            throw ConnectionException::unreachable('RabbitMQ', $throwable->getMessage(), $throwable);
+        }
+    }
+}

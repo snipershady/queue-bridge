@@ -1,11 +1,13 @@
 # Servizi per la suite di integrazione (composer test:integration).
-# Versione Redis selezionabile: REDIS_VERSION=6.2 docker compose up -d
+# Versione selezionabile: REDIS_VERSION=6.2 RABBITMQ_VERSION=3.13 docker compose up -d
+# Porte non standard, per non scontrarsi con Redis/RabbitMQ installati localmente:
+#   REDIS_DSN=redis://127.0.0.1:16379/0 AMQP_DSN=amqp://guest:guest@127.0.0.1:35672 composer test:integration
 services:
   redis:
     image: "redis:${REDIS_VERSION:-8.4}"
     command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory-policy", "noeviction"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:16379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
@@ -14,11 +16,18 @@ services:
 
   rabbitmq:
     image: "rabbitmq:${RABBITMQ_VERSION:-4}-management"
+    # Con alcuni profili AppArmor l'immagine non riesce a leggere il cookie Erlang dal volume (eacces):
+    # dati in tmpfs e cookie passato alla VM. Solo per test, i dati non sono persistenti.
+    tmpfs:
+      - /var/lib/rabbitmq:rw,mode=1777
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-setcookie queue-bridge-test"
+      RABBITMQ_CTL_ERL_ARGS: "-setcookie queue-bridge-test"
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:35672:5672"
+      - "127.0.0.1:35673:15672"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
       interval: 5s
       timeout: 5s
       retries: 20

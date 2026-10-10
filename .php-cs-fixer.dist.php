@@ -23,9 +23,13 @@ return (new Config())
                 ->setRules([
                     '@Symfony' => true,
                     '@Symfony:risky' => true,
-                    '@PHP83Migration' => true,
+                    // Target = versione minima (8.3). Non usare @PHP8x4Migration+: new_expression_parentheses richiede 8.4.
+                    '@PHP8x3Migration' => true,
                     '@PHP80Migration:risky' => true,
                     '@PHPUnit100Migration:risky' => true,
+                    // Regole dei set 8.4/8.5 che producono codice valido anche su 8.3 (prevengono deprecazioni).
+                    'nullable_type_declaration_for_default_null_value' => true,
+                    'switch_case_semicolon_to_colon' => true,
                     'declare_strict_types' => true,
                     'strict_param' => true,
                     'strict_comparison' => true,
@@ -35,11 +39,13 @@ return (new Config())
                     'self_static_accessor' => true,
                     'void_return' => true,
                     'date_time_immutable' => true,
-                    'mb_str_functions' => true,
+                    // Disattivata: i limiti di dimensione sono in byte (strlen), mb_strlen li trasformerebbe in caratteri.
+                    'mb_str_functions' => false,
                     'use_arrow_functions' => true,
                     'native_function_invocation' => ['include' => ['@compiler_optimized'], 'scope' => 'namespaced', 'strict' => true],
                     'native_constant_invocation' => ['scope' => 'namespaced', 'strict' => true],
-                    'global_namespace_import' => ['import_classes' => true, 'import_constants' => true, 'import_functions' => true],
+                    // import_functions/import_constants disattivati: entrerebbero in conflitto con native_*_invocation (\strlen).
+                    'global_namespace_import' => ['import_classes' => true, 'import_constants' => false, 'import_functions' => false],
                     'ordered_imports' => ['imports_order' => ['class', 'function', 'const'], 'sort_algorithm' => 'alpha'],
                     'ordered_class_elements' => true,
                     'phpdoc_order' => true,

@@ -13,11 +13,9 @@ return RectorConfig::configure()
                     __DIR__.'/examples',
                 ])
                 ->withParallel()
-                ->withSets(
-                    [
-                        LevelSetList::UP_TO_PHP_83,
-                    ],
-                )
+                // Nessun argomento: target = versione minima di composer.json (8.3).
+                // Mai set php84+ o LevelSetList::UP_TO_PHP_84+: produrrebbero codice non eseguibile su 8.3.
+                ->withPhpSets()
                 ->withPreparedSets(
                     deadCode: true,
                     codeQuality: true,

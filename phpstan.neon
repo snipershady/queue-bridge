@@ -7,6 +7,11 @@ includes:
 
 parameters:
     level: max
+    # Range supportato: segnala funzioni assenti in 8.3 e deprecazioni/rimozioni fino a 8.5.
+    # Portare max a 80699 quando PHPStan supporterà PHP 8.6.
+    phpVersion:
+        min: 80300
+        max: 80599
     paths: [src, tests, bin, tools, examples]
     tmpDir: build/phpstan
     treatPhpDocTypesAsCertain: false

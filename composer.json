@@ -8,7 +8,7 @@
         {"name": "snipershady", "email": "perrini.stefano@gmail.com"}
     ],
     "require": {
-        "php": ">=8.3",
+        "php": "~8.3.0 || ~8.4.0 || ~8.5.0 || ~8.6.0",
         "ext-json": "*",
         "psr/clock": "^1.0",
         "psr/log": "^3.0"
@@ -43,7 +43,10 @@
     "bin": ["bin/queue-worker"],
     "config": {
         "sort-packages": true,
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3.0"
+        }
     },
     "minimum-stability": "stable",
     "prefer-stable": true,

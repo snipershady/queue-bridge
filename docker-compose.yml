@@ -1,0 +1,24 @@
+# Servizi per la suite di integrazione (composer test:integration).
+# Versione Redis selezionabile: REDIS_VERSION=6.2 docker compose up -d
+services:
+  redis:
+    image: "redis:${REDIS_VERSION:-8.4}"
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  rabbitmq:
+    image: "rabbitmq:${RABBITMQ_VERSION:-4}-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

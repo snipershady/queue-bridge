@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         cacheDirectory="build/phpunit-cache"
+         colors="true"
+         executionOrder="random"
+         requireCoverageMetadata="true"
+         beStrictAboutCoverageMetadata="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         failOnDeprecation="true"
+         failOnNotice="true"
+         failOnEmptyTestSuite="true">
+    <php>
+        <ini name="error_reporting" value="-1"/>
+        <ini name="display_errors" value="1"/>
+        <env name="REDIS_DSN" value="redis://127.0.0.1:6379"/>
+        <env name="AMQP_DSN" value="amqp://guest:guest@127.0.0.1:5672"/>
+    </php>
+    <testsuites>
+        <testsuite name="unit"><directory>tests/Unit</directory><directory>tests/Contract</directory></testsuite>
+        <testsuite name="integration"><directory>tests/Integration</directory></testsuite>
+    </testsuites>
+    <source>
+        <include><directory>src</directory></include>
+    </source>
+</phpunit>

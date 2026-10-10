@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Rector\CodeQuality\Rector\Attribute\ExplicitAttributeNamedArgsRector;
 use Rector\Config\RectorConfig;
+use Rector\PHPUnit\CodeQuality\Rector\Class_\PreferPHPUnitThisCallRector;
 
 return RectorConfig::configure()
                 ->withPaths([
@@ -31,6 +33,13 @@ return RectorConfig::configure()
                     phpunitNarrowAsserts: true,
                     phpunitMockToStub: true,
                 )
+                ->withSkip([
+                    // Conflitto con php-cs-fixer php_unit_test_case_static_method_calls (call_type: self),
+                    // configurato esplicitamente: vince la regola più specifica, quindi la si salta qui.
+                    PreferPHPUnitThisCallRector::class,
+                    // Gli attributi PHPUnit sono @no-named-arguments (PHPStan argument.named): niente named args nei test.
+                    ExplicitAttributeNamedArgsRector::class => [__DIR__.'/tests'],
+                ])
                 ->withCache(__DIR__.'/.rector.cache')
                 ->withAttributesSets(phpunit: true)
                 ->withComposerBased(phpunit: true)

@@ -3,9 +3,20 @@
     "description": "Backend-agnostic PHP 8.3+ message queue: one typed API for Redis Streams and RabbitMQ, with retries, DLQ, delayed messages and automatic Redis version detection.",
     "type": "library",
     "license": "GPL-2.0-only",
-    "keywords": ["queue", "redis", "redis-streams", "rabbitmq", "amqp", "messaging", "dlq"],
+    "keywords": [
+        "queue",
+        "redis",
+        "redis-streams",
+        "rabbitmq",
+        "amqp",
+        "messaging",
+        "dlq"
+    ],
     "authors": [
-        {"name": "snipershady", "email": "perrini.stefano@gmail.com"}
+        {
+            "name": "snipershady",
+            "email": "perrini.stefano@gmail.com"
+        }
     ],
     "require": {
         "php": "~8.3.0 || ~8.4.0 || ~8.5.0 || ~8.6.0",
@@ -15,14 +26,18 @@
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.64",
+        "infection/infection": "^0.35.6",
         "php-amqplib/php-amqplib": "^3.7",
+        "phpat/phpat": "^0.12.5",
         "phpstan/phpstan": "^2.0",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.0",
         "phpunit/phpunit": "^11.5",
         "predis/predis": "^2.3",
-        "rector/rector": "^2.0"
+        "rector/rector": "^2.0",
+        "shipmonk/dead-code-detector": "^1.4",
+        "tomasvotruba/type-coverage": "^2.5"
     },
     "suggest": {
         "ext-redis": "Preferred Redis client (PhpRedis)",
@@ -32,20 +47,25 @@
     },
     "autoload": {
         "psr-4": {
-            "Snipershady\\Queue\\": "src/"
+            "snipershady\\Queue\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Snipershady\\Queue\\Tests\\": "tests/"
+            "snipershady\\Queue\\Tests\\": "tests/"
         }
     },
-    "bin": ["bin/queue-worker"],
+    "bin": [
+        "bin/queue-worker"
+    ],
     "config": {
         "sort-packages": true,
         "optimize-autoloader": true,
         "platform": {
             "php": "8.3.0"
+        },
+        "allow-plugins": {
+            "infection/extension-installer": true
         }
     },
     "minimum-stability": "stable",
@@ -59,11 +79,21 @@
         "test": "phpunit --testsuite unit",
         "test:coverage": [
             "@putenv XDEBUG_MODE=coverage",
-            "phpunit --testsuite unit --coverage-clover build/clover.xml",
+            "phpunit --testsuite unit --path-coverage --coverage-clover build/clover.xml",
             "php tools/check-coverage.php build/clover.xml"
         ],
         "test:integration": "phpunit --testsuite integration",
-        "qa:validate": ["composer validate --strict", "composer audit"],
-        "qa": ["@qa:validate", "@rector:check", "@cs:check", "@stan", "@test:coverage"]
+        "mutation": "infection --threads=max --min-msi=85",
+        "qa:validate": [
+            "composer validate --strict",
+            "composer audit"
+        ],
+        "qa": [
+            "@qa:validate",
+            "@rector:check",
+            "@cs:check",
+            "@stan",
+            "@test:coverage"
+        ]
     }
 }

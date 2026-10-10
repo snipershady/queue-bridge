@@ -8,6 +8,7 @@
 /CLAUDE.md                export-ignore
 /docker-compose.yml       export-ignore
 /examples/                export-ignore
+/infection.json5          export-ignore
 /phpstan.neon             export-ignore
 /phpunit.xml.dist         export-ignore
 /rector.php               export-ignore

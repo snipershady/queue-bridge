@@ -3,6 +3,9 @@ includes:
     - vendor/phpstan/phpstan-phpunit/extension.neon
     - vendor/phpstan/phpstan-phpunit/rules.neon
     - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+    - vendor/phpat/phpat/extension.neon
+    - vendor/tomasvotruba/type-coverage/config/extension.neon
+    - vendor/shipmonk/dead-code-detector/rules.neon
     - phar://vendor/phpstan/phpstan/phpstan.phar/conf/bleedingEdge.neon
 
 parameters:
@@ -25,3 +28,11 @@ parameters:
     reportAnyTypeWideningInVarTag: true
     reportUnmatchedIgnoredErrors: true
     polluteScopeWithLoopInitialAssignments: false
+    type_coverage:
+        return: 100
+        param: 100
+        property: 100
+        constant: 100
+
+services:
+    - { class: snipershady\Queue\Tests\Architecture\LayerTest, tags: [phpat.test] }

@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    name: QA (PHP 8.3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: redis, pcntl, json, mbstring
+          coverage: xdebug
+          tools: composer:v2
+      - uses: ramsey/composer-install@v3
+      - run: composer qa
+
+  mutation:
+    name: Mutation testing
+    runs-on: ubuntu-latest
+    needs: qa
+    continue-on-error: true # non bloccante finché l'MSI non è stabile (CLAUDE.md §14.5)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: redis, pcntl, json, mbstring
+          coverage: xdebug
+      - uses: ramsey/composer-install@v3
+      - run: composer mutation
+
+  unit:
+    name: Unit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+        experimental: [false]
+        include:
+          - php: '8.6'
+            experimental: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: redis, pcntl, json, mbstring
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: composer test
+
+  integration-redis:
+    name: Integration Redis ${{ matrix.redis }} (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs: qa
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+        redis: ['6.0', '6.2', '7.0', '7.4', '8.0', '8.2', '8.4']
+    services:
+      redis:
+        image: redis:${{ matrix.redis }}
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 2s --health-timeout 2s --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: redis, pcntl, json, mbstring
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: composer test:integration -- --group redis
+        # La suite di integrazione arriva con le fasi 4-5 della roadmap: fino ad allora il job non esegue nulla.
+        if: hashFiles('tests/Integration/**/*Test.php') != ''
+        env:
+          REDIS_DSN: redis://127.0.0.1:6379
+
+  integration-rabbitmq:
+    name: Integration RabbitMQ ${{ matrix.rabbitmq }} (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs: qa
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+        rabbitmq: ['3.13', '4']
+    services:
+      rabbitmq:
+        image: rabbitmq:${{ matrix.rabbitmq }}-management
+        ports: ['5672:5672']
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pcntl, json, mbstring, sockets
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: composer test:integration -- --group rabbitmq
+        # La suite di integrazione arriva con le fasi 4-5 della roadmap: fino ad allora il job non esegue nulla.
+        if: hashFiles('tests/Integration/**/*Test.php') != ''
+        env:
+          AMQP_DSN: amqp://guest:guest@127.0.0.1:5672

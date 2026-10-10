@@ -12,7 +12,7 @@ use snipershady\Queue\Text\DecodedText;
 /**
  * Canale → handler. Il canale speciale `*` registra l'handler di fallback per i canali senza handler.
  *
- * @api
+ * @internal
  */
 final class HandlerRegistry
 {

@@ -7,7 +7,7 @@ namespace snipershady\Queue\Transport\Redis\Version;
 /**
  * Funzionalità per feature (non per versione): il codice chiede `$caps->xackdel`, mai `$version >= ...`.
  *
- * @api
+ * @internal
  */
 final readonly class RedisCapabilities
 {

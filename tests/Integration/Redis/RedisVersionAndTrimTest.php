@@ -26,7 +26,7 @@ use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
 use snipershady\Queue\Transport\Redis\Version\VersionDetector;
 
 /**
- * CLAUDE.md §15.3: auto-rilevamento e override sul server reale, nessuna perdita di messaggi con il trim.
+ * Auto-rilevamento e override sul server reale, nessuna perdita di messaggi con il trim.
  */
 #[Group('redis')]
 #[CoversClass(VersionDetector::class)]

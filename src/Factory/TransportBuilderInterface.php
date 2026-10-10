@@ -11,7 +11,7 @@ use snipershady\Queue\Transport\TransportInterface;
 
 /**
  * Crea il transport per un tipo di DTO. Per un backend nuovo: un DTO, un TransportInterface e un builder,
- * registrato con `new QueueFactory(builders: [...])` (CLAUDE.md §6.2).
+ * registrato con `new QueueFactory(builders: [...])`.
  *
  * @api
  */

@@ -42,7 +42,7 @@ use Throwable;
 
 /**
  * Consuma una coda: per ogni messaggio applica controlli (consegne, scadenza, canale), middleware e handler,
- * poi conferma, ritenta o sposta in DLQ (CLAUDE.md §9).
+ * poi conferma, ritenta o sposta in DLQ.
  *
  * @api
  */
@@ -75,7 +75,7 @@ final class Worker implements WorkerInterface
         private readonly TextDecoder $textDecoder = new TextDecoder(),
     ) {
         foreach ($config->middlewares as $middleware) {
-            // Un handler ancora in esecuzione oltre claimIdleMs verrebbe ripreso da un altro worker (CLAUDE.md §9.1).
+            // Un handler ancora in esecuzione oltre claimIdleMs verrebbe ripreso da un altro worker.
             if ($middleware instanceof TimeoutMiddleware && $middleware->timeoutSeconds() * 1000 >= $queueConfig->claimIdleMs) {
                 throw new InvalidArgumentException(\sprintf('Handler timeout (%d s) must be shorter than claimIdleMs (%d ms).', $middleware->timeoutSeconds(), $queueConfig->claimIdleMs));
             }

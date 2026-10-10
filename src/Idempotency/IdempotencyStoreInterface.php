@@ -9,7 +9,7 @@ use snipershady\Queue\Exception\BackendException;
 use snipershady\Queue\Message\MessageId;
 
 /**
- * Memoria dei messaggi già elaborati, indipendente dal transport (CLAUDE.md §9.9).
+ * Memoria dei messaggi già elaborati, indipendente dal transport.
  *
  * @api
  */

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * Gate di coverage al 100% (CLAUDE.md §14.5): metodi, istruzioni, branch ed elementi.
+ * Gate di coverage al 100%: metodi, istruzioni, branch ed elementi.
  *
  * Uso: php tools/check-coverage.php build/clover.xml
  *

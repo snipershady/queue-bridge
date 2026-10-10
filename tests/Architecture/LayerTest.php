@@ -10,7 +10,7 @@ use PHPat\Test\Builder\Rule;
 use PHPat\Test\PHPat;
 
 /**
- * Regole di dipendenza di CLAUDE.md §3.1, verificate da PHPStan tramite phpat.
+ * Regole di dipendenza tra core, adapter e composition root, verificate da PHPStan tramite phpat.
  */
 final class LayerTest
 {

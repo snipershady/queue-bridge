@@ -34,7 +34,7 @@ use snipershady\Queue\Worker\WorkerExitReason;
 use Throwable;
 
 /**
- * Lo stesso scenario su ogni backend: cambia soltanto il DTO passato a create() (CLAUDE.md §1, §6, DoD).
+ * Lo stesso scenario su ogni backend: cambia soltanto il DTO passato a create().
  */
 #[CoversClass(QueueBridge::class)]
 #[CoversClass(QueueFactory::class)]

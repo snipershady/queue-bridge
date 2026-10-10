@@ -9,7 +9,7 @@ use InvalidArgumentException;
 /**
  * Durate delle code di attesa. Per un ritardo si usa lo scaglione più grande non superiore al tempo residuo
  * (il più piccolo se il residuo è inferiore): il messaggio porta l'istante di scadenza e, se torna prima,
- * viene rimandato in attesa per il tempo che manca (CLAUDE.md §10).
+ * viene rimandato in attesa per il tempo che manca.
  *
  * @api
  */

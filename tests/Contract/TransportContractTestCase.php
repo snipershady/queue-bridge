@@ -25,7 +25,7 @@ use snipershady\Queue\Transport\OrphanRecovery;
 use snipershady\Queue\Transport\TransportInterface;
 
 /**
- * Scenari che ogni backend deve superare con la stessa sequenza di eventi osservabili (CLAUDE.md §15).
+ * Scenari che ogni backend deve superare con la stessa sequenza di eventi osservabili.
  *
  * Le sottoclassi forniscono il transport, un secondo consumer della stessa coda e il passare del tempo.
  */

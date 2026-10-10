@@ -6,6 +6,10 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-10
+
+Prima release stabile.
+
 ### Added
 
 - Scaffold del progetto: toolchain di qualità (Rector, php-cs-fixer, PHPStan `max` con phpat, type-coverage e dead-code-detector, PHPUnit), gate di coverage al 100% su metodi, istruzioni e branch, mutation testing con Infection, CI su PHP 8.3–8.5 (8.6 sperimentale) e `docker-compose.yml` per Redis e RabbitMQ.
@@ -32,3 +36,15 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 - `QueueFactory` con dispatch dei DTO ai builder registrati, `QueueInterface`/`Queue` (producer, worker, setup, ping, stats, DLQ) e `QueueBridge::factory()` con i builder di InMemory, Redis e RabbitMQ: si cambia backend sostituendo solo il DTO.
 - DTO `StrategyDtoInMemory`, `StrategyDtoRedis` (`fromPhpRedis`, `fromPredis`), `StrategyDtoRabbitMq` (`fromPhpAmqpLib`, `fromConnection`, `fromConnectionFactory`) e i builder `InMemoryTransportBuilder`, `RedisTransportBuilder` (rilevamento e verifica della versione), `RabbitMqTransportBuilder`.
 - `RedisIdempotencyStore::create()`, `UnsupportedStrategyException`.
+- `MultiQueueWorker`: consuma più code a turno nello stesso processo, con limiti, `stopWhenEmpty` e graceful shutdown comuni.
+- `Dsn/`: `DsnParser`, `Dsn`, `StrategyEnum` e `StrategyDtoFactory::fromDsn()` per `redis://`, `rediss://`, `amqp://`, `amqps://` e `memory://`, con opzioni in query string (client, versione, consumer, prefetch, confirms, scaglioni, heartbeat, timeout).
+- CLI `bin/queue-worker` scritta senza dipendenze: `work` (handler da file di bootstrap), `stats`, `ping`, `dlq:list`, `dlq:requeue`, `dlq:purge --force`; DSN da `--dsn` o `QUEUE_DSN`, output JSON, log su stderr, exit code 0/1/2.
+- Benchmark `tests/Benchmark/benchmark.php` (publish, publish in batch e consume in msg/s per backend e livello Redis) con risultati nel README.
+- Esempi in `examples/`: avvio rapido, cambio di backend sostituendo solo il DTO, bootstrap per la CLI e un esempio per ogni backend: Redis (riconnessione, nome del consumer, store di idempotenza su Redis, differiti, DLQ), RabbitMQ (scaglioni di retry, prefetch, retry tramite coda di attesa), InMemory nei test con un orologio manuale, consumo senza Worker con decodifica manuale, Worker avviato da codice PHP con `MultiQueueWorker`; payload di esempio in `examples/data/` e configurazioni systemd e Supervisor in `examples/deploy/`.
+- README in inglese con confronto tra Redis, RabbitMQ e InMemory (vantaggi e svantaggi), integrazione per backend, consumo con e senza Worker, CLI, configurazione consigliata dei server, garanzie e limiti, versioni Redis, benchmark, estensione; traduzione italiana in `README_IT.md`.
+- `UPGRADE.md` con la politica di compatibilità (API `@api`/`@internal`, deprecazioni, wire format, layout di chiavi e topologia).
+- CI: test unitari su PHP 8.3, 8.4, 8.5 (8.6 sperimentale), integrazione su Redis 6.0, 6.2, 7.0, 7.4, 8.0, 8.2, 8.4 e RabbitMQ 3.13, 4.x per ogni versione di PHP, job end-to-end (cambio di backend, esempi, CLI, benchmark) con Redis 6.0 e 8.4; mutation testing bloccante (MSI >= 85%).
+- API pubblica marcata `@api`; strategie Redis, script Lua, topologia RabbitMQ, parsing dei DSN, interni di CLI e Worker marcati `@internal`.
+
+[Unreleased]: https://github.com/snipershady/queue-bridge/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/snipershady/queue-bridge/releases/tag/v1.0.0

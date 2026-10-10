@@ -1,0 +1,6 @@
+[
+    {"id": 1001, "customer": "alice@example.com", "items": [{"sku": "BOOK-1", "qty": 1, "price": "12.90"}], "total": "12.90"},
+    {"id": 1002, "customer": "bob@example.com", "items": [{"sku": "PEN-3", "qty": 3, "price": "1.50"}, {"sku": "INK-1", "qty": 1, "price": "4.00"}], "total": "8.50"},
+    {"id": 1003, "customer": "carla@example.com", "items": [], "total": "0.00"},
+    {"customer": "no-id@example.com", "items": [{"sku": "MUG-2", "qty": 2, "price": "7.00"}], "total": "14.00"}
+]

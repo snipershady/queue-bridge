@@ -1,0 +1,9 @@
+{"type":"user.registered","user":{"id":42,"email":"dana@example.com"}}
+{"type":"invoice.paid","invoice":"INV-2026-0007","amount":"199.00"}
+{"type":"unknown.event"}
+{"invoice":"INV-2026-0008"}
+Plain text: the payload does not have to be JSON.
+12345
+"a JSON string"
+Ünïcödé text, emoji 🚀 and symbols € ✓
+{"broken json":

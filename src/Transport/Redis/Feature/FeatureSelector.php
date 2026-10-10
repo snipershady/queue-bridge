@@ -7,7 +7,7 @@ namespace snipershady\Queue\Transport\Redis\Feature;
 use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
 
 /**
- * Sceglie una strategia per ogni punto di variazione (CLAUDE.md §7.4), una sola volta alla creazione.
+ * Sceglie una strategia per ogni punto di variazione, una sola volta alla creazione.
  *
  * @internal
  */

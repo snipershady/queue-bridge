@@ -18,7 +18,7 @@ use snipershady\Queue\Transport\RabbitMq\RabbitMqTransportBuilder;
 use snipershady\Queue\Transport\Redis\RedisTransportBuilder;
 
 /**
- * Composition root: l'unico punto che conosce i backend forniti (CLAUDE.md §3.1).
+ * Composition root: l'unico punto che conosce i backend forniti.
  *
  *     $queue = QueueBridge::factory($logger)->create(StrategyDtoRedis::fromPhpRedis($redis), new QueueConfig(name: 'messages'));
  *

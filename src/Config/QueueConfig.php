@@ -8,7 +8,7 @@ use InvalidArgumentException;
 
 /**
  * Configurazione della coda, identica per ogni backend: per cambiare backend si sostituisce solo il DTO
- * di strategia (CLAUDE.md §6).
+ * di strategia.
  *
  * @api
  */

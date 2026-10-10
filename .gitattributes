@@ -7,6 +7,7 @@
 /.php-cs-fixer.dist.php   export-ignore
 /CLAUDE.md                export-ignore
 /docker-compose.yml       export-ignore
+# Runnable examples, sample payloads (examples/data) and deployment files (examples/deploy): repository only
 /examples/                export-ignore
 /infection.json5          export-ignore
 /phpstan.neon             export-ignore
@@ -14,6 +15,12 @@
 /rector.php               export-ignore
 /tests/                   export-ignore
 /tools/                   export-ignore
+
+# Example and deployment files keep LF line endings on every platform
+*.service text eol=lf
+*.conf    text eol=lf
+*.json    text eol=lf
+*.txt     text eol=lf
 
 # Binary
 *.gif binary

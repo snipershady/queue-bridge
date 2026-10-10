@@ -39,7 +39,7 @@ use snipershady\Queue\Transport\TransportCapabilities;
 use snipershady\Queue\Transport\TransportInterface;
 
 /**
- * Transport su Redis Streams con un consumer group (CLAUDE.md §8.3).
+ * Transport su Redis Streams con un consumer group.
  *
  * - Ack, retry, reject e release sono script Lua atomici che controllano la proprietà della consegna.
  * - Gli orfani vengono rimessi in coda (non assegnati a chi fa manutenzione), con il totale delle consegne

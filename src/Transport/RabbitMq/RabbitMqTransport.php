@@ -37,7 +37,7 @@ use snipershady\Queue\Transport\TransportCapabilities;
 use snipershady\Queue\Transport\TransportInterface;
 
 /**
- * Transport su RabbitMQ (AMQP 0-9-1) con quorum queue (CLAUDE.md §10).
+ * Transport su RabbitMQ (AMQP 0-9-1) con quorum queue.
  *
  * - Gli orfani tornano in coda da soli quando il canale si chiude (OrphanRecovery::Native): nessuna manutenzione.
  * - Le ricevute sono `generazione:delivery-tag`: dopo la riapertura del canale quelle vecchie non hanno effetto.

@@ -11,9 +11,9 @@ use snipershady\Queue\Exception\VersionMismatchException;
 use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
 
 /**
- * Sceglie il livello Redis: rilevato da `INFO server` (una volta), oppure forzato (CLAUDE.md §7.1).
+ * Sceglie il livello Redis: rilevato da `INFO server` (una volta), oppure forzato.
  *
- * @api
+ * @internal
  */
 final readonly class VersionDetector
 {

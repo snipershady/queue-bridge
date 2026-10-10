@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Rector, php-cs-fixer, PHPStan max + architecture rules, unit tests with 100% coverage (methods, lines, branches).
   qa:
     name: QA (PHP 8.3)
     runs-on: ubuntu-latest
@@ -28,10 +30,9 @@ jobs:
       - run: composer qa
 
   mutation:
-    name: Mutation testing
+    name: Mutation testing (MSI >= 85%)
     runs-on: ubuntu-latest
     needs: qa
-    continue-on-error: true # non bloccante finché l'MSI non è stabile (CLAUDE.md §14.5)
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -64,10 +65,12 @@ jobs:
       - uses: ramsey/composer-install@v3
       - run: composer test
 
+  # Every Redis level of the library runs on a real server of that version (6.0 baseline up to 8.4),
+  # with ext-redis and Predis, on every supported PHP version.
   integration-redis:
-    name: Integration Redis ${{ matrix.redis }} (PHP ${{ matrix.php }})
+    name: Redis ${{ matrix.redis }} (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    needs: qa
+    needs: unit
     strategy:
       fail-fast: false
       matrix:
@@ -88,14 +91,13 @@ jobs:
           coverage: none
       - uses: ramsey/composer-install@v3
       - run: composer test:integration -- --group redis
-        if: hashFiles('tests/Integration/Redis/**/*Test.php') != ''
         env:
-          REDIS_DSN: redis://127.0.0.1:6379
+          REDIS_DSN: redis://127.0.0.1:6379/15
 
   integration-rabbitmq:
-    name: Integration RabbitMQ ${{ matrix.rabbitmq }} (PHP ${{ matrix.php }})
+    name: RabbitMQ ${{ matrix.rabbitmq }} (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    needs: qa
+    needs: unit
     strategy:
       fail-fast: false
       matrix:
@@ -116,7 +118,71 @@ jobs:
           coverage: none
       - uses: ramsey/composer-install@v3
       - run: composer test:integration -- --group rabbitmq
-        # I test RabbitMQ arrivano con la fase 5 della roadmap: fino ad allora il job non esegue nulla.
-        if: hashFiles('tests/Integration/RabbitMq/**/*Test.php') != ''
         env:
           AMQP_DSN: amqp://guest:guest@127.0.0.1:5672
+
+  # Same scenario on the three backends, the examples, the CLI and a short benchmark, with Redis 6.0 and 8.4.
+  end-to-end:
+    name: End-to-end, examples and CLI (Redis ${{ matrix.redis }}, PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs: unit
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.5']
+        redis: ['6.0', '8.4']
+    services:
+      redis:
+        image: redis:${{ matrix.redis }}
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 2s --health-timeout 2s --health-retries 15
+      rabbitmq:
+        image: rabbitmq:4-management
+        ports: ['5672:5672']
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q check_port_connectivity" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      REDIS_DSN: redis://127.0.0.1:6379/15
+      AMQP_DSN: amqp://guest:guest@127.0.0.1:5672
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '6379'
+      AMQP_HOST: 127.0.0.1
+      AMQP_PORT: '5672'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: redis, pcntl, json, mbstring, sockets
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - name: Backend switch test
+        run: vendor/bin/phpunit --testsuite integration --filter SwitchBackendTest
+      - name: Examples
+        run: |
+          set -e
+          php examples/01-quick-start.php
+          php examples/04-redis.php
+          php examples/04-redis.php predis
+          php examples/05-rabbitmq.php
+          php examples/06-in-memory-tests.php
+          for backend in memory redis predis rabbitmq; do
+            php examples/02-switch-backend.php "$backend"
+            php examples/07-manual-consume.php "$backend"
+            php examples/08-worker-in-code.php "$backend"
+          done
+      - name: CLI
+        run: |
+          set -e
+          for dsn in "memory://" "redis://127.0.0.1:6379/14" "redis://127.0.0.1:6379/14?client=predis" "amqp://guest:guest@127.0.0.1:5672"; do
+            bin/queue-worker ping --dsn="$dsn" --queue=ci
+            bin/queue-worker stats --dsn="$dsn" --queue=ci --json
+            bin/queue-worker work --dsn="$dsn" --queue=ci --bootstrap=examples/03-worker-bootstrap.php --stop-when-empty --timeout=200
+            bin/queue-worker dlq:list --dsn="$dsn" --queue=ci
+            bin/queue-worker dlq:purge --dsn="$dsn" --queue=ci --force
+          done
+      - name: Benchmark (smoke)
+        run: |
+          php tests/Benchmark/benchmark.php 'redis://127.0.0.1:6379/14' 2000 100
+          php tests/Benchmark/benchmark.php 'amqp://guest:guest@127.0.0.1:5672' 2000 100

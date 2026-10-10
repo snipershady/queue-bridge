@@ -23,7 +23,7 @@ use snipershady\Queue\Transport\RabbitMq\Topology;
 use Throwable;
 
 /**
- * CLAUDE.md §15.4: topologia (delivery-limit e DLX), scaglioni di retry, riconnessione.
+ * Topologia (delivery-limit e DLX), scaglioni di retry, riconnessione.
  */
 #[Group('rabbitmq')]
 #[CoversClass(RabbitMqTransport::class)]

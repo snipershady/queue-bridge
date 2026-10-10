@@ -7,7 +7,7 @@ namespace snipershady\Queue\Transport\Redis\Version;
 use snipershady\Queue\Exception\VersionMismatchException;
 
 /**
- * Livelli di Redis che cambiano il modo in cui la libreria esegue i comandi (CLAUDE.md §7.3).
+ * Livelli di Redis che cambiano il modo in cui la libreria esegue i comandi.
  *
  * @api
  */

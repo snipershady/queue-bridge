@@ -9,7 +9,7 @@ use snipershady\Queue\Message\Message;
 
 /**
  * Converte un Message nel wire format: una mappa piatta di stringhe, salvata come campi dello Stream
- * su Redis o come body + header su RabbitMQ (CLAUDE.md §8.4).
+ * su Redis o come body + header su RabbitMQ. Pubblica perché serve anche a chi implementa un backend esterno.
  *
  * @api
  */

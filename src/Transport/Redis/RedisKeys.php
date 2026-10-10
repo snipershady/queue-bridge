@@ -8,7 +8,7 @@ use snipershady\Queue\Config\QueueConfig;
 use snipershady\Queue\Message\MessageId;
 
 /**
- * Chiavi di una coda (CLAUDE.md §8.3). Il nome della coda è sempre tra hash tag: tutte le chiavi cadono
+ * Chiavi di una coda. Il nome della coda è sempre tra hash tag: tutte le chiavi cadono
  * nello stesso slot di Redis Cluster, requisito degli script Lua multi-key.
  *
  * @internal

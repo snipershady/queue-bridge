@@ -24,7 +24,7 @@ use snipershady\Queue\Transport\Redis\Version\VersionDetector;
 
 /**
  * Store di idempotenza su Redis: `SET NX PX` per il lock, rilascio condizionato al token (DELEX su
- * Redis >= 8.4, Lua prima). Usabile anche quando il transport è RabbitMQ (CLAUDE.md §9.9).
+ * Redis >= 8.4, Lua prima). Usabile anche quando il transport è RabbitMQ.
  *
  * @api
  */

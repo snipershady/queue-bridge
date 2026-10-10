@@ -1,0 +1,22 @@
+# systemd unit for one worker process: copy to /etc/systemd/system/queue-worker@.service and start N instances with
+#   systemctl enable --now queue-worker@1 queue-worker@2 queue-worker@3
+# The worker exits after one hour or 256 MB and systemd restarts it; SIGTERM triggers a graceful shutdown.
+[Unit]
+Description=queue-bridge worker %i
+After=network-online.target redis-server.service rabbitmq-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/app
+Environment=QUEUE_DSN=redis://127.0.0.1:6379/0?consumer=%H-%i
+ExecStart=/usr/bin/php vendor/bin/queue-worker work --queue=messages --bootstrap=config/queue-handlers.php --max-runtime=3600 --memory-limit=256
+Restart=always
+RestartSec=1
+KillSignal=SIGTERM
+# Longer than the slowest handler: the worker finishes the current message before exiting.
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

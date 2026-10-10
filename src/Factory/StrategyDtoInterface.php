@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace snipershady\Queue\Factory;
 
 /**
- * Backend, connessione e opzioni del backend in un solo oggetto tipizzato (CLAUDE.md §6). Per cambiare
+ * Backend, connessione e opzioni del backend in un solo oggetto tipizzato. Per cambiare
  * backend si sostituisce solo il DTO passato a QueueFactoryInterface::create().
  *
  * @api

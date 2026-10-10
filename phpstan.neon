@@ -1,0 +1,22 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+    - phar://vendor/phpstan/phpstan/phpstan.phar/conf/bleedingEdge.neon
+
+parameters:
+    level: max
+    paths: [src, tests, bin, tools, examples]
+    tmpDir: build/phpstan
+    treatPhpDocTypesAsCertain: false
+    checkMissingCallableSignature: true
+    checkUninitializedProperties: true
+    checkBenevolentUnionTypes: true
+    checkImplicitMixed: true
+    checkExplicitMixed: true
+    checkMissingOverrideMethodAttribute: true
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    reportAnyTypeWideningInVarTag: true
+    reportUnmatchedIgnoredErrors: true
+    polluteScopeWithLoopInitialAssignments: false

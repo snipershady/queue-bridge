@@ -1,0 +1,22 @@
+* text=auto eol=lf
+
+# Export-ignore: dev-only files are left out of `composer archive` / GitHub zip downloads
+/.github/                 export-ignore
+/.gitattributes           export-ignore
+/.gitignore               export-ignore
+/.php-cs-fixer.dist.php   export-ignore
+/CLAUDE.md                export-ignore
+/docker-compose.yml       export-ignore
+/examples/                export-ignore
+/phpstan.neon             export-ignore
+/phpunit.xml.dist         export-ignore
+/rector.php               export-ignore
+/tests/                   export-ignore
+/tools/                   export-ignore
+
+# Binary
+*.gif binary
+*.png binary
+*.jpg binary
+
+composer.lock -diff

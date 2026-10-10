@@ -1,0 +1,66 @@
+{
+    "name": "snipershady/queue-bridge",
+    "description": "Backend-agnostic PHP 8.3+ message queue: one typed API for Redis Streams and RabbitMQ, with retries, DLQ, delayed messages and automatic Redis version detection.",
+    "type": "library",
+    "license": "GPL-2.0-only",
+    "keywords": ["queue", "redis", "redis-streams", "rabbitmq", "amqp", "messaging", "dlq"],
+    "authors": [
+        {"name": "snipershady", "email": "perrini.stefano@gmail.com"}
+    ],
+    "require": {
+        "php": ">=8.3",
+        "ext-json": "*",
+        "psr/clock": "^1.0",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "php-amqplib/php-amqplib": "^3.7",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^11.5",
+        "predis/predis": "^2.3",
+        "rector/rector": "^2.0"
+    },
+    "suggest": {
+        "ext-redis": "Preferred Redis client (PhpRedis)",
+        "ext-pcntl": "Graceful shutdown on SIGTERM/SIGINT in the worker",
+        "predis/predis": "Alternative Redis client",
+        "php-amqplib/php-amqplib": "Required for the RabbitMQ backend"
+    },
+    "autoload": {
+        "psr-4": {
+            "Snipershady\\Queue\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Snipershady\\Queue\\Tests\\": "tests/"
+        }
+    },
+    "bin": ["bin/queue-worker"],
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "rector": "rector process",
+        "rector:check": "rector process --dry-run --ansi",
+        "cs:fix": "php-cs-fixer fix --ansi",
+        "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
+        "stan": "phpstan analyse --memory-limit=1G --ansi",
+        "test": "phpunit --testsuite unit",
+        "test:coverage": [
+            "@putenv XDEBUG_MODE=coverage",
+            "phpunit --testsuite unit --coverage-clover build/clover.xml",
+            "php tools/check-coverage.php build/clover.xml"
+        ],
+        "test:integration": "phpunit --testsuite integration",
+        "qa:validate": ["composer validate --strict", "composer audit"],
+        "qa": ["@qa:validate", "@rector:check", "@cs:check", "@stan", "@test:coverage"]
+    }
+}

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\System;
+namespace QueueBridge\Tests\Unit\System;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\System\NativeMemoryMeter;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\NativeSleeper;
-use snipershady\Queue\System\SystemClock;
+use QueueBridge\System\NativeMemoryMeter;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\NativeSleeper;
+use QueueBridge\System\SystemClock;
 
 #[CoversClass(SystemClock::class)]
 #[CoversClass(NativeSleeper::class)]

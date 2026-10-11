@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq\Client;
+namespace QueueBridge\Transport\RabbitMq\Client;
 
 use Closure;
 use Override;
@@ -12,8 +12,8 @@ use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage as NativeMessage;
 use PhpAmqpLib\Wire\AMQPTable;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
 use Throwable;
 
 /**

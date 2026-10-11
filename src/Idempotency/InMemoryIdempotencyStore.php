@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Idempotency;
+namespace QueueBridge\Idempotency;
 
 use InvalidArgumentException;
 use Override;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\RandomInterface;
+use QueueBridge\Message\MessageId;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\RandomInterface;
 
 /**
  * Store in memoria, valido solo nel processo corrente: per test e worker singoli.

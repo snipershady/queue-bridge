@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport;
+namespace QueueBridge\Transport;
 
 /**
  * Funzionalità offerte da un transport: il core adatta il proprio comportamento, senza mai fallire

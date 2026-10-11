@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue;
+namespace QueueBridge;
 
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Factory\QueueFactory;
-use snipershady\Queue\Producer\ProducerMiddlewareInterface;
-use snipershady\Queue\System\NativeMemoryMeter;
-use snipershady\Queue\System\NullSignalHandler;
-use snipershady\Queue\System\PcntlSignalHandler;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Transport\InMemory\InMemoryTransportBuilder;
-use snipershady\Queue\Transport\RabbitMq\RabbitMqTransportBuilder;
-use snipershady\Queue\Transport\Redis\RedisTransportBuilder;
+use QueueBridge\Factory\QueueFactory;
+use QueueBridge\Producer\ProducerMiddlewareInterface;
+use QueueBridge\System\NativeMemoryMeter;
+use QueueBridge\System\NullSignalHandler;
+use QueueBridge\System\PcntlSignalHandler;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Transport\InMemory\InMemoryTransportBuilder;
+use QueueBridge\Transport\RabbitMq\RabbitMqTransportBuilder;
+use QueueBridge\Transport\Redis\RedisTransportBuilder;
 
 /**
  * Composition root: l'unico punto che conosce i backend forniti.

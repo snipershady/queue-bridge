@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\RedisKeys;
-use snipershady\Queue\Transport\Redis\RedisReply;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\RedisKeys;
+use QueueBridge\Transport\Redis\RedisReply;
 
 /**
  * Il gruppo della coda in `XINFO GROUPS`, come mappa campo → valore.

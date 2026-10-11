@@ -9,15 +9,15 @@ declare(strict_types=1);
  *   php examples/06-in-memory-tests.php
  */
 
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\RetryableException;
+use QueueBridge\Message\Message;
+use QueueBridge\QueueBridge;
+use QueueBridge\Retry\FixedDelay;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Worker\ExpiredMessagePolicy;
+use QueueBridge\Worker\WorkerConfig;
 use QueueBridgeExamples\ManualClock;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\RetryableException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Retry\FixedDelay;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Worker\ExpiredMessagePolicy;
-use snipershady\Queue\Worker\WorkerConfig;
 
 require __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Support/ManualClock.php';

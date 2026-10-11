@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker\Event;
+namespace QueueBridge\Worker\Event;
 
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\FailureReason;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\FailureReason;
 
 /**
  * @api

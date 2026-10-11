@@ -8,12 +8,12 @@ declare(strict_types=1);
  *   php examples/01-quick-start.php
  */
 
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Text\DecodedText;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Worker\WorkerConfig;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\Message;
+use QueueBridge\QueueBridge;
+use QueueBridge\Text\DecodedText;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Worker\WorkerConfig;
 
 require __DIR__.'/../vendor/autoload.php';
 

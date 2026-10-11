@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Producer;
+namespace QueueBridge\Producer;
 
 use InvalidArgumentException;
 use Override;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\Envelope;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\OutgoingMessage;
-use snipershady\Queue\System\IdGeneratorInterface;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\Envelope;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\OutgoingMessage;
+use QueueBridge\System\IdGeneratorInterface;
+use QueueBridge\System\SystemClock;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Transport\TransportInterface;
 
 /**
  * Crea i messaggi (ID, data di creazione, scadenza), applica i middleware e i limiti di QueueConfig,

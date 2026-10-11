@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\InMemory;
+namespace QueueBridge\Transport\InMemory;
 
 use Override;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\UnsupportedStrategyException;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Factory\TransportBuilderInterface;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\UnsupportedStrategyException;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Factory\TransportBuilderInterface;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Transport\TransportInterface;
 
 /**
  * @api

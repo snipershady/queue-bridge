@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport;
+namespace QueueBridge\Transport;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
-use snipershady\Queue\Message\Message;
+use QueueBridge\Message\Message;
 
 /**
  * Messaggio ancora in coda, letto senza consumarlo.

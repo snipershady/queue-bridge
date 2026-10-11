@@ -2,31 +2,31 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Contract;
+namespace QueueBridge\Tests\Contract;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\Envelope;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Transport\Capability\BatchAckAwareInterface;
+use QueueBridge\Transport\Capability\BrowseAwareInterface;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\Capability\MaintenanceAwareInterface;
+use QueueBridge\Transport\Capability\PurgeAwareInterface;
+use QueueBridge\Transport\Capability\SetupAwareInterface;
+use QueueBridge\Transport\Capability\StatsAwareInterface;
+use QueueBridge\Transport\OrphanRecovery;
+use QueueBridge\Transport\QueuedMessage;
+use QueueBridge\Transport\QueuedMessageState;
+use QueueBridge\Transport\TransportInterface;
 use RuntimeException;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\Envelope;
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
-use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
-use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
-use snipershady\Queue\Transport\Capability\SetupAwareInterface;
-use snipershady\Queue\Transport\Capability\StatsAwareInterface;
-use snipershady\Queue\Transport\OrphanRecovery;
-use snipershady\Queue\Transport\QueuedMessage;
-use snipershady\Queue\Transport\QueuedMessageState;
-use snipershady\Queue\Transport\TransportInterface;
 
 /**
  * Scenari che ogni backend deve superare con la stessa sequenza di eventi osservabili.

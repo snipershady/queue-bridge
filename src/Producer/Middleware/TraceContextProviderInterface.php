@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Producer\Middleware;
+namespace QueueBridge\Producer\Middleware;
 
 /**
  * Ponte verso il sistema di tracing dell'applicazione (es. OpenTelemetry).

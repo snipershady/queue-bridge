@@ -17,15 +17,15 @@ declare(strict_types=1);
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Predis\Client;
-use snipershady\Queue\Cli\CommandLine;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
-use snipershady\Queue\Worker\WorkerConfig;
+use QueueBridge\Cli\CommandLine;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Message\Message;
+use QueueBridge\QueueBridge;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\RabbitMq\StrategyDtoRabbitMq;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
+use QueueBridge\Worker\WorkerConfig;
 
 require __DIR__.'/../vendor/autoload.php';
 

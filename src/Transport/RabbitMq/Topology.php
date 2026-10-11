@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq;
+namespace QueueBridge\Transport\RabbitMq;
 
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpChannelInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Transport\RabbitMq\Client\AmqpChannelInterface;
 
 /**
  * Exchange e code di una coda logica (prefix `rq`, coda `messages`):

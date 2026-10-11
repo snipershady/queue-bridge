@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport;
+namespace QueueBridge\Transport;
 
 /**
  * Stato di un messaggio ancora in coda, restituito da BrowseAwareInterface::browse().

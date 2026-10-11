@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq;
+namespace QueueBridge\Transport\RabbitMq;
 
 use Closure;
 use DateTimeImmutable;
@@ -11,34 +11,34 @@ use Override;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Codec\EnvelopeCodec;
-use snipershady\Queue\Codec\EnvelopeCodecInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Exception\BatchSendException;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\SerializationException;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
-use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
-use snipershady\Queue\Transport\Capability\SetupAwareInterface;
-use snipershady\Queue\Transport\Capability\StatsAwareInterface;
-use snipershady\Queue\Transport\DeadLetter;
-use snipershady\Queue\Transport\OrphanRecovery;
-use snipershady\Queue\Transport\QueuedMessage;
-use snipershady\Queue\Transport\QueuedMessageState;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpChannelInterface;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpConnectorInterface;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpMessage;
-use snipershady\Queue\Transport\TransportCapabilities;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Codec\EnvelopeCodec;
+use QueueBridge\Codec\EnvelopeCodecInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Exception\BatchSendException;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\SerializationException;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Transport\Capability\BatchAckAwareInterface;
+use QueueBridge\Transport\Capability\BrowseAwareInterface;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\Capability\PurgeAwareInterface;
+use QueueBridge\Transport\Capability\SetupAwareInterface;
+use QueueBridge\Transport\Capability\StatsAwareInterface;
+use QueueBridge\Transport\DeadLetter;
+use QueueBridge\Transport\OrphanRecovery;
+use QueueBridge\Transport\QueuedMessage;
+use QueueBridge\Transport\QueuedMessageState;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Transport\RabbitMq\Client\AmqpChannelInterface;
+use QueueBridge\Transport\RabbitMq\Client\AmqpConnectorInterface;
+use QueueBridge\Transport\RabbitMq\Client\AmqpMessage;
+use QueueBridge\Transport\TransportCapabilities;
+use QueueBridge\Transport\TransportInterface;
 
 /**
  * Transport su RabbitMQ (AMQP 0-9-1) con quorum queue.

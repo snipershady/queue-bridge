@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Version;
+namespace QueueBridge\Transport\Redis\Version;
 
-use snipershady\Queue\Exception\VersionMismatchException;
+use QueueBridge\Exception\VersionMismatchException;
 
 /**
  * Livelli di Redis che cambiano il modo in cui la libreria esegue i comandi.

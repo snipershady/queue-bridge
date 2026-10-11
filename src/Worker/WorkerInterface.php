@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker;
+namespace QueueBridge\Worker;
 
 use InvalidArgumentException;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Text\DecodedText;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Message\Message;
+use QueueBridge\Text\DecodedText;
 
 /**
  * @api

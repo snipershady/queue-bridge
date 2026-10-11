@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq\Client;
+namespace QueueBridge\Transport\RabbitMq\Client;
 
 use Closure;
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
-use snipershady\Queue\Exception\ConnectionException;
+use QueueBridge\Exception\ConnectionException;
 use Throwable;
 
 /**

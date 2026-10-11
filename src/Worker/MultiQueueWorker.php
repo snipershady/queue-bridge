@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker;
+namespace QueueBridge\Worker;
 
 use InvalidArgumentException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\System\MemoryMeterInterface;
-use snipershady\Queue\System\NativeMemoryMeter;
-use snipershady\Queue\System\NullSignalHandler;
-use snipershady\Queue\System\SignalHandlerInterface;
-use snipershady\Queue\System\SystemClock;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\System\MemoryMeterInterface;
+use QueueBridge\System\NativeMemoryMeter;
+use QueueBridge\System\NullSignalHandler;
+use QueueBridge\System\SignalHandlerInterface;
+use QueueBridge\System\SystemClock;
 
 /**
  * Consuma più code a turno (un runOnce() per worker a ogni giro): un canale lento non blocca gli altri.

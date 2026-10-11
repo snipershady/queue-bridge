@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
 /**
  * Come si conferma ed elimina un'entry (dentro gli script Lua).

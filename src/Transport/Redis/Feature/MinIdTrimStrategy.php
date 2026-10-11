@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
 use Override;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\RedisKeys;
-use snipershady\Queue\Transport\Redis\RedisReply;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\RedisKeys;
+use QueueBridge\Transport\Redis\RedisReply;
 
 /**
  * Redis >= 6.2: `XTRIM MINID` con soglia = la più vecchia tra l'entry pendente più vecchia e la successiva

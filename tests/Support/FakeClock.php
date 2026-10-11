@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use DateTimeImmutable;
 use DateTimeZone;

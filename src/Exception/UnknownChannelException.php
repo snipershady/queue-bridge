@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Exception;
+namespace QueueBridge\Exception;
 
 /**
  * Nessun handler registrato per il canale del messaggio.

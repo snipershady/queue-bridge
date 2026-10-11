@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Architecture;
+namespace QueueBridge\Tests\Architecture;
 
 use PHPat\Selector\Selector;
 use PHPat\Selector\SelectorInterface;
@@ -14,7 +14,7 @@ use PHPat\Test\PHPat;
  */
 final class LayerTest
 {
-    private const string ROOT = 'snipershady\Queue';
+    private const string ROOT = 'QueueBridge';
 
     private const string IN_MEMORY = self::ROOT.'\Transport\InMemory';
 

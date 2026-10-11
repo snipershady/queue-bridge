@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker;
+namespace QueueBridge\Worker;
 
 /**
  * Cosa fare di un messaggio ricevuto dopo la sua scadenza (`Message::$expiresAt`).

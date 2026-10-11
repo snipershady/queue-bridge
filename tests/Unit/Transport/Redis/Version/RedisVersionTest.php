@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\Redis\Version;
+namespace QueueBridge\Tests\Unit\Transport\Redis\Version;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\VersionMismatchException;
-use snipershady\Queue\Tests\Support\RecordingLogger;
-use snipershady\Queue\Tests\Support\RecordingRedisClient;
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
-use snipershady\Queue\Transport\Redis\Version\VersionDetector;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\VersionMismatchException;
+use QueueBridge\Tests\Support\RecordingLogger;
+use QueueBridge\Tests\Support\RecordingRedisClient;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
+use QueueBridge\Transport\Redis\Version\VersionDetector;
 
 #[CoversClass(RedisVersionEnum::class)]
 #[CoversClass(RedisCapabilities::class)]

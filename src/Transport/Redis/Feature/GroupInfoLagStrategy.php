@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
 use Override;
-use snipershady\Queue\Transport\Redis\RedisReply;
+use QueueBridge\Transport\Redis\RedisReply;
 
 /**
  * Redis >= 7.0: campo `lag` di XINFO GROUPS (nil se il server non riesce a calcolarlo).

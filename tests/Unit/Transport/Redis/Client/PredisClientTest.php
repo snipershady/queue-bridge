@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\Redis\Client;
+namespace QueueBridge\Tests\Unit\Transport\Redis\Client;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -15,9 +15,9 @@ use Predis\Connection\NodeConnectionInterface;
 use Predis\Response\Error;
 use Predis\Response\ServerException;
 use Predis\Response\Status;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Transport\Redis\Client\PredisClient;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Transport\Redis\Client\PredisClient;
 use stdClass;
 
 #[CoversClass(PredisClient::class)]

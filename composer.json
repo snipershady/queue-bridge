@@ -47,12 +47,12 @@
     },
     "autoload": {
         "psr-4": {
-            "snipershady\\Queue\\": "src/"
+            "QueueBridge\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "snipershady\\Queue\\Tests\\": "tests/"
+            "QueueBridge\\Tests\\": "tests/"
         }
     },
     "bin": [

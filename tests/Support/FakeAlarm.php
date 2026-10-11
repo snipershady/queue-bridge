@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Closure;
 use Override;
-use snipershady\Queue\System\AlarmInterface;
+use QueueBridge\System\AlarmInterface;
 
 /**
  * Allarme controllato dal test: `fire()` esegue il callback programmato come farebbe SIGALRM.

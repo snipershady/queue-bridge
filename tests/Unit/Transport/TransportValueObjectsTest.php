@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport;
+namespace QueueBridge\Tests\Unit\Transport;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -10,18 +10,18 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\Transport\DeadLetter;
-use snipershady\Queue\Transport\MaintenanceReport;
-use snipershady\Queue\Transport\OrphanRecovery;
-use snipershady\Queue\Transport\QueuedMessage;
-use snipershady\Queue\Transport\QueuedMessageState;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Transport\TransportCapabilities;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\Transport\DeadLetter;
+use QueueBridge\Transport\MaintenanceReport;
+use QueueBridge\Transport\OrphanRecovery;
+use QueueBridge\Transport\QueuedMessage;
+use QueueBridge\Transport\QueuedMessageState;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Transport\TransportCapabilities;
 
 #[CoversClass(QueueStats::class)]
 #[CoversClass(MaintenanceReport::class)]

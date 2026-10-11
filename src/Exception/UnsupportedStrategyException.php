@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Exception;
+namespace QueueBridge\Exception;
 
-use snipershady\Queue\Factory\StrategyDtoInterface;
+use QueueBridge\Factory\StrategyDtoInterface;
 
 /**
  * Nessun builder registrato nel QueueFactory accetta il DTO ricevuto.

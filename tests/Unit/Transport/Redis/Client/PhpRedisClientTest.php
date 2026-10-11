@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\Redis\Client;
+namespace QueueBridge\Tests\Unit\Transport\Redis\Client;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Tests\Support\CallLog;
+use QueueBridge\Transport\Redis\Client\PhpRedisClient;
 use Redis;
 use RedisException;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Tests\Support\CallLog;
-use snipershady\Queue\Transport\Redis\Client\PhpRedisClient;
 use stdClass;
 
 #[CoversClass(PhpRedisClient::class)]

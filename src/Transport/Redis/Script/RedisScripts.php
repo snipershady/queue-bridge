@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Script;
+namespace QueueBridge\Transport\Redis\Script;
 
 /**
  * Script Lua come costanti (nessun I/O). Tutte le chiavi di uno script appartengono alla stessa coda e

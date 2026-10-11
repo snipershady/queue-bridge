@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq;
+namespace QueueBridge\Transport\RabbitMq;
 
 use Closure;
 use InvalidArgumentException;
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpConnectorInterface;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Transport\RabbitMq\Client\AmqpConnectorInterface;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibConnector;
 
 /**
  * Backend RabbitMQ. Il DTO non apre canali: li apre (e li riapre) il connector al primo uso.

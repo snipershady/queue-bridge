@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Producer;
+namespace QueueBridge\Tests\Unit\Producer;
 
 use DateTimeImmutable;
 use Override;
@@ -10,15 +10,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Correlation\CorrelationContext;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\Middleware\CorrelationContextMiddleware;
+use QueueBridge\Producer\Middleware\CorrelationIdMiddleware;
+use QueueBridge\Producer\Middleware\TraceContextMiddleware;
+use QueueBridge\Producer\Middleware\TraceContextProviderInterface;
 use RuntimeException;
-use snipershady\Queue\Correlation\CorrelationContext;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\Middleware\CorrelationContextMiddleware;
-use snipershady\Queue\Producer\Middleware\CorrelationIdMiddleware;
-use snipershady\Queue\Producer\Middleware\TraceContextMiddleware;
-use snipershady\Queue\Producer\Middleware\TraceContextProviderInterface;
 
 #[CoversClass(CorrelationContext::class)]
 #[CoversClass(CorrelationIdMiddleware::class)]

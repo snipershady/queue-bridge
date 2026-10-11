@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Message;
+namespace QueueBridge\Message;
 
 /**
  * Motivo per cui un messaggio finisce in DLQ. I valori fanno parte del wire format: non rinominarli.

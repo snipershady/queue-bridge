@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis;
+namespace QueueBridge\Transport\Redis;
 
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\MessageId;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\MessageId;
 
 /**
  * Chiavi di una coda. Il nome della coda è sempre tra hash tag: tutte le chiavi cadono

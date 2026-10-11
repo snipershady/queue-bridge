@@ -2,33 +2,33 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Producer;
+namespace QueueBridge\Tests\Unit\Producer;
 
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\Envelope;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\Message\OutgoingMessage;
-use snipershady\Queue\Producer\Producer;
-use snipershady\Queue\Producer\ProducerMiddlewareInterface;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Tests\Support\CallLog;
-use snipershady\Queue\Tests\Support\FakeClock;
-use snipershady\Queue\Tests\Support\FakeRandom;
-use snipershady\Queue\Tests\Support\RecordingTransport;
-use snipershady\Queue\Transport\InMemory\InMemoryBroker;
-use snipershady\Queue\Transport\InMemory\InMemoryEntry;
-use snipershady\Queue\Transport\InMemory\InMemoryTransport;
-use snipershady\Queue\Transport\TransportCapabilities;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\Envelope;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\Message\OutgoingMessage;
+use QueueBridge\Producer\Producer;
+use QueueBridge\Producer\ProducerMiddlewareInterface;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\SystemClock;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Tests\Support\CallLog;
+use QueueBridge\Tests\Support\FakeClock;
+use QueueBridge\Tests\Support\FakeRandom;
+use QueueBridge\Tests\Support\RecordingTransport;
+use QueueBridge\Transport\InMemory\InMemoryBroker;
+use QueueBridge\Transport\InMemory\InMemoryEntry;
+use QueueBridge\Transport\InMemory\InMemoryTransport;
+use QueueBridge\Transport\TransportCapabilities;
 
 #[CoversClass(Producer::class)]
 #[UsesClass(QueueConfig::class)]

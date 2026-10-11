@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\System;
+namespace QueueBridge\System;
 
 use Override;
 

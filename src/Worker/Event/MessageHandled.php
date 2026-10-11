@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker\Event;
+namespace QueueBridge\Worker\Event;
 
-use snipershady\Queue\Message\Delivery;
+use QueueBridge\Message\Delivery;
 
 /**
  * L'handler è terminato con successo e il messaggio è stato confermato.

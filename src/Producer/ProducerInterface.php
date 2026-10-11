@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Producer;
+namespace QueueBridge\Producer;
 
 use InvalidArgumentException;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Exception\BatchSendException;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\OutgoingMessage;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Exception\BatchSendException;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\OutgoingMessage;
 
 /**
  * @api

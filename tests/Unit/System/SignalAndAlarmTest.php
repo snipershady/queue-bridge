@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\System;
+namespace QueueBridge\Tests\Unit\System;
 
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\System\NullAlarm;
-use snipershady\Queue\System\NullSignalHandler;
-use snipershady\Queue\System\PcntlAlarm;
-use snipershady\Queue\System\PcntlSignalHandler;
+use QueueBridge\System\NullAlarm;
+use QueueBridge\System\NullSignalHandler;
+use QueueBridge\System\PcntlAlarm;
+use QueueBridge\System\PcntlSignalHandler;
 
 #[CoversClass(PcntlSignalHandler::class)]
 #[CoversClass(NullSignalHandler::class)]

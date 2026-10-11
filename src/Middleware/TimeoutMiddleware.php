@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Middleware;
+namespace QueueBridge\Middleware;
 
 use InvalidArgumentException;
 use Override;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Exception\RetryableException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\System\AlarmInterface;
+use QueueBridge\Exception\RetryableException;
+use QueueBridge\Message\Message;
+use QueueBridge\System\AlarmInterface;
 
 /**
  * Interrompe un handler che supera $seconds lanciando una RetryableException (un timeout è di norma

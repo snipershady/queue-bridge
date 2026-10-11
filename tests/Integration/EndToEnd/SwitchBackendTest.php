@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Integration\EndToEnd;
+namespace QueueBridge\Tests\Integration\EndToEnd;
 
 use Override;
 use PhpAmqpLib\Connection\AbstractConnection;
@@ -10,27 +10,27 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\RetryableException;
+use QueueBridge\Exception\UnrecoverableMessageException;
+use QueueBridge\Factory\QueueFactory;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\Message;
+use QueueBridge\Queue;
+use QueueBridge\QueueBridge;
+use QueueBridge\Retry\FixedDelay;
+use QueueBridge\Text\DecodedText;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\RabbitMq\RetryTiers;
+use QueueBridge\Transport\RabbitMq\StrategyDtoRabbitMq;
+use QueueBridge\Transport\RabbitMq\Topology;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
+use QueueBridge\Worker\Worker;
+use QueueBridge\Worker\WorkerConfig;
+use QueueBridge\Worker\WorkerExitReason;
 use Redis;
 use RedisException;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\RetryableException;
-use snipershady\Queue\Exception\UnrecoverableMessageException;
-use snipershady\Queue\Factory\QueueFactory;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Queue;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Retry\FixedDelay;
-use snipershady\Queue\Text\DecodedText;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Transport\RabbitMq\RetryTiers;
-use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
-use snipershady\Queue\Transport\RabbitMq\Topology;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
-use snipershady\Queue\Worker\Worker;
-use snipershady\Queue\Worker\WorkerConfig;
-use snipershady\Queue\Worker\WorkerExitReason;
 use Throwable;
 
 /**

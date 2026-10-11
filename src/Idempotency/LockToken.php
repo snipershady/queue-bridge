@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Idempotency;
+namespace QueueBridge\Idempotency;
 
 use InvalidArgumentException;
-use snipershady\Queue\Message\MessageId;
+use QueueBridge\Message\MessageId;
 
 /**
  * Prova di possesso del lock "in elaborazione" di un messaggio.

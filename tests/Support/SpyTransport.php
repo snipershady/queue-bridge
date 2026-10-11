@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Override;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
-use snipershady\Queue\Transport\Capability\StatsAwareInterface;
-use snipershady\Queue\Transport\InMemory\InMemoryTransport;
-use snipershady\Queue\Transport\MaintenanceReport;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Transport\TransportCapabilities;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Transport\Capability\BatchAckAwareInterface;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\Capability\MaintenanceAwareInterface;
+use QueueBridge\Transport\Capability\StatsAwareInterface;
+use QueueBridge\Transport\InMemory\InMemoryTransport;
+use QueueBridge\Transport\MaintenanceReport;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Transport\TransportCapabilities;
+use QueueBridge\Transport\TransportInterface;
 
 /**
  * Decoratore di InMemoryTransport che registra le chiamate a maintain(), ack() e ackBatch().

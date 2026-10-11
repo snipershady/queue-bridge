@@ -15,12 +15,12 @@ declare(strict_types=1);
  *   php tests/Benchmark/benchmark.php 'memory://'
  */
 
-use snipershady\Queue\Cli\CommandLine;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Dsn\StrategyDtoFactory;
-use snipershady\Queue\Message\OutgoingMessage;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Worker\WorkerConfig;
+use QueueBridge\Cli\CommandLine;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Dsn\StrategyDtoFactory;
+use QueueBridge\Message\OutgoingMessage;
+use QueueBridge\QueueBridge;
+use QueueBridge\Worker\WorkerConfig;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 

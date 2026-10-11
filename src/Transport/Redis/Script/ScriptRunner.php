@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Script;
+namespace QueueBridge\Transport\Redis\Script;
 
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
 
 /**
  * Esegue uno script con EVALSHA e, se il server non lo ha in cache (NOSCRIPT), con EVAL.

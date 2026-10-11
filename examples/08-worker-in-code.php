@@ -10,25 +10,25 @@ declare(strict_types=1);
  *   php examples/08-worker-in-code.php [memory|redis|predis|rabbitmq]
  */
 
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\RetryableException;
+use QueueBridge\Exception\UnrecoverableMessageException;
+use QueueBridge\Idempotency\InMemoryIdempotencyStore;
+use QueueBridge\Message\Message;
+use QueueBridge\Middleware\IdempotencyMiddleware;
+use QueueBridge\Middleware\LoggingMiddleware;
+use QueueBridge\QueueBridge;
+use QueueBridge\Retry\FixedDelay;
+use QueueBridge\System\NullSignalHandler;
+use QueueBridge\System\PcntlSignalHandler;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Text\DecodedText;
+use QueueBridge\Worker\HandlerInterface;
+use QueueBridge\Worker\MultiQueueWorker;
+use QueueBridge\Worker\WorkerConfig;
 use QueueBridgeExamples\Backend;
 use QueueBridgeExamples\EventCounter;
 use QueueBridgeExamples\StdoutLogger;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\RetryableException;
-use snipershady\Queue\Exception\UnrecoverableMessageException;
-use snipershady\Queue\Idempotency\InMemoryIdempotencyStore;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Middleware\IdempotencyMiddleware;
-use snipershady\Queue\Middleware\LoggingMiddleware;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Retry\FixedDelay;
-use snipershady\Queue\System\NullSignalHandler;
-use snipershady\Queue\System\PcntlSignalHandler;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Text\DecodedText;
-use snipershady\Queue\Worker\HandlerInterface;
-use snipershady\Queue\Worker\MultiQueueWorker;
-use snipershady\Queue\Worker\WorkerConfig;
 
 require __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Support/Backend.php';

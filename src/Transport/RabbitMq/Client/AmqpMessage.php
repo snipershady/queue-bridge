@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq\Client;
+namespace QueueBridge\Transport\RabbitMq\Client;
 
 /**
  * Messaggio AMQP indipendente dalla libreria client. Header con valori scalari: quelli strutturati

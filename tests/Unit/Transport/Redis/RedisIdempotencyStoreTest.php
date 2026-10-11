@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\Redis;
+namespace QueueBridge\Tests\Unit\Transport\Redis;
 
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\VersionMismatchException;
-use snipershady\Queue\Idempotency\AcquireResult;
-use snipershady\Queue\Idempotency\AcquireStatus;
-use snipershady\Queue\Idempotency\LockToken;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\Tests\Support\FakeRandom;
-use snipershady\Queue\Tests\Support\RecordingRedisClient;
-use snipershady\Queue\Transport\Redis\Feature\DelexLockRelease;
-use snipershady\Queue\Transport\Redis\RedisIdempotencyStore;
-use snipershady\Queue\Transport\Redis\RedisKeys;
-use snipershady\Queue\Transport\Redis\RedisReply;
-use snipershady\Queue\Transport\Redis\Script\RedisScripts;
-use snipershady\Queue\Transport\Redis\Script\ScriptRunner;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\VersionMismatchException;
+use QueueBridge\Idempotency\AcquireResult;
+use QueueBridge\Idempotency\AcquireStatus;
+use QueueBridge\Idempotency\LockToken;
+use QueueBridge\Message\MessageId;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\Tests\Support\FakeRandom;
+use QueueBridge\Tests\Support\RecordingRedisClient;
+use QueueBridge\Transport\Redis\Feature\DelexLockRelease;
+use QueueBridge\Transport\Redis\RedisIdempotencyStore;
+use QueueBridge\Transport\Redis\RedisKeys;
+use QueueBridge\Transport\Redis\RedisReply;
+use QueueBridge\Transport\Redis\Script\RedisScripts;
+use QueueBridge\Transport\Redis\Script\ScriptRunner;
 
 #[CoversClass(RedisIdempotencyStore::class)]
 #[CoversClass(VersionMismatchException::class)]

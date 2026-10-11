@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\InMemory;
+namespace QueueBridge\Transport\InMemory;
 
-use snipershady\Queue\Message\Message;
+use QueueBridge\Message\Message;
 
 /**
  * Copia di un messaggio nella coda in memoria, con il numero di consegne già fatte.

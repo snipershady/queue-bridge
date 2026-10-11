@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\System;
+namespace QueueBridge\System;
 
 /**
  * Notifica le richieste di terminazione del processo (SIGTERM/SIGINT) per il graceful shutdown.

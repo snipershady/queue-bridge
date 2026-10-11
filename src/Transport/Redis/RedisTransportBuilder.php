@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis;
+namespace QueueBridge\Transport\Redis;
 
 use Override;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\UnsupportedStrategyException;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Factory\TransportBuilderInterface;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\RandomInterface;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Transport\Redis\Feature\FeatureSelector;
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
-use snipershady\Queue\Transport\Redis\Version\VersionDetector;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\UnsupportedStrategyException;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Factory\TransportBuilderInterface;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\RandomInterface;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Transport\Redis\Feature\FeatureSelector;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\VersionDetector;
+use QueueBridge\Transport\TransportInterface;
 
 /**
  * Rileva (o verifica) la versione del server una volta, sceglie le strategie e crea il transport.

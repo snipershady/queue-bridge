@@ -2,38 +2,38 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit;
+namespace QueueBridge\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Factory\QueueFactory;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\Envelope;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\Message\OutgoingMessage;
+use QueueBridge\Producer\Producer;
+use QueueBridge\Queue;
+use QueueBridge\QueueBridge;
+use QueueBridge\System\NativeMemoryMeter;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\NullSignalHandler;
+use QueueBridge\System\PcntlSignalHandler;
+use QueueBridge\System\SystemClock;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Tests\Support\FakeClock;
+use QueueBridge\Tests\Support\RecordingLogger;
+use QueueBridge\Transport\InMemory\InMemoryBroker;
+use QueueBridge\Transport\InMemory\InMemoryEntry;
+use QueueBridge\Transport\InMemory\InMemoryTransport;
+use QueueBridge\Transport\InMemory\InMemoryTransportBuilder;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\RabbitMq\RabbitMqTransportBuilder;
+use QueueBridge\Transport\Redis\RedisTransportBuilder;
 use ReflectionProperty;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Factory\QueueFactory;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\Envelope;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\Message\OutgoingMessage;
-use snipershady\Queue\Producer\Producer;
-use snipershady\Queue\Queue;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\System\NativeMemoryMeter;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\NullSignalHandler;
-use snipershady\Queue\System\PcntlSignalHandler;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Tests\Support\FakeClock;
-use snipershady\Queue\Tests\Support\RecordingLogger;
-use snipershady\Queue\Transport\InMemory\InMemoryBroker;
-use snipershady\Queue\Transport\InMemory\InMemoryEntry;
-use snipershady\Queue\Transport\InMemory\InMemoryTransport;
-use snipershady\Queue\Transport\InMemory\InMemoryTransportBuilder;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Transport\RabbitMq\RabbitMqTransportBuilder;
-use snipershady\Queue\Transport\Redis\RedisTransportBuilder;
 
 #[CoversClass(QueueBridge::class)]
 #[UsesClass(QueueFactory::class)]

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Cli;
+namespace QueueBridge\Cli;
 
 /**
  * Argomenti della riga di comando letti da `$_SERVER['argv']` tramite filter_var(): funziona con qualunque

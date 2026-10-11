@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\System;
+namespace QueueBridge\Tests\Unit\System;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Tests\Support\FakeClock;
-use snipershady\Queue\Tests\Support\FakeRandom;
+use QueueBridge\Message\MessageId;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Tests\Support\FakeClock;
+use QueueBridge\Tests\Support\FakeRandom;
 
 #[CoversClass(UuidV7Generator::class)]
 #[UsesClass(MessageId::class)]

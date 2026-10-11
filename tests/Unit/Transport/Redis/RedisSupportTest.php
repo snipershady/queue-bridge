@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\Redis;
+namespace QueueBridge\Tests\Unit\Transport\Redis;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Tests\Support\RecordingRedisClient;
+use QueueBridge\Transport\Redis\RedisKeys;
+use QueueBridge\Transport\Redis\RedisReply;
+use QueueBridge\Transport\Redis\Script\RedisScripts;
+use QueueBridge\Transport\Redis\Script\ScriptRunner;
 use RuntimeException;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Tests\Support\RecordingRedisClient;
-use snipershady\Queue\Transport\Redis\RedisKeys;
-use snipershady\Queue\Transport\Redis\RedisReply;
-use snipershady\Queue\Transport\Redis\Script\RedisScripts;
-use snipershady\Queue\Transport\Redis\Script\ScriptRunner;
 
 #[CoversClass(RedisKeys::class)]
 #[CoversClass(RedisReply::class)]

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\RabbitMq\Client;
+namespace QueueBridge\Tests\Unit\Transport\RabbitMq\Client;
 
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
@@ -10,12 +10,12 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Tests\Support\CallLog;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibChannel;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibConnector;
 use RuntimeException;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Tests\Support\CallLog;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibChannel;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
 
 #[CoversClass(PhpAmqpLibConnector::class)]
 #[UsesClass(PhpAmqpLibChannel::class)]

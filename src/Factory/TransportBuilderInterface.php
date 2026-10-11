@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Factory;
+namespace QueueBridge\Factory;
 
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Exception\UnsupportedStrategyException;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Exception\UnsupportedStrategyException;
+use QueueBridge\Transport\TransportInterface;
 
 /**
  * Crea il transport per un tipo di DTO. Per un backend nuovo: un DTO, un TransportInterface e un builder,

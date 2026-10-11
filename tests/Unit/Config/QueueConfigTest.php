@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Config;
+namespace QueueBridge\Tests\Unit\Config;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Config\QueueConfig;
+use QueueBridge\Config\QueueConfig;
 
 #[CoversClass(QueueConfig::class)]
 final class QueueConfigTest extends TestCase

@@ -11,11 +11,11 @@ declare(strict_types=1);
  * The supervisor (systemd, supervisord, Kubernetes) restarts the process when it exits; see examples/deploy/.
  */
 
-use snipershady\Queue\Exception\RetryableException;
-use snipershady\Queue\Exception\UnrecoverableMessageException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Text\DecodedText;
-use snipershady\Queue\Worker\WorkerInterface;
+use QueueBridge\Exception\RetryableException;
+use QueueBridge\Exception\UnrecoverableMessageException;
+use QueueBridge\Message\Message;
+use QueueBridge\Text\DecodedText;
+use QueueBridge\Worker\WorkerInterface;
 
 return static function (WorkerInterface $worker): void {
     $worker

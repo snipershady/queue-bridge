@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Message;
+namespace QueueBridge\Tests\Unit\Message;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Message\MessageRules;
+use QueueBridge\Message\MessageRules;
 
 #[CoversClass(MessageRules::class)]
 final class MessageRulesTest extends TestCase

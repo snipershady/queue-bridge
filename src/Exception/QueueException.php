@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Exception;
+namespace QueueBridge\Exception;
 
 use RuntimeException;
 

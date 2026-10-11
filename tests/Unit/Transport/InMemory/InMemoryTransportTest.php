@@ -2,35 +2,35 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\InMemory;
+namespace QueueBridge\Tests\Unit\Transport\InMemory;
 
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\Envelope;
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Tests\Contract\TransportContractTestCase;
-use snipershady\Queue\Tests\Support\FakeClock;
-use snipershady\Queue\Transport\DeadLetter;
-use snipershady\Queue\Transport\InMemory\InMemoryBroker;
-use snipershady\Queue\Transport\InMemory\InMemoryEntry;
-use snipershady\Queue\Transport\InMemory\InMemoryTransport;
-use snipershady\Queue\Transport\MaintenanceReport;
-use snipershady\Queue\Transport\OrphanRecovery;
-use snipershady\Queue\Transport\QueuedMessage;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Transport\TransportCapabilities;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\Envelope;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Tests\Contract\TransportContractTestCase;
+use QueueBridge\Tests\Support\FakeClock;
+use QueueBridge\Transport\DeadLetter;
+use QueueBridge\Transport\InMemory\InMemoryBroker;
+use QueueBridge\Transport\InMemory\InMemoryEntry;
+use QueueBridge\Transport\InMemory\InMemoryTransport;
+use QueueBridge\Transport\MaintenanceReport;
+use QueueBridge\Transport\OrphanRecovery;
+use QueueBridge\Transport\QueuedMessage;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Transport\TransportCapabilities;
+use QueueBridge\Transport\TransportInterface;
 
 #[CoversClass(InMemoryTransport::class)]
 #[CoversClass(InMemoryBroker::class)]

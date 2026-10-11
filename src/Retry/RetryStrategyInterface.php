@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Retry;
+namespace QueueBridge\Retry;
 
 /**
  * Decide il ritardo del prossimo tentativo. Il numero massimo di tentativi è `QueueConfig::$maxAttempts`:

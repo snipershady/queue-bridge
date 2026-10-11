@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport;
+namespace QueueBridge\Transport;
 
 use InvalidArgumentException;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Exception\BatchSendException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\Envelope;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Exception\BatchSendException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\Envelope;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
 
 /**
  * Porta verso il backend. Semantica at-least-once: un messaggio non viene mai perso, al più consegnato più volte.

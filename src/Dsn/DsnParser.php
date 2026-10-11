@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Dsn;
+namespace QueueBridge\Dsn;
 
 use InvalidArgumentException;
 

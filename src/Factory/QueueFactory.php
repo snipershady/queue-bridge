@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Factory;
+namespace QueueBridge\Factory;
 
 use InvalidArgumentException;
 use Override;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\UnsupportedStrategyException;
-use snipershady\Queue\Producer\ProducerMiddlewareInterface;
-use snipershady\Queue\Queue;
-use snipershady\Queue\QueueInterface;
-use snipershady\Queue\System\MemoryMeterInterface;
-use snipershady\Queue\System\NativeMemoryMeter;
-use snipershady\Queue\System\NullSignalHandler;
-use snipershady\Queue\System\SignalHandlerInterface;
-use snipershady\Queue\System\SystemClock;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\UnsupportedStrategyException;
+use QueueBridge\Producer\ProducerMiddlewareInterface;
+use QueueBridge\Queue;
+use QueueBridge\QueueInterface;
+use QueueBridge\System\MemoryMeterInterface;
+use QueueBridge\System\NativeMemoryMeter;
+use QueueBridge\System\NullSignalHandler;
+use QueueBridge\System\SignalHandlerInterface;
+use QueueBridge\System\SystemClock;
 
 /**
  * Sceglie il builder che accetta il DTO (Chain of Responsibility) e costruisce la facade Queue. Non conosce

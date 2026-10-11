@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Capability;
+namespace QueueBridge\Transport\Capability;
 
 use InvalidArgumentException;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Transport\DeadLetter;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Transport\DeadLetter;
 
 /**
  * Ispezione e riaccodamento della DLQ. I messaggi riaccodati ripartono con attempts = 0.

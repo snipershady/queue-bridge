@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Override;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpChannelInterface;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpConnectorInterface;
+use QueueBridge\Transport\RabbitMq\Client\AmqpChannelInterface;
+use QueueBridge\Transport\RabbitMq\Client\AmqpConnectorInterface;
 
 /**
  * Connector finto: un canale "riaperto" dopo reset() è lo stesso FakeAmqpChannel con una generazione nuova.

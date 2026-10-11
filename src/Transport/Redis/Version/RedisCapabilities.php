@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Version;
+namespace QueueBridge\Transport\Redis\Version;
 
 /**
  * Funzionalità per feature (non per versione): il codice chiede `$caps->xackdel`, mai `$version >= ...`.

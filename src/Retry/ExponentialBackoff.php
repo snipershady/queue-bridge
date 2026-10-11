@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Retry;
+namespace QueueBridge\Retry;
 
 use InvalidArgumentException;
 use Override;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\RandomInterface;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\RandomInterface;
 
 /**
  * Ritardo `initialMs * multiplier^(attempt - 1)`, limitato a `maxMs`, con jitter simmetrico

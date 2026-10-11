@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Exception;
+namespace QueueBridge\Tests\Unit\Exception;
 
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Exception\BatchSendException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Exception\QueueException;
+use QueueBridge\Message\MessageId;
 use ReflectionClass;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Exception\BatchSendException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Exception\QueueException;
-use snipershady\Queue\Message\MessageId;
 
 #[CoversClass(BackendException::class)]
 #[CoversClass(ConnectionException::class)]

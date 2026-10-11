@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Factory;
+namespace QueueBridge\Factory;
 
 /**
  * Backend, connessione e opzioni del backend in un solo oggetto tipizzato. Per cambiare

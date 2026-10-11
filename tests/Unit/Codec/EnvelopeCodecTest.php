@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Codec;
+namespace QueueBridge\Tests\Unit\Codec;
 
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Codec\EnvelopeCodec;
-use snipershady\Queue\Exception\SerializationException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
+use QueueBridge\Codec\EnvelopeCodec;
+use QueueBridge\Exception\SerializationException;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
 
 #[CoversClass(EnvelopeCodec::class)]
 #[UsesClass(SerializationException::class)]

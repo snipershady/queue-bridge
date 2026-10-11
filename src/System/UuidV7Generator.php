@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\System;
+namespace QueueBridge\System;
 
 use Override;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Message\MessageId;
+use QueueBridge\Message\MessageId;
 
 /**
  * Generatore UUIDv7 (RFC 9562) monotono.

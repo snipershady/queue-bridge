@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis;
+namespace QueueBridge\Transport\Redis;
 
 use Closure;
 use InvalidArgumentException;
 use Override;
 use Predis\ClientInterface;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Transport\Redis\Client\PhpRedisClient;
+use QueueBridge\Transport\Redis\Client\PredisClient;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
 use Redis;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Transport\Redis\Client\PhpRedisClient;
-use snipershady\Queue\Transport\Redis\Client\PredisClient;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
 
 /**
  * Backend Redis Streams. Le classi native (ext-redis, Predis) compaiono solo nei named constructor, che si

@@ -113,10 +113,10 @@ else (producer, worker, handlers, middleware) is the same on every backend.
 ### Redis
 
 ```php
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Transport\Redis\RedisIdempotencyStore;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\QueueBridge;
+use QueueBridge\Transport\Redis\RedisIdempotencyStore;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
 
 // ext-redis: a factory (instead of an instance) lets the client reconnect after a network failure.
 $strategy = StrategyDtoRedis::fromPhpRedis(static function (): Redis {
@@ -149,9 +149,9 @@ RedisVersionEnum::GE70)`; an override higher than the server throws `VersionMism
 ```php
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
-use snipershady\Queue\Transport\RabbitMq\RetryTiers;
-use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibConnector;
+use QueueBridge\Transport\RabbitMq\RetryTiers;
+use QueueBridge\Transport\RabbitMq\StrategyDtoRabbitMq;
 
 // Connection factory: the connector reopens the channel after every AMQP error and the connection after a drop.
 $strategy = StrategyDtoRabbitMq::fromConnectionFactory(
@@ -174,7 +174,7 @@ $queue->setup(); // exchange, quorum queue, wait queues and DLQ; idempotent
 ### InMemory
 
 ```php
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
 
 $clock = new MyTestClock(); // any PSR-20 clock you can move forward
 $queue = QueueBridge::factory(clock: $clock)->create(new StrategyDtoInMemory($clock), new QueueConfig(name: 'orders'));
@@ -188,7 +188,7 @@ $clock->advance(60_000); // the delayed message is now due, without waiting
 Handy for configuration files and environment variables:
 
 ```php
-use snipershady\Queue\Dsn\StrategyDtoFactory;
+use QueueBridge\Dsn\StrategyDtoFactory;
 
 $queue = QueueBridge::factory()->create((new StrategyDtoFactory())->fromDsn(getenv('QUEUE_DSN')), new QueueConfig(name: 'orders'));
 ```
@@ -335,10 +335,10 @@ To embed the queue in an existing daemon or event loop, use the transport direct
 each message:
 
 ```php
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Text\TextDecoder;
-use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Text\TextDecoder;
+use QueueBridge\Transport\Capability\MaintenanceAwareInterface;
 
 $transport = $queue->transport();
 $decoder = new TextDecoder();

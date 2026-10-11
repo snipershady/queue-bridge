@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
 use Override;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\Script\RedisScripts;
-use snipershady\Queue\Transport\Redis\Script\ScriptRunner;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\Script\RedisScripts;
+use QueueBridge\Transport\Redis\Script\ScriptRunner;
 
 /**
  * Redis >= 6.0: GET + DEL in uno script Lua.

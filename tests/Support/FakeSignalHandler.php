@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Closure;
 use Override;
-use snipershady\Queue\System\SignalHandlerInterface;
+use QueueBridge\System\SignalHandlerInterface;
 
 final class FakeSignalHandler implements SignalHandlerInterface
 {

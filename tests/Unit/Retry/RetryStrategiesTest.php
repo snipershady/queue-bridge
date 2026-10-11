@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Retry;
+namespace QueueBridge\Tests\Unit\Retry;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Retry\ExponentialBackoff;
-use snipershady\Queue\Retry\FixedDelay;
-use snipershady\Queue\Retry\NoRetry;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\Tests\Support\FakeRandom;
+use QueueBridge\Retry\ExponentialBackoff;
+use QueueBridge\Retry\FixedDelay;
+use QueueBridge\Retry\NoRetry;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\Tests\Support\FakeRandom;
 
 #[CoversClass(NoRetry::class)]
 #[CoversClass(FixedDelay::class)]

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Middleware;
+namespace QueueBridge\Middleware;
 
-use snipershady\Queue\Message\Message;
+use QueueBridge\Message\Message;
 
 /**
  * Avvolge l'esecuzione dell'handler nel worker. Un'eccezione che esce dal middleware viene trattata come

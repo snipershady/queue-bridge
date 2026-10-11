@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Middleware;
+namespace QueueBridge\Middleware;
 
 use InvalidArgumentException;
 use Override;
-use snipershady\Queue\Exception\RetryableException;
-use snipershady\Queue\Idempotency\AcquireStatus;
-use snipershady\Queue\Idempotency\IdempotencyStoreInterface;
-use snipershady\Queue\Idempotency\LockToken;
-use snipershady\Queue\Message\Message;
+use QueueBridge\Exception\RetryableException;
+use QueueBridge\Idempotency\AcquireStatus;
+use QueueBridge\Idempotency\IdempotencyStoreInterface;
+use QueueBridge\Idempotency\LockToken;
+use QueueBridge\Message\Message;
 use Throwable;
 
 /**

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker;
+namespace QueueBridge\Worker;
 
 use InvalidArgumentException;
-use snipershady\Queue\Middleware\MiddlewareInterface;
-use snipershady\Queue\Retry\ExponentialBackoff;
-use snipershady\Queue\Retry\RetryStrategyInterface;
-use snipershady\Queue\Worker\Event\WorkerEventListenerInterface;
+use QueueBridge\Middleware\MiddlewareInterface;
+use QueueBridge\Retry\ExponentialBackoff;
+use QueueBridge\Retry\RetryStrategyInterface;
+use QueueBridge\Worker\Event\WorkerEventListenerInterface;
 
 /**
  * Comportamento del worker. I limiti a null non vengono applicati.

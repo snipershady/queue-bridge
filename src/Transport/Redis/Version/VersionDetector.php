@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Version;
+namespace QueueBridge\Transport\Redis\Version;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\VersionMismatchException;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\VersionMismatchException;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
 
 /**
  * Sceglie il livello Redis: rilevato da `INFO server` (una volta), oppure forzato.

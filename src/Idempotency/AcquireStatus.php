@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Idempotency;
+namespace QueueBridge\Idempotency;
 
 /**
  * Esito di `IdempotencyStoreInterface::acquire()`.

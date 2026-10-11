@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Producer;
+namespace QueueBridge\Producer;
 
-use snipershady\Queue\Message\Message;
+use QueueBridge\Message\Message;
 
 /**
  * Elabora un messaggio prima dell'invio (es. aggiunta di header). Un middleware che non chiama $next

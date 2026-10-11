@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\InMemory;
+namespace QueueBridge\Transport\InMemory;
 
 use InvalidArgumentException;
 use Override;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
-use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
-use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
-use snipershady\Queue\Transport\Capability\SetupAwareInterface;
-use snipershady\Queue\Transport\Capability\StatsAwareInterface;
-use snipershady\Queue\Transport\DeadLetter;
-use snipershady\Queue\Transport\MaintenanceReport;
-use snipershady\Queue\Transport\OrphanRecovery;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Transport\TransportCapabilities;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Transport\Capability\BatchAckAwareInterface;
+use QueueBridge\Transport\Capability\BrowseAwareInterface;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\Capability\MaintenanceAwareInterface;
+use QueueBridge\Transport\Capability\PurgeAwareInterface;
+use QueueBridge\Transport\Capability\SetupAwareInterface;
+use QueueBridge\Transport\Capability\StatsAwareInterface;
+use QueueBridge\Transport\DeadLetter;
+use QueueBridge\Transport\MaintenanceReport;
+use QueueBridge\Transport\OrphanRecovery;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Transport\TransportCapabilities;
+use QueueBridge\Transport\TransportInterface;
 
 /**
  * Implementazione di riferimento del contratto, in memoria: per test e sviluppo, non per produzione.

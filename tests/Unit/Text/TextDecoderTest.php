@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Text;
+namespace QueueBridge\Tests\Unit\Text;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Text\DecodedText;
-use snipershady\Queue\Text\TextDecoder;
-use snipershady\Queue\Text\TextKind;
+use QueueBridge\Text\DecodedText;
+use QueueBridge\Text\TextDecoder;
+use QueueBridge\Text\TextKind;
 
 #[CoversClass(TextDecoder::class)]
 #[CoversClass(DecodedText::class)]

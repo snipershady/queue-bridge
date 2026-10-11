@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker;
+namespace QueueBridge\Worker;
 
 use InvalidArgumentException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\Text\DecodedText;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\Text\DecodedText;
 
 /**
  * Canale → handler. Il canale speciale `*` registra l'handler di fallback per i canali senza handler.

@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Integration\Redis;
+namespace QueueBridge\Tests\Integration\Redis;
 
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\VersionMismatchException;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\Message;
+use QueueBridge\System\SystemClock;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Transport\Redis\Client\PhpRedisClient;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\Feature\FeatureSelector;
+use QueueBridge\Transport\Redis\RedisTransport;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
+use QueueBridge\Transport\Redis\Version\VersionDetector;
 use Redis;
 use RedisException;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\VersionMismatchException;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Transport\Redis\Client\PhpRedisClient;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\Feature\FeatureSelector;
-use snipershady\Queue\Transport\Redis\RedisTransport;
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
-use snipershady\Queue\Transport\Redis\Version\VersionDetector;
 
 /**
  * Auto-rilevamento e override sul server reale, nessuna perdita di messaggi con il trim.

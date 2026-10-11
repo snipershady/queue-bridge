@@ -35,4 +35,4 @@ parameters:
         constant: 100
 
 services:
-    - { class: snipershady\Queue\Tests\Architecture\LayerTest, tags: [phpat.test] }
+    - { class: QueueBridge\Tests\Architecture\LayerTest, tags: [phpat.test] }

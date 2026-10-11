@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Middleware;
+namespace QueueBridge\Tests\Unit\Middleware;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Exception\RetryableException;
+use QueueBridge\Idempotency\AcquireResult;
+use QueueBridge\Idempotency\AcquireStatus;
+use QueueBridge\Idempotency\InMemoryIdempotencyStore;
+use QueueBridge\Idempotency\LockToken;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\Middleware\IdempotencyMiddleware;
+use QueueBridge\Middleware\LoggingMiddleware;
+use QueueBridge\Middleware\TimeoutMiddleware;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Tests\Support\FakeAlarm;
+use QueueBridge\Tests\Support\FakeClock;
+use QueueBridge\Tests\Support\RecordingLogger;
 use RuntimeException;
-use snipershady\Queue\Exception\RetryableException;
-use snipershady\Queue\Idempotency\AcquireResult;
-use snipershady\Queue\Idempotency\AcquireStatus;
-use snipershady\Queue\Idempotency\InMemoryIdempotencyStore;
-use snipershady\Queue\Idempotency\LockToken;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\Middleware\IdempotencyMiddleware;
-use snipershady\Queue\Middleware\LoggingMiddleware;
-use snipershady\Queue\Middleware\TimeoutMiddleware;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Tests\Support\FakeAlarm;
-use snipershady\Queue\Tests\Support\FakeClock;
-use snipershady\Queue\Tests\Support\RecordingLogger;
 
 #[CoversClass(IdempotencyMiddleware::class)]
 #[CoversClass(TimeoutMiddleware::class)]

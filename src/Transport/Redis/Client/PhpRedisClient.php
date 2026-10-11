@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Client;
+namespace QueueBridge\Transport\Redis\Client;
 
 use Closure;
 use Override;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
 use Redis;
 use RedisException;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
 
 /**
  * Adapter per `ext-redis`. Con una factory, dopo un errore di connessione ricrea il client e ritenta il

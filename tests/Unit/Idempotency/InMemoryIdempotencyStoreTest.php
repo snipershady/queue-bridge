@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Idempotency;
+namespace QueueBridge\Tests\Unit\Idempotency;
 
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Idempotency\AcquireResult;
-use snipershady\Queue\Idempotency\AcquireStatus;
-use snipershady\Queue\Idempotency\InMemoryIdempotencyStore;
-use snipershady\Queue\Idempotency\LockToken;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\Tests\Support\FakeClock;
+use QueueBridge\Idempotency\AcquireResult;
+use QueueBridge\Idempotency\AcquireStatus;
+use QueueBridge\Idempotency\InMemoryIdempotencyStore;
+use QueueBridge\Idempotency\LockToken;
+use QueueBridge\Message\MessageId;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\Tests\Support\FakeClock;
 
 #[CoversClass(InMemoryIdempotencyStore::class)]
 #[CoversClass(LockToken::class)]

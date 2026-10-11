@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker;
+namespace QueueBridge\Worker;
 
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Text\DecodedText;
+use QueueBridge\Message\Message;
+use QueueBridge\Text\DecodedText;
 use Throwable;
 
 /**

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Client;
+namespace QueueBridge\Transport\Redis\Client;
 
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
 
 /**
  * Porta verso un client Redis (RESP2). Le risposte sono normalizzate: nil = null, status = stringa

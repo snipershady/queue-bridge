@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Closure;
 use Override;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpChannelInterface;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpMessage;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Transport\RabbitMq\Client\AmqpChannelInterface;
+use QueueBridge\Transport\RabbitMq\Client\AmqpMessage;
 
 /**
  * Canale AMQP finto: registra le chiamate; `incoming` viene consegnato al consumer durante wait(),

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq\Client;
+namespace QueueBridge\Transport\RabbitMq\Client;
 
-use snipershady\Queue\Exception\ConnectionException;
+use QueueBridge\Exception\ConnectionException;
 
 /**
  * Fornisce il canale corrente e lo riapre quando serve: un canale AMQP muore a ogni errore.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
 use Override;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
 
 /**
  * Redis >= 8.4: `DELEX key IFEQ token`.

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq\Client;
+namespace QueueBridge\Transport\RabbitMq\Client;
 
 use Closure;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
 
 /**
  * Porta verso un canale AMQP 0-9-1. Exchange e code sono sempre durevoli; i messaggi pubblicati sono

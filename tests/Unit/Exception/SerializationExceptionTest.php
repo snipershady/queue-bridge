@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Exception;
+namespace QueueBridge\Tests\Unit\Exception;
 
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Exception\QueueException;
-use snipershady\Queue\Exception\SerializationException;
+use QueueBridge\Exception\QueueException;
+use QueueBridge\Exception\SerializationException;
 
 #[CoversClass(SerializationException::class)]
 #[CoversClass(QueueException::class)]

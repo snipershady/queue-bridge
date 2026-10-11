@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker\Event;
+namespace QueueBridge\Worker\Event;
 
-use snipershady\Queue\Worker\WorkerExitReason;
+use QueueBridge\Worker\WorkerExitReason;
 
 /**
  * @api

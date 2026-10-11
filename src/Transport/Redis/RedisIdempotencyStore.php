@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis;
+namespace QueueBridge\Transport\Redis;
 
 use InvalidArgumentException;
 use Override;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\VersionMismatchException;
-use snipershady\Queue\Idempotency\AcquireResult;
-use snipershady\Queue\Idempotency\IdempotencyStoreInterface;
-use snipershady\Queue\Idempotency\LockToken;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\RandomInterface;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\Feature\FeatureSelector;
-use snipershady\Queue\Transport\Redis\Feature\LockReleaseStrategyInterface;
-use snipershady\Queue\Transport\Redis\Script\RedisScripts;
-use snipershady\Queue\Transport\Redis\Script\ScriptRunner;
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
-use snipershady\Queue\Transport\Redis\Version\VersionDetector;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\VersionMismatchException;
+use QueueBridge\Idempotency\AcquireResult;
+use QueueBridge\Idempotency\IdempotencyStoreInterface;
+use QueueBridge\Idempotency\LockToken;
+use QueueBridge\Message\MessageId;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\RandomInterface;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\Feature\FeatureSelector;
+use QueueBridge\Transport\Redis\Feature\LockReleaseStrategyInterface;
+use QueueBridge\Transport\Redis\Script\RedisScripts;
+use QueueBridge\Transport\Redis\Script\ScriptRunner;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
+use QueueBridge\Transport\Redis\Version\VersionDetector;
 
 /**
  * Store di idempotenza su Redis: `SET NX PX` per il lock, in uno script che distingue "completato" da

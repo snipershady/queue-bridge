@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\RabbitMq;
+namespace QueueBridge\Tests\Unit\Transport\RabbitMq;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Tests\Support\FakeAmqpChannel;
-use snipershady\Queue\Transport\RabbitMq\Client\AmqpMessage;
-use snipershady\Queue\Transport\RabbitMq\RabbitMqDelayModeEnum;
-use snipershady\Queue\Transport\RabbitMq\RetryTiers;
-use snipershady\Queue\Transport\RabbitMq\Topology;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Tests\Support\FakeAmqpChannel;
+use QueueBridge\Transport\RabbitMq\Client\AmqpMessage;
+use QueueBridge\Transport\RabbitMq\RabbitMqDelayModeEnum;
+use QueueBridge\Transport\RabbitMq\RetryTiers;
+use QueueBridge\Transport\RabbitMq\Topology;
 
 #[CoversClass(Topology::class)]
 #[CoversClass(RetryTiers::class)]

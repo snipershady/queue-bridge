@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\InMemory;
+namespace QueueBridge\Transport\InMemory;
 
 use DateTimeImmutable;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Transport\DeadLetter;
-use snipershady\Queue\Transport\QueuedMessage;
-use snipershady\Queue\Transport\QueuedMessageState;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Transport\DeadLetter;
+use QueueBridge\Transport\QueuedMessage;
+use QueueBridge\Transport\QueuedMessageState;
 
 /**
  * Stato condiviso di una coda in memoria: l'equivalente del server Redis o RabbitMQ.

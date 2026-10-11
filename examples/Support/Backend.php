@@ -8,12 +8,12 @@ use InvalidArgumentException;
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Predis\Client;
+use QueueBridge\Cli\CommandLine;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\RabbitMq\StrategyDtoRabbitMq;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
 use Redis;
-use snipershady\Queue\Cli\CommandLine;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
 
 /**
  * Builds the strategy DTO of the backend named on the command line. Connection settings come from environment

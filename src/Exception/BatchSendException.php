@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Exception;
+namespace QueueBridge\Exception;
 
-use snipershady\Queue\Message\MessageId;
+use QueueBridge\Message\MessageId;
 use Throwable;
 
 /**

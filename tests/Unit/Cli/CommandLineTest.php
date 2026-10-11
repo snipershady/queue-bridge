@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Cli;
+namespace QueueBridge\Tests\Unit\Cli;
 
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Cli\CommandLine;
+use QueueBridge\Cli\CommandLine;
 
 #[CoversClass(CommandLine::class)]
 final class CommandLineTest extends TestCase

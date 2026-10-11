@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker\Event;
+namespace QueueBridge\Worker\Event;
 
 /**
  * Un listener che lancia un'eccezione non ferma il worker: l'errore viene loggato.

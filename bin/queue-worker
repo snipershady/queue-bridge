@@ -3,9 +3,9 @@
 
 declare(strict_types=1);
 
-use snipershady\Queue\Cli\Application;
-use snipershady\Queue\Cli\CommandLine;
-use snipershady\Queue\Cli\Output;
+use QueueBridge\Cli\Application;
+use QueueBridge\Cli\CommandLine;
+use QueueBridge\Cli\Output;
 
 // Progetto clonato (vendor/ accanto a bin/) oppure libreria installata come dipendenza (vendor/bin/).
 foreach ([__DIR__.'/../vendor/autoload.php', __DIR__.'/../../../autoload.php'] as $autoload) {

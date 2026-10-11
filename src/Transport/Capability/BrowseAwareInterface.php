@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Capability;
+namespace QueueBridge\Transport\Capability;
 
 use InvalidArgumentException;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Transport\QueuedMessage;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Transport\QueuedMessage;
 
 /**
  * Elenco dei messaggi in coda senza consumarli: attempts e ID non cambiano.

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Closure;
 use Override;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
 
 /**
  * Client Redis finto: registra i comandi e risponde con le risposte programmate per nome di comando

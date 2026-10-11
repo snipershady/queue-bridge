@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue;
+namespace QueueBridge;
 
 use InvalidArgumentException;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Producer\ProducerInterface;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\QueuedMessage;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Transport\TransportCapabilities;
-use snipershady\Queue\Transport\TransportInterface;
-use snipershady\Queue\Worker\WorkerConfig;
-use snipershady\Queue\Worker\WorkerInterface;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Producer\ProducerInterface;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\QueuedMessage;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Transport\TransportCapabilities;
+use QueueBridge\Transport\TransportInterface;
+use QueueBridge\Worker\WorkerConfig;
+use QueueBridge\Worker\WorkerInterface;
 
 /**
  * Una coda su un backend, ottenuta da QueueFactoryInterface::create().

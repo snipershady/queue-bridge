@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Middleware;
+namespace QueueBridge\Middleware;
 
 use DateTimeImmutable;
 use Override;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\System\SystemClock;
+use QueueBridge\Message\Message;
+use QueueBridge\System\SystemClock;
 use Throwable;
 
 /**

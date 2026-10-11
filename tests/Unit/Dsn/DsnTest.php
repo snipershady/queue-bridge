@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Dsn;
+namespace QueueBridge\Tests\Unit\Dsn;
 
 use ArrayObject;
 use InvalidArgumentException;
@@ -16,23 +16,23 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Predis\ClientInterface;
 use Predis\Response\Status;
+use QueueBridge\Dsn\Dsn;
+use QueueBridge\Dsn\DsnParser;
+use QueueBridge\Dsn\StrategyDtoFactory;
+use QueueBridge\Dsn\StrategyEnum;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibChannel;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibConnector;
+use QueueBridge\Transport\RabbitMq\RabbitMqDelayModeEnum;
+use QueueBridge\Transport\RabbitMq\RetryTiers;
+use QueueBridge\Transport\RabbitMq\StrategyDtoRabbitMq;
+use QueueBridge\Transport\Redis\Client\PhpRedisClient;
+use QueueBridge\Transport\Redis\Client\PredisClient;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
 use Redis;
-use snipershady\Queue\Dsn\Dsn;
-use snipershady\Queue\Dsn\DsnParser;
-use snipershady\Queue\Dsn\StrategyDtoFactory;
-use snipershady\Queue\Dsn\StrategyEnum;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibChannel;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
-use snipershady\Queue\Transport\RabbitMq\RabbitMqDelayModeEnum;
-use snipershady\Queue\Transport\RabbitMq\RetryTiers;
-use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
-use snipershady\Queue\Transport\Redis\Client\PhpRedisClient;
-use snipershady\Queue\Transport\Redis\Client\PredisClient;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
 
 #[CoversClass(StrategyEnum::class)]
 #[CoversClass(Dsn::class)]

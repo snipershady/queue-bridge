@@ -2,38 +2,38 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Transport\Redis\Feature;
+namespace QueueBridge\Tests\Unit\Transport\Redis\Feature;
 
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Tests\Support\RecordingRedisClient;
-use snipershady\Queue\Transport\Redis\Feature\AckDelStrategy;
-use snipershady\Queue\Transport\Redis\Feature\AckedTrimStrategy;
-use snipershady\Queue\Transport\Redis\Feature\AckThenDeleteStrategy;
-use snipershady\Queue\Transport\Redis\Feature\DelexLockRelease;
-use snipershady\Queue\Transport\Redis\Feature\FeatureSelector;
-use snipershady\Queue\Transport\Redis\Feature\GroupInfo;
-use snipershady\Queue\Transport\Redis\Feature\GroupInfoLagStrategy;
-use snipershady\Queue\Transport\Redis\Feature\LuaLockRelease;
-use snipershady\Queue\Transport\Redis\Feature\MinIdTrimStrategy;
-use snipershady\Queue\Transport\Redis\Feature\NoTrimStrategy;
-use snipershady\Queue\Transport\Redis\Feature\NullLagStrategy;
-use snipershady\Queue\Transport\Redis\Feature\PendingClaimStrategy;
-use snipershady\Queue\Transport\Redis\Feature\PendingEntries;
-use snipershady\Queue\Transport\Redis\Feature\PendingIdleStrategy;
-use snipershady\Queue\Transport\Redis\Feature\ReadGroupClaimStrategy;
-use snipershady\Queue\Transport\Redis\Feature\RedisFeatures;
-use snipershady\Queue\Transport\Redis\RedisKeys;
-use snipershady\Queue\Transport\Redis\RedisReply;
-use snipershady\Queue\Transport\Redis\Script\RedisScripts;
-use snipershady\Queue\Transport\Redis\Script\ScriptRunner;
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Tests\Support\RecordingRedisClient;
+use QueueBridge\Transport\Redis\Feature\AckDelStrategy;
+use QueueBridge\Transport\Redis\Feature\AckedTrimStrategy;
+use QueueBridge\Transport\Redis\Feature\AckThenDeleteStrategy;
+use QueueBridge\Transport\Redis\Feature\DelexLockRelease;
+use QueueBridge\Transport\Redis\Feature\FeatureSelector;
+use QueueBridge\Transport\Redis\Feature\GroupInfo;
+use QueueBridge\Transport\Redis\Feature\GroupInfoLagStrategy;
+use QueueBridge\Transport\Redis\Feature\LuaLockRelease;
+use QueueBridge\Transport\Redis\Feature\MinIdTrimStrategy;
+use QueueBridge\Transport\Redis\Feature\NoTrimStrategy;
+use QueueBridge\Transport\Redis\Feature\NullLagStrategy;
+use QueueBridge\Transport\Redis\Feature\PendingClaimStrategy;
+use QueueBridge\Transport\Redis\Feature\PendingEntries;
+use QueueBridge\Transport\Redis\Feature\PendingIdleStrategy;
+use QueueBridge\Transport\Redis\Feature\ReadGroupClaimStrategy;
+use QueueBridge\Transport\Redis\Feature\RedisFeatures;
+use QueueBridge\Transport\Redis\RedisKeys;
+use QueueBridge\Transport\Redis\RedisReply;
+use QueueBridge\Transport\Redis\Script\RedisScripts;
+use QueueBridge\Transport\Redis\Script\ScriptRunner;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
 
 #[CoversClass(PendingClaimStrategy::class)]
 #[CoversClass(PendingIdleStrategy::class)]

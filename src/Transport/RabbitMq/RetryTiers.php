@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\RabbitMq;
+namespace QueueBridge\Transport\RabbitMq;
 
 use InvalidArgumentException;
 

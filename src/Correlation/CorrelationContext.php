@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Correlation;
+namespace QueueBridge\Correlation;
 
-use snipershady\Queue\Message\Message;
+use QueueBridge\Message\Message;
 
 /**
  * Messaggio in elaborazione nel worker, condiviso con il producer: così i messaggi pubblicati da un handler

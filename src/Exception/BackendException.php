@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Exception;
+namespace QueueBridge\Exception;
 
 /**
  * Errore del backend (Redis, RabbitMQ...). Astratta: si lanciano le sottoclassi specifiche.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Text;
+namespace QueueBridge\Text;
 
 /**
  * Risultato della decodifica di `Message::$text`.

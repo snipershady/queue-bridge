@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Middleware;
+namespace QueueBridge\Middleware;
 
 use Override;
-use snipershady\Queue\Correlation\CorrelationContext;
-use snipershady\Queue\Message\Message;
+use QueueBridge\Correlation\CorrelationContext;
+use QueueBridge\Message\Message;
 
 /**
  * Registra il messaggio in elaborazione nel CorrelationContext, per `CorrelationIdMiddleware` del producer.

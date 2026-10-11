@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Idempotency;
+namespace QueueBridge\Idempotency;
 
 use InvalidArgumentException;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Message\MessageId;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Message\MessageId;
 
 /**
  * Memoria dei messaggi già elaborati, indipendente dal transport.

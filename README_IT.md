@@ -114,10 +114,10 @@ resto (producer, worker, handler, middleware) è identico su ogni backend.
 ### Redis
 
 ```php
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Transport\Redis\RedisIdempotencyStore;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\QueueBridge;
+use QueueBridge\Transport\Redis\RedisIdempotencyStore;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
 
 // ext-redis: una factory (al posto di un'istanza) permette al client di riconnettersi dopo un errore di rete.
 $strategy = StrategyDtoRedis::fromPhpRedis(static function (): Redis {
@@ -150,9 +150,9 @@ RedisVersionEnum::GE70)`; un override superiore al server lancia `VersionMismatc
 ```php
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
-use snipershady\Queue\Transport\RabbitMq\RetryTiers;
-use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibConnector;
+use QueueBridge\Transport\RabbitMq\RetryTiers;
+use QueueBridge\Transport\RabbitMq\StrategyDtoRabbitMq;
 
 // Factory della connessione: il connector riapre il canale dopo ogni errore AMQP e la connessione dopo una caduta.
 $strategy = StrategyDtoRabbitMq::fromConnectionFactory(
@@ -175,7 +175,7 @@ $queue->setup(); // exchange, quorum queue, code di attesa e DLQ; idempotente
 ### InMemory
 
 ```php
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
 
 $clock = new MyTestClock(); // qualsiasi orologio PSR-20 che puoi far avanzare
 $queue = QueueBridge::factory(clock: $clock)->create(new StrategyDtoInMemory($clock), new QueueConfig(name: 'orders'));
@@ -189,7 +189,7 @@ $clock->advance(60_000); // il messaggio differito è disponibile, senza attese
 Comodo per file di configurazione e variabili d'ambiente:
 
 ```php
-use snipershady\Queue\Dsn\StrategyDtoFactory;
+use QueueBridge\Dsn\StrategyDtoFactory;
 
 $queue = QueueBridge::factory()->create((new StrategyDtoFactory())->fromDsn(getenv('QUEUE_DSN')), new QueueConfig(name: 'orders'));
 ```
@@ -337,10 +337,10 @@ Per inserire la coda in un demone o in un event loop esistente, usa direttamente
 ogni messaggio:
 
 ```php
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Text\TextDecoder;
-use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Text\TextDecoder;
+use QueueBridge\Transport\Capability\MaintenanceAwareInterface;
 
 $transport = $queue->transport();
 $decoder = new TextDecoder();

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Client;
+namespace QueueBridge\Transport\Redis\Client;
 
 use Override;
 use Predis\Client;
@@ -12,8 +12,8 @@ use Predis\Connection\ConnectionException as PredisConnectionException;
 use Predis\Response\ErrorInterface;
 use Predis\Response\ServerException;
 use Predis\Response\Status;
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Exception\ConnectionException;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Exception\ConnectionException;
 
 /**
  * Adapter per `predis/predis`. Predis si riconnette da solo al comando successivo: dopo un errore di

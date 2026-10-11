@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Exception;
+namespace QueueBridge\Exception;
 
 /**
  * La versione del server non supporta il livello richiesto, o è sotto il minimo supportato.

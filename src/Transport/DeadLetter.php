@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport;
+namespace QueueBridge\Transport;
 
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\Message\Message;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\Message\Message;
 
 /**
  * Messaggio in DLQ con il motivo del fallimento.

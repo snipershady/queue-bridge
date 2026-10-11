@@ -1485,9 +1485,9 @@ La CLI carica un file PHP che restituisce una closure che registra gli handler:
 
 declare(strict_types=1);
 
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Text\DecodedText;
-use snipershady\Queue\Worker\WorkerInterface;
+use QueueBridge\Message\Message;
+use QueueBridge\Text\DecodedText;
+use QueueBridge\Worker\WorkerInterface;
 
 require __DIR__.'/../vendor/autoload.php';
 $container = require __DIR__.'/container.php';

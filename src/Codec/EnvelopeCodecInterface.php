@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Codec;
+namespace QueueBridge\Codec;
 
-use snipershady\Queue\Exception\SerializationException;
-use snipershady\Queue\Message\Message;
+use QueueBridge\Exception\SerializationException;
+use QueueBridge\Message\Message;
 
 /**
  * Converte un Message nel wire format: una mappa piatta di stringhe, salvata come campi dello Stream

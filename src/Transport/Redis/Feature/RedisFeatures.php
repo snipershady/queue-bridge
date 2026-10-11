@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
 
 /**
  * Le strategie scelte per una versione di Redis. RedisTransport le riceve già pronte e non conosce la versione.

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Worker;
+namespace QueueBridge\Worker;
 
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\System\MemoryMeterInterface;
+use QueueBridge\System\MemoryMeterInterface;
 
 /**
  * Limiti di `WorkerConfig` che fanno uscire `run()`.

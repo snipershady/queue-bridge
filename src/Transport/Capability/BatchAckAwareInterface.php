@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Capability;
+namespace QueueBridge\Transport\Capability;
 
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Message\Delivery;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Message\Delivery;
 
 /**
  * @api

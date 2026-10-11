@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Cli;
+namespace QueueBridge\Cli;
 
 use Closure;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Dsn\DsnParser;
-use snipershady\Queue\Dsn\StrategyDtoFactory;
-use snipershady\Queue\Dsn\StrategyEnum;
-use snipershady\Queue\Exception\QueueException;
-use snipershady\Queue\Factory\QueueFactoryInterface;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\QueueInterface;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\DeadLetter;
-use snipershady\Queue\Transport\QueuedMessage;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Worker\WorkerConfig;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Dsn\DsnParser;
+use QueueBridge\Dsn\StrategyDtoFactory;
+use QueueBridge\Dsn\StrategyEnum;
+use QueueBridge\Exception\QueueException;
+use QueueBridge\Factory\QueueFactoryInterface;
+use QueueBridge\Message\MessageId;
+use QueueBridge\QueueBridge;
+use QueueBridge\QueueInterface;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\DeadLetter;
+use QueueBridge\Transport\QueuedMessage;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Worker\WorkerConfig;
 
 /**
  * CLI `bin/queue-worker`. Exit code: 0 ok, 1 errore del backend, 2 errore d'uso.

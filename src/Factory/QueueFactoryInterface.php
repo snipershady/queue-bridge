@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Factory;
+namespace QueueBridge\Factory;
 
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\BackendException;
-use snipershady\Queue\Exception\UnsupportedStrategyException;
-use snipershady\Queue\QueueInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\BackendException;
+use QueueBridge\Exception\UnsupportedStrategyException;
+use QueueBridge\QueueInterface;
 
 /**
  * @api

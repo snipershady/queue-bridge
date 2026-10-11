@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Integration\RabbitMq;
+namespace QueueBridge\Tests\Integration\RabbitMq;
 
 use Override;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
@@ -10,15 +10,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Tests\Contract\TransportContractTestCase;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibChannel;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
-use snipershady\Queue\Transport\RabbitMq\RabbitMqTransport;
-use snipershady\Queue\Transport\RabbitMq\RetryTiers;
-use snipershady\Queue\Transport\RabbitMq\Topology;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Tests\Contract\TransportContractTestCase;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibChannel;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibConnector;
+use QueueBridge\Transport\RabbitMq\RabbitMqTransport;
+use QueueBridge\Transport\RabbitMq\RetryTiers;
+use QueueBridge\Transport\RabbitMq\Topology;
+use QueueBridge\Transport\TransportInterface;
 use Throwable;
 
 /**

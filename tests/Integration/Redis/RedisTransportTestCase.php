@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Integration\Redis;
+namespace QueueBridge\Tests\Integration\Redis;
 
 use Override;
 use Psr\Clock\ClockInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Tests\Contract\TransportContractTestCase;
+use QueueBridge\Transport\Redis\Client\PhpRedisClient;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\Feature\FeatureSelector;
+use QueueBridge\Transport\Redis\RedisTransport;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
+use QueueBridge\Transport\Redis\Version\VersionDetector;
+use QueueBridge\Transport\TransportInterface;
 use Redis;
 use RedisException;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Tests\Contract\TransportContractTestCase;
-use snipershady\Queue\Transport\Redis\Client\PhpRedisClient;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\Feature\FeatureSelector;
-use snipershady\Queue\Transport\Redis\RedisTransport;
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
-use snipershady\Queue\Transport\Redis\Version\VersionDetector;
-use snipershady\Queue\Transport\TransportInterface;
 
 /**
  * Contract test su un Redis reale (REDIS_DSN, database 15 di default), con il livello forzato da level().

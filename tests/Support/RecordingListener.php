@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Override;
-use snipershady\Queue\Worker\Event\WorkerEventInterface;
-use snipershady\Queue\Worker\Event\WorkerEventListenerInterface;
+use QueueBridge\Worker\Event\WorkerEventInterface;
+use QueueBridge\Worker\Event\WorkerEventListenerInterface;
 
 final class RecordingListener implements WorkerEventListenerInterface
 {

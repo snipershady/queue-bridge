@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
-use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
+use QueueBridge\Transport\Redis\Version\RedisCapabilities;
 
 /**
  * Sceglie una strategia per ogni punto di variazione, una sola volta alla creazione.

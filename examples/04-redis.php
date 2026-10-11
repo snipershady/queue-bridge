@@ -11,20 +11,20 @@ declare(strict_types=1);
  *
  * REDIS_HOST / REDIS_PORT / REDIS_DB select the server (default: the Redis of docker-compose.yml, 127.0.0.1:16379).
  */
+use QueueBridge\Cli\CommandLine;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\UnrecoverableMessageException;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\OutgoingMessage;
+use QueueBridge\Middleware\IdempotencyMiddleware;
+use QueueBridge\QueueBridge;
+use QueueBridge\Text\DecodedText;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\Redis\RedisIdempotencyStore;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
+use QueueBridge\Worker\WorkerConfig;
 use QueueBridgeExamples\Backend;
 use QueueBridgeExamples\StdoutLogger;
-use snipershady\Queue\Cli\CommandLine;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\UnrecoverableMessageException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\OutgoingMessage;
-use snipershady\Queue\Middleware\IdempotencyMiddleware;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\Text\DecodedText;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\Redis\RedisIdempotencyStore;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
-use snipershady\Queue\Worker\WorkerConfig;
 
 require __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Support/Backend.php';

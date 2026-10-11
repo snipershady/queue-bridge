@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis;
+namespace QueueBridge\Transport\Redis;
 
-use snipershady\Queue\Exception\CommandFailedException;
+use QueueBridge\Exception\CommandFailedException;
 
 /**
  * Restringe le risposte RESP2 ai tipi attesi, fallendo con un errore esplicito se il server risponde in un

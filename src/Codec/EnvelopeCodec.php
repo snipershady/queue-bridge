@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Codec;
+namespace QueueBridge\Codec;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
 use JsonException;
 use Override;
-use snipershady\Queue\Exception\SerializationException;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
+use QueueBridge\Exception\SerializationException;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
 
 /**
  * Wire format versionato. Versione 1:

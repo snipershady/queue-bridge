@@ -13,16 +13,16 @@ declare(strict_types=1);
  * expiration and maintenance (call maintain() periodically on Redis to recover orphans and promote delayed messages).
  */
 
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\Delivery;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
+use QueueBridge\QueueBridge;
+use QueueBridge\System\SystemClock;
+use QueueBridge\Text\TextDecoder;
+use QueueBridge\Text\TextKind;
+use QueueBridge\Transport\Capability\MaintenanceAwareInterface;
 use QueueBridgeExamples\Backend;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Message\Delivery;
-use snipershady\Queue\Message\FailureKind;
-use snipershady\Queue\Message\FailureReason;
-use snipershady\Queue\QueueBridge;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\Text\TextDecoder;
-use snipershady\Queue\Text\TextKind;
-use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
 
 require __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Support/Backend.php';

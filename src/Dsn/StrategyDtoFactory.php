@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Dsn;
+namespace QueueBridge\Dsn;
 
 use Closure;
 use InvalidArgumentException;
@@ -11,16 +11,16 @@ use PhpAmqpLib\Connection\AMQPConnectionConfig;
 use PhpAmqpLib\Connection\AMQPConnectionFactory;
 use Predis\Client;
 use Predis\ClientInterface;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Transport\InMemory\StrategyDtoInMemory;
+use QueueBridge\Transport\RabbitMq\Client\PhpAmqpLibConnector;
+use QueueBridge\Transport\RabbitMq\RetryTiers;
+use QueueBridge\Transport\RabbitMq\StrategyDtoRabbitMq;
+use QueueBridge\Transport\Redis\Client\PhpRedisClient;
+use QueueBridge\Transport\Redis\Client\PredisClient;
+use QueueBridge\Transport\Redis\StrategyDtoRedis;
+use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
 use Redis;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
-use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
-use snipershady\Queue\Transport\RabbitMq\RetryTiers;
-use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
-use snipershady\Queue\Transport\Redis\Client\PhpRedisClient;
-use snipershady\Queue\Transport\Redis\Client\PredisClient;
-use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
-use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
 
 /**
  * DSN → DTO di strategia, per CLI e configurazione testuale. Le connessioni sono lazy: si aprono al primo

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Producer\Middleware;
+namespace QueueBridge\Producer\Middleware;
 
 use Override;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Producer\ProducerMiddlewareInterface;
+use QueueBridge\Message\Message;
+use QueueBridge\Producer\ProducerMiddlewareInterface;
 
 /**
  * Propaga il trace context W3C (`traceparent`) nei messaggi pubblicati. Valori non conformi vengono ignorati;

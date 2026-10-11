@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Config;
+namespace QueueBridge\Config;
 
 use InvalidArgumentException;
 

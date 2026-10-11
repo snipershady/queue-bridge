@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport;
+namespace QueueBridge\Transport;
 
 /**
  * Come tornano in coda i messaggi ricevuti da un consumer che non li ha confermati (crash).

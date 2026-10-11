@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use Override;
-use snipershady\Queue\System\MemoryMeterInterface;
+use QueueBridge\System\MemoryMeterInterface;
 
 final class FakeMemoryMeter implements MemoryMeterInterface
 {

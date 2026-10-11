@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue;
+namespace QueueBridge;
 
 use Override;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Producer\Producer;
-use snipershady\Queue\Producer\ProducerInterface;
-use snipershady\Queue\Producer\ProducerMiddlewareInterface;
-use snipershady\Queue\System\MemoryMeterInterface;
-use snipershady\Queue\System\SignalHandlerInterface;
-use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
-use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
-use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
-use snipershady\Queue\Transport\Capability\SetupAwareInterface;
-use snipershady\Queue\Transport\Capability\StatsAwareInterface;
-use snipershady\Queue\Transport\QueueStats;
-use snipershady\Queue\Transport\TransportCapabilities;
-use snipershady\Queue\Transport\TransportInterface;
-use snipershady\Queue\Worker\Worker;
-use snipershady\Queue\Worker\WorkerConfig;
-use snipershady\Queue\Worker\WorkerInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Producer\Producer;
+use QueueBridge\Producer\ProducerInterface;
+use QueueBridge\Producer\ProducerMiddlewareInterface;
+use QueueBridge\System\MemoryMeterInterface;
+use QueueBridge\System\SignalHandlerInterface;
+use QueueBridge\Transport\Capability\BrowseAwareInterface;
+use QueueBridge\Transport\Capability\DeadLetterAwareInterface;
+use QueueBridge\Transport\Capability\PurgeAwareInterface;
+use QueueBridge\Transport\Capability\SetupAwareInterface;
+use QueueBridge\Transport\Capability\StatsAwareInterface;
+use QueueBridge\Transport\QueueStats;
+use QueueBridge\Transport\TransportCapabilities;
+use QueueBridge\Transport\TransportInterface;
+use QueueBridge\Worker\Worker;
+use QueueBridge\Worker\WorkerConfig;
+use QueueBridge\Worker\WorkerInterface;
 
 /**
  * Facade di una coda: collega transport, producer e worker con la stessa configurazione.

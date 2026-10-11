@@ -2,37 +2,37 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Unit\Factory;
+namespace QueueBridge\Tests\Unit\Factory;
 
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Exception\UnsupportedStrategyException;
-use snipershady\Queue\Factory\QueueFactory;
-use snipershady\Queue\Factory\StrategyDtoInterface;
-use snipershady\Queue\Factory\TransportBuilderInterface;
-use snipershady\Queue\Message\Envelope;
-use snipershady\Queue\Message\Message;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\Message\MessageRules;
-use snipershady\Queue\Message\OutgoingMessage;
-use snipershady\Queue\Producer\Producer;
-use snipershady\Queue\Producer\ProducerMiddlewareInterface;
-use snipershady\Queue\Queue;
-use snipershady\Queue\System\NativeMemoryMeter;
-use snipershady\Queue\System\NativeRandom;
-use snipershady\Queue\System\NullSignalHandler;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Tests\Support\FakeClock;
-use snipershady\Queue\Tests\Support\RecordingLogger;
-use snipershady\Queue\Tests\Support\RecordingTransport;
-use snipershady\Queue\Transport\OrphanRecovery;
-use snipershady\Queue\Transport\TransportCapabilities;
-use snipershady\Queue\Transport\TransportInterface;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\UnsupportedStrategyException;
+use QueueBridge\Factory\QueueFactory;
+use QueueBridge\Factory\StrategyDtoInterface;
+use QueueBridge\Factory\TransportBuilderInterface;
+use QueueBridge\Message\Envelope;
+use QueueBridge\Message\Message;
+use QueueBridge\Message\MessageId;
+use QueueBridge\Message\MessageRules;
+use QueueBridge\Message\OutgoingMessage;
+use QueueBridge\Producer\Producer;
+use QueueBridge\Producer\ProducerMiddlewareInterface;
+use QueueBridge\Queue;
+use QueueBridge\System\NativeMemoryMeter;
+use QueueBridge\System\NativeRandom;
+use QueueBridge\System\NullSignalHandler;
+use QueueBridge\System\SystemClock;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Tests\Support\FakeClock;
+use QueueBridge\Tests\Support\RecordingLogger;
+use QueueBridge\Tests\Support\RecordingTransport;
+use QueueBridge\Transport\OrphanRecovery;
+use QueueBridge\Transport\TransportCapabilities;
+use QueueBridge\Transport\TransportInterface;
 
 #[CoversClass(QueueFactory::class)]
 #[CoversClass(UnsupportedStrategyException::class)]

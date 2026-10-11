@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Support;
+namespace QueueBridge\Tests\Support;
 
 use InvalidArgumentException;
 use Override;
-use snipershady\Queue\System\RandomInterface;
+use QueueBridge\System\RandomInterface;
 
 /**
  * Restituisce byte deterministici: i chunk configurati in ordine (troncati o completati alla lunghezza

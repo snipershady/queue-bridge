@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Tests\Integration\Redis;
+namespace QueueBridge\Tests\Integration\Redis;
 
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use QueueBridge\Config\QueueConfig;
+use QueueBridge\Idempotency\AcquireResult;
+use QueueBridge\Idempotency\AcquireStatus;
+use QueueBridge\Idempotency\LockToken;
+use QueueBridge\Message\MessageId;
+use QueueBridge\System\SystemClock;
+use QueueBridge\System\UuidV7Generator;
+use QueueBridge\Transport\Redis\Client\PhpRedisClient;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\RedisIdempotencyStore;
+use QueueBridge\Transport\Redis\Script\RedisScripts;
+use QueueBridge\Transport\Redis\Version\VersionDetector;
 use Redis;
 use RedisException;
-use snipershady\Queue\Config\QueueConfig;
-use snipershady\Queue\Idempotency\AcquireResult;
-use snipershady\Queue\Idempotency\AcquireStatus;
-use snipershady\Queue\Idempotency\LockToken;
-use snipershady\Queue\Message\MessageId;
-use snipershady\Queue\System\SystemClock;
-use snipershady\Queue\System\UuidV7Generator;
-use snipershady\Queue\Transport\Redis\Client\PhpRedisClient;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\RedisIdempotencyStore;
-use snipershady\Queue\Transport\Redis\Script\RedisScripts;
-use snipershady\Queue\Transport\Redis\Version\VersionDetector;
 
 /**
  * Lo script di acquisizione distingue "in elaborazione" da "completato" su un Redis reale.

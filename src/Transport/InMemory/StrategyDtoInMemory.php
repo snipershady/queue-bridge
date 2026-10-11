@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\InMemory;
+namespace QueueBridge\Transport\InMemory;
 
 use Override;
 use Psr\Clock\ClockInterface;
-use snipershady\Queue\Factory\StrategyDtoInterface;
+use QueueBridge\Factory\StrategyDtoInterface;
 
 /**
  * Coda in memoria, nel processo corrente: per test e sviluppo.

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace snipershady\Queue\Transport\Redis\Feature;
+namespace QueueBridge\Transport\Redis\Feature;
 
-use snipershady\Queue\Exception\CommandFailedException;
-use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
-use snipershady\Queue\Transport\Redis\RedisKeys;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Transport\Redis\Client\RedisClientInterface;
+use QueueBridge\Transport\Redis\RedisKeys;
 
 /**
  * Trim di sicurezza dello stream principale: rimuove solo entry già confermate, mai messaggi da leggere

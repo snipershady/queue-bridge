@@ -6,7 +6,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-10-10
+## [1.0.0] - 2026-10-11
 
 Prima release stabile.
 
@@ -48,6 +48,7 @@ Prima release stabile.
 - `UPGRADE.md` con la politica di compatibilità (API `@api`/`@internal`, deprecazioni, wire format, layout di chiavi e topologia).
 - CI: test unitari su PHP 8.3, 8.4, 8.5 (8.6 sperimentale), integrazione su Redis 6.0, 6.2, 7.0, 7.4, 8.0, 8.2, 8.4 e RabbitMQ 3.13, 4.x per ogni versione di PHP, job end-to-end (cambio di backend, esempi, CLI, benchmark) con Redis 6.0 e 8.4; mutation testing bloccante (MSI >= 85%).
 - API pubblica marcata `@api`; strategie Redis, script Lua, topologia RabbitMQ, parsing dei DSN, interni di CLI e Worker marcati `@internal`.
+- Complessità (`O(...)` e round trip verso il backend) nel PHPDoc di ogni metodo pubblico.
 
 [Unreleased]: https://github.com/snipershady/queue-bridge/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/snipershady/queue-bridge/releases/tag/v1.0.0

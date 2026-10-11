@@ -2,6 +2,15 @@
 
 **English** | [Italiano](README_IT.md)
 
+[![Latest Stable Version](https://img.shields.io/packagist/v/snipershady/queue-bridge.svg)](https://packagist.org/packages/snipershady/queue-bridge)
+[![Total Downloads](https://img.shields.io/packagist/dt/snipershady/queue-bridge.svg)](https://packagist.org/packages/snipershady/queue-bridge/stats)
+[![Monthly Downloads](https://img.shields.io/packagist/dm/snipershady/queue-bridge.svg)](https://packagist.org/packages/snipershady/queue-bridge/stats)
+[![PHP Version](https://img.shields.io/packagist/dependency-v/snipershady/queue-bridge/php.svg)](https://packagist.org/packages/snipershady/queue-bridge)
+[![License](https://img.shields.io/packagist/l/snipershady/queue-bridge.svg)](https://packagist.org/packages/snipershady/queue-bridge)
+[![CI](https://github.com/snipershady/queue-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/snipershady/queue-bridge/actions/workflows/ci.yml)
+[![PHPStan](https://img.shields.io/badge/PHPStan-max-brightgreen.svg)](phpstan.neon)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](tools/check-coverage.php)
+
 Backend-agnostic message queue for PHP 8.3+: one typed API for **Redis Streams** and **RabbitMQ**, with retries, a dead
 letter queue, delayed messages and automatic Redis version detection. An **InMemory** backend with the same semantics serves
 tests and local development.
@@ -54,6 +63,10 @@ The full design documentation (queue concepts, UML diagrams, concurrency, worker
 ```bash
 composer require snipershady/queue-bridge
 ```
+
+Package page: [packagist.org/packages/snipershady/queue-bridge](https://packagist.org/packages/snipershady/queue-bridge) ·
+Source: [github.com/snipershady/queue-bridge](https://github.com/snipershady/queue-bridge) ·
+Releases: [CHANGELOG.md](CHANGELOG.md)
 
 Then install the client of the backend you use:
 

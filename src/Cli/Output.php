@@ -18,6 +18,8 @@ final readonly class Output
     private mixed $stderr;
 
     /**
+     * Complessità: O(1).
+     *
      * @param resource $stdout
      * @param resource $stderr
      *
@@ -33,11 +35,17 @@ final readonly class Output
         $this->stderr = $stderr;
     }
 
+    /**
+     * Complessità: O(l), l = lunghezza della riga.
+     */
     public function line(string $line = ''): void
     {
         fwrite($this->stdout, $line.\PHP_EOL);
     }
 
+    /**
+     * Complessità: O(l), l = lunghezza della riga.
+     */
     public function error(string $line): void
     {
         fwrite($this->stderr, $line.\PHP_EOL);

@@ -13,6 +13,9 @@ use snipershady\Queue\Message\Delivery;
  */
 final readonly class MessageReleased implements WorkerEventInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(public Delivery $delivery)
     {
     }

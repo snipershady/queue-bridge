@@ -15,6 +15,8 @@ use snipershady\Queue\QueueInterface;
 interface QueueFactoryInterface
 {
     /**
+     * Complessità: O(b) + il costo del builder scelto, b = numero di builder.
+     *
      * @throws UnsupportedStrategyException se nessun builder accetta il DTO
      * @throws BackendException             se il backend non è raggiungibile o non è compatibile
      */

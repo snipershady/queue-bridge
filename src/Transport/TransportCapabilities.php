@@ -13,6 +13,8 @@ namespace snipershady\Queue\Transport;
 final readonly class TransportCapabilities
 {
     /**
+     * Complessità: O(1).
+     *
      * @param bool $nativeDelay   i differiti diventano disponibili senza `maintain()`
      * @param bool $batchReceive  `receive()` restituisce più messaggi per chiamata
      * @param bool $batchAck      implementa `BatchAckAwareInterface`

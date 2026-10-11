@@ -14,6 +14,9 @@ use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
  */
 final readonly class DelexLockRelease implements LockReleaseStrategyInterface
 {
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function release(RedisClientInterface $redisClient, string $key, string $token): void
     {

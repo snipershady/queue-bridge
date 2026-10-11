@@ -13,6 +13,8 @@ interface AckStrategyInterface
 {
     /**
      * Modalità passata agli script di RedisScripts: `xackdel` oppure `xack_xdel`.
+     *
+     * Complessità: O(1).
      */
     public function mode(): string;
 }

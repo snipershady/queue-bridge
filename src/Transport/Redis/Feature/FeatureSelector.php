@@ -13,6 +13,9 @@ use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
  */
 final class FeatureSelector
 {
+    /**
+     * Complessità: O(1).
+     */
     public static function select(RedisCapabilities $redisCapabilities): RedisFeatures
     {
         return new RedisFeatures(

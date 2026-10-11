@@ -13,6 +13,9 @@ use Override;
  */
 final readonly class AckDelStrategy implements AckStrategyInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function mode(): string
     {

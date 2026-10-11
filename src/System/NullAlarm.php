@@ -14,12 +14,18 @@ use Override;
  */
 final readonly class NullAlarm implements AlarmInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function isSupported(): bool
     {
         return false;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function schedule(int $seconds, callable $onAlarm): void
     {
@@ -28,6 +34,9 @@ final readonly class NullAlarm implements AlarmInterface
         }
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function cancel(): void
     {

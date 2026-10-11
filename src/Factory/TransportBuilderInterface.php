@@ -17,9 +17,14 @@ use snipershady\Queue\Transport\TransportInterface;
  */
 interface TransportBuilderInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function supports(StrategyDtoInterface $strategy): bool;
 
     /**
+     * Complessità: O(1) nei builder forniti, più un round trip su Redis per leggere la versione.
+     *
      * @throws UnsupportedStrategyException se il DTO non è supportato
      * @throws BackendException             se il backend non è raggiungibile o non è compatibile
      */

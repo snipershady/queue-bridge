@@ -34,6 +34,8 @@ final class RedisScripts
 
     /**
      * KEYS: stream. ARGV: group, consumer, modalità di ack, ID... → numero di consegne confermate.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(n log P), n = ID.
      */
     public static function ack(): string
     {
@@ -53,6 +55,8 @@ final class RedisScripts
      * KEYS: stream, delayed, dlq. ARGV: group, consumer, modalità di ack, ID, destinazione
      * (`stream` | `delayed` | `dlq`), score del differito o lunghezza massima della DLQ, membro del
      * differito, campi... → 1 se eseguito, 0 se la consegna non è più posseduta.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(f + log P + log d), f = campi.
      */
     public static function settle(): string
     {
@@ -80,6 +84,8 @@ final class RedisScripts
      * manutenzione insieme non duplicano il messaggio.
      *
      * KEYS: stream. ARGV: group, modalità di ack, inattività minima in ms, ID... → numero di messaggi rimessi in coda.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(n·(f + log P)), n = ID, f = campi.
      */
     public static function requeueOrphans(): string
     {
@@ -118,6 +124,9 @@ final class RedisScripts
      * Sposta nello stream i differiti scaduti. I membri sono oggetti JSON {campo: valore}.
      *
      * KEYS: delayed, stream. ARGV: istante attuale in ms, limite → numero di messaggi promossi.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(p·(f + log d)), p = differiti promossi (al più il limite), f =
+     * campi.
      */
     public static function promoteDelayed(): string
     {
@@ -140,6 +149,8 @@ final class RedisScripts
      * Riaccoda dalla DLQ con attempts = 0, togliendo i campi `failure_*` e `deliveries`.
      *
      * KEYS: dlq, stream. ARGV: `first` + limite, oppure `id` + ID dell'entry → numero di messaggi riaccodati.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(n·f), n = messaggi riaccodati, f = campi.
      */
     public static function requeueDeadLetters(): string
     {
@@ -172,6 +183,8 @@ final class RedisScripts
 
     /**
      * KEYS: dlq → numero di messaggi rimossi.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(L), L = messaggi in DLQ.
      */
     public static function purgeDeadLetters(): string
     {
@@ -188,6 +201,8 @@ final class RedisScripts
      *
      * KEYS: stream. ARGV: group, ID iniziale, ID finale, dimensione della pagina
      * → {entry eliminate, entry esaminate, ultimo ID esaminato ('' se nessuna)}.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(s log P), s = dimensione della pagina.
      */
     public static function purgeReady(): string
     {
@@ -210,6 +225,8 @@ final class RedisScripts
 
     /**
      * KEYS: delayed → numero di differiti rimossi.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(d), d = differiti.
      */
     public static function purgeDelayed(): string
     {
@@ -221,7 +238,27 @@ final class RedisScripts
     }
 
     /**
+     * Acquisizione del lock di idempotenza: `SET NX PX` e, se la chiave esiste già, distingue un messaggio
+     * completato da uno in elaborazione, nello stesso passo atomico.
+     *
+     * KEYS: chiave. ARGV: token, TTL in ms, valore "completato"
+     * → {1, 0} acquisito, {2, 0} completato, {0, PTTL} in elaborazione.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(1).
+     */
+    public static function acquireLock(): string
+    {
+        return <<<'LUA'
+            if redis.call('SET', KEYS[1], ARGV[1], 'NX', 'PX', ARGV[2]) then return {1, 0} end
+            if redis.call('GET', KEYS[1]) == ARGV[3] then return {2, 0} end
+            return {0, redis.call('PTTL', KEYS[1])}
+            LUA;
+    }
+
+    /**
      * Rilascio condizionato del lock (fallback di DELEX ... IFEQ). KEYS: chiave. ARGV: token → 1 se rilasciato.
+     *
+     * Complessità: O(1) (testo costante). Lo script: O(1).
      */
     public static function releaseLock(): string
     {

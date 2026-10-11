@@ -109,7 +109,8 @@ consumer muore prima dell'ack definisce la garanzia:
 queue-bridge è **at-least-once**: il worker conferma solo dopo che l'handler è terminato, quindi nessun messaggio va perso,
 nemmeno con un segfault, un out-of-memory o `kill -9`. Il prezzo è che un messaggio può essere elaborato due volte (l'handler
 finisce, il processo muore prima dell'ack). Gli handler devono quindi essere **idempotenti**, oppure protetti da
-`IdempotencyMiddleware`, che registra l'ID del messaggio in uno store e salta i messaggi già completati:
+`IdempotencyMiddleware`, che registra l'ID del messaggio in uno store e salta i messaggi già completati (un duplicato
+ancora in elaborazione presso un altro worker viene ritentato allo scadere del lock di quel worker, mai confermato):
 
 ```php
 $store = RedisIdempotencyStore::create($redisClient, $config);   // oppure InMemoryIdempotencyStore, o uno tuo
@@ -133,6 +134,12 @@ quel consumer muore, il messaggio diventa **orfano** e deve tornare in coda:
 
 `claimIdleMs` deve superare la durata dell'handler più lento, altrimenti un messaggio lento ma vivo viene scambiato per
 orfano ed elaborato due volte in parallelo. Il worker lo verifica rispetto a `TimeoutMiddleware`.
+
+Un intero batch è in elaborazione appena ricevuto, compresi i messaggi che aspettano il proprio turno. Su Redis e InMemory il
+worker inizia quindi una consegna solo se è stata ricevuta da meno di `claimIdleMs - timeout dell'handler`
+(`claimIdleMs / 2` senza `TimeoutMiddleware`); il resto del batch viene restituito con `release()`, dopo aver confermato i
+messaggi già elaborati, e segnalato con un warning nel log. Se il warning compare, riduci `batchSize` o il timeout
+dell'handler.
 
 ```php
 new QueueConfig(name: 'reports', claimIdleMs: 900_000);   // gli handler possono durare fino a ~10 minuti
@@ -998,11 +1005,14 @@ sequenceDiagram
     participant H as Handler
     W->>I: process(message, next)
     I->>S: acquire(id, lockTtlMs)
-    alt già completato o in elaborazione altrove
-        S-->>I: null
+    alt già completato
+        S-->>I: Completed
         I-->>W: ritorna (il worker conferma il duplicato)
+    else in elaborazione presso un altro worker
+        S-->>I: InProgress(lockRemainingMs)
+        I-->>W: RetryableException(delayMs = lockRemainingMs)
     else lock acquisito
-        S-->>I: LockToken
+        S-->>I: Acquired(LockToken)
         I->>H: next(message)
         alt l'handler riesce
             I->>S: complete(token, doneTtlMs)
@@ -1093,7 +1103,9 @@ flowchart TD
     E -- no --> FE["per ogni consegna"]
     FE --> SR{"arresto richiesto nel frattempo?"}
     SR -- sì --> RL["release(delivery)"]
-    SR -- no --> PR["process(delivery): vedi 5.2"]
+    SR -- no --> AG{"ricevuta troppo tempo fa per finire prima di claimIdleMs? (Redis, InMemory)"}
+    AG -- sì --> RL
+    AG -- no --> PR["process(delivery): vedi 5.2"]
     RL --> NX{"altre consegne?"}
     PR --> NX
     NX -- sì --> FE
@@ -1410,7 +1422,12 @@ At-least-once significa che un messaggio può essere elaborato due volte: crash 
 un orfano recuperato mentre il worker originale era solo lento, un publish confermato dal broker dopo un timeout di rete.
 `IdempotencyMiddleware` serializza i duplicati concorrenti con un **lock a due fasi** in uno store condiviso:
 
-1. `acquire(id, lockTtlMs)`: `SET NX PX` su Redis; fallisce se un altro worker sta elaborando lo stesso ID o lo ha completato;
+1. `acquire(id, lockTtlMs)`: `SET NX PX` su Redis, in uno script Lua che distingue atomicamente i tre esiti:
+   - `Acquired`: si esegue l'handler;
+   - `Completed`: il duplicato viene confermato senza eseguire l'handler;
+   - `InProgress`: il lock è di un altro worker. Il messaggio **non** viene confermato (quel worker potrebbe ancora fallire
+     o morire, e il messaggio andrebbe perso): `RetryableException` con ritardo pari al tempo residuo del lock. Il retry
+     consuma un tentativo di `maxAttempts`;
 2. handler;
 3. `complete(token, doneTtlMs)` lo segna come fatto con un TTL lungo; in caso di errore `release(token)` lo libera solo se il
    token corrisponde ancora (compare-and-delete: `DELEX ... IFEQ` su Redis 8.4, uno script Lua prima).

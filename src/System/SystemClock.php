@@ -18,11 +18,17 @@ final readonly class SystemClock implements ClockInterface
 {
     private DateTimeZone $dateTimeZone;
 
+    /**
+     * Complessità: O(1).
+     */
     public function __construct()
     {
         $this->dateTimeZone = new DateTimeZone('UTC');
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function now(): DateTimeImmutable
     {

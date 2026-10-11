@@ -17,11 +17,15 @@ interface IdleClaimStrategyInterface
 {
     /**
      * true se gli orfani vengono recuperati direttamente da XREADGROUP (nessuna scansione in maintain()).
+     *
+     * Complessità: O(1).
      */
     public function claimsOnRead(): bool;
 
     /**
      * Argomenti aggiuntivi di XREADGROUP, prima di STREAMS.
+     *
+     * Complessità: O(1).
      *
      * @return list<string>
      */
@@ -29,6 +33,8 @@ interface IdleClaimStrategyInterface
 
     /**
      * ID delle entry pendenti inattive da almeno $minIdleMs, al più $limit.
+     *
+     * Complessità: O(limit), al più un round trip.
      *
      * @throws CommandFailedException
      *

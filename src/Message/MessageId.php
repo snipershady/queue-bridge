@@ -22,6 +22,9 @@ final readonly class MessageId implements Stringable
     {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function __toString(): string
     {
@@ -29,6 +32,8 @@ final readonly class MessageId implements Stringable
     }
 
     /**
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se il valore non è un UUID RFC 9562
      */
     public static function fromString(string $value): self
@@ -42,6 +47,8 @@ final readonly class MessageId implements Stringable
     }
 
     /**
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se i byte non sono 16 o non formano un UUID RFC 9562
      */
     public static function fromBytes(string $bytes): self
@@ -62,6 +69,9 @@ final readonly class MessageId implements Stringable
         ));
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function equals(self $other): bool
     {
         return $this->value === $other->value;

@@ -52,6 +52,9 @@ final readonly class EnvelopeCodec implements EnvelopeCodecInterface
 
     private const string NON_NEGATIVE_INT_PATTERN = '/^(0|[1-9]\d{0,17})$/D';
 
+    /**
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (codifica JSON degli header).
+     */
     #[Override]
     public function encode(Message $message): array
     {
@@ -72,6 +75,9 @@ final readonly class EnvelopeCodec implements EnvelopeCodecInterface
         return $fields;
     }
 
+    /**
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi).
+     */
     #[Override]
     public function decode(array $fields): Message
     {

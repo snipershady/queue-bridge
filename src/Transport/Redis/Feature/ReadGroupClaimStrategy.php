@@ -15,18 +15,27 @@ use snipershady\Queue\Transport\Redis\RedisKeys;
  */
 final readonly class ReadGroupClaimStrategy implements IdleClaimStrategyInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function claimsOnRead(): bool
     {
         return true;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function readArguments(int $minIdleMs): array
     {
         return ['CLAIM', (string) $minIdleMs];
     }
 
+    /**
+     * Complessità: O(1), nessun round trip (gli orfani li recupera XREADGROUP ... CLAIM).
+     */
     #[Override]
     public function findIdle(RedisClientInterface $redisClient, RedisKeys $redisKeys, int $minIdleMs, int $limit): array
     {

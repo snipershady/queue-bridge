@@ -29,6 +29,8 @@ final class PhpAmqpLibConnector implements AmqpConnectorInterface
     private readonly ?Closure $factory;
 
     /**
+     * Complessità: O(1).
+     *
      * @param AbstractConnection|Closure(): AbstractConnection $connection connessione aperta, o factory che ne crea una
      */
     public function __construct(
@@ -39,6 +41,9 @@ final class PhpAmqpLibConnector implements AmqpConnectorInterface
         $this->factory = $connection instanceof Closure ? $connection : null;
     }
 
+    /**
+     * Complessità: O(1); apre canale (e connessione) solo se chiusi.
+     */
     #[Override]
     public function channel(): AmqpChannelInterface
     {
@@ -52,12 +57,18 @@ final class PhpAmqpLibConnector implements AmqpConnectorInterface
         return $this->channel;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function generation(): int
     {
         return $this->generation;
     }
 
+    /**
+     * Complessità: O(1), un round trip per chiudere il canale.
+     */
     #[Override]
     public function reset(): void
     {

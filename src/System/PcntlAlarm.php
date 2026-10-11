@@ -14,12 +14,18 @@ use Override;
  */
 final readonly class PcntlAlarm implements AlarmInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function isSupported(): bool
     {
         return true;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function schedule(int $seconds, callable $onAlarm): void
     {
@@ -34,6 +40,9 @@ final readonly class PcntlAlarm implements AlarmInterface
         pcntl_alarm($seconds);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function cancel(): void
     {

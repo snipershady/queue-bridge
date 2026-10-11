@@ -15,6 +15,8 @@ use snipershady\Queue\Message\Message;
 interface ProducerMiddlewareInterface
 {
     /**
+     * Complessità: O(t + h) nei middleware forniti, più il costo di $next.
+     *
      * @param callable(Message): void $next
      */
     public function process(Message $message, callable $next): void;

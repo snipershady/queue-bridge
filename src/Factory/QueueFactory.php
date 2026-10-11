@@ -29,6 +29,8 @@ use snipershady\Queue\System\SystemClock;
 final readonly class QueueFactory implements QueueFactoryInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @param list<TransportBuilderInterface>   $builders            consultati in ordine; il primo che supporta il DTO vince
      * @param list<ProducerMiddlewareInterface> $producerMiddlewares
      *
@@ -47,6 +49,9 @@ final readonly class QueueFactory implements QueueFactoryInterface
         }
     }
 
+    /**
+     * Complessità: O(b) + il costo del builder scelto, b = numero di builder (Redis: un round trip per INFO).
+     */
     #[Override]
     public function create(StrategyDtoInterface $strategy, QueueConfig $config = new QueueConfig()): QueueInterface
     {

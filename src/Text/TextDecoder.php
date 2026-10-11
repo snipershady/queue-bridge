@@ -22,6 +22,8 @@ final readonly class TextDecoder
     private int $maxDepth;
 
     /**
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se $maxDepth è fuori da 1..2147483647
      */
     public function __construct(int $maxDepth = self::DEFAULT_MAX_DEPTH)
@@ -35,6 +37,8 @@ final readonly class TextDecoder
 
     /**
      * JSON oltre la profondità massima viene trattato come testo semplice.
+     *
+     * Complessità: O(t), t = byte del testo (validazione e decodifica JSON).
      */
     public function decode(string $text): DecodedText
     {

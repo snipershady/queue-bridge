@@ -14,6 +14,9 @@ use snipershady\Queue\Message\Message;
  */
 final readonly class DeadLetter
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         public Message $message,
         public FailureReason $reason,

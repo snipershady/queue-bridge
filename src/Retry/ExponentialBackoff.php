@@ -20,6 +20,8 @@ final readonly class ExponentialBackoff implements RetryStrategyInterface
     private const int RANDOM_MAX = 0xFFFFFFFF;
 
     /**
+     * Complessità: O(1).
+     *
      * @param float $jitter frazione del ritardo, tra 0 (nessun jitter) e 1
      *
      * @throws InvalidArgumentException se un parametro è fuori dai limiti
@@ -48,6 +50,9 @@ final readonly class ExponentialBackoff implements RetryStrategyInterface
         }
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function nextDelayMs(int $attempt): int
     {

@@ -810,6 +810,82 @@ final class WorkerTest extends TestCase
         }
     }
 
+    // --- batch e claimIdleMs ---------------------------------------------------------------------------------
+
+    public function testMessagesWaitingTooLongInTheBatchAreReleasedBeforeClaimIdle(): void
+    {
+        // claimIdleMs = 10 s e nessun timeout dell'handler: si inizia un messaggio solo entro 5 s dalla ricezione.
+        $handled = [];
+        $worker = $this->worker(new WorkerConfig(batchSize: 3, listeners: [$this->recordingListener]))
+            ->on('test', function (Message $message) use (&$handled): void {
+                $handled[] = $message->text;
+                $this->fakeClock->advanceMs(5000);
+            });
+        foreach (['a', 'b', 'c'] as $text) {
+            $this->send('test', $text);
+        }
+
+        self::assertSame(1, $worker->runOnce());
+
+        self::assertSame(['a'], $handled);
+        self::assertSame(['b', 'c'], array_map(static fn (MessageReleased $messageReleased): string => $messageReleased->delivery->message->text, $this->recordingListener->ofType(MessageReleased::class)));
+        self::assertSame(2, $this->inMemoryTransport->stats()->ready);
+        self::assertSame(0, $this->inMemoryTransport->stats()->inFlight);
+        // L'ack di "a" parte prima dei rilasci, non a fine batch.
+        self::assertSame([1], $this->spyTransport->ackBatches);
+        self::assertSame(['warning'], $this->recordingLogger->levels());
+        self::assertSame(['released' => 2, 'deadline_ms' => 5000], $this->recordingLogger->records[0]['context']);
+    }
+
+    public function testMessageStartingJustBeforeTheDeadlineIsHandled(): void
+    {
+        $handled = [];
+        $worker = $this->worker(new WorkerConfig(batchSize: 2))->on('test', function (Message $message) use (&$handled): void {
+            $handled[] = $message->text;
+            $this->fakeClock->advanceMs(4999);
+        });
+        $this->send('test', 'a');
+        $this->send('test', 'b');
+
+        self::assertSame(2, $worker->runOnce());
+
+        self::assertSame(['a', 'b'], $handled);
+        self::assertSame([], $this->recordingLogger->records);
+    }
+
+    public function testHandlerTimeoutSetsTheDeadlineBeforeClaimIdle(): void
+    {
+        // Vale il timeout più lungo (2 s), ovunque sia nella pipeline: un messaggio iniziato entro 8 s finisce
+        // comunque prima dei 10 s di claimIdleMs.
+        $middlewares = [$this->middleware('log', new CallLog()), new TimeoutMiddleware(new FakeAlarm(), 2), new TimeoutMiddleware(new FakeAlarm(), 1)];
+        $handled = [];
+        $worker = $this->worker(new WorkerConfig(batchSize: 3, middlewares: $middlewares))
+            ->on('test', function (Message $message) use (&$handled): void {
+                $handled[] = $message->text;
+                $this->fakeClock->advanceMs(4000);
+            });
+        foreach (['a', 'b', 'c'] as $text) {
+            $this->send('test', $text);
+        }
+
+        self::assertSame(2, $worker->runOnce());
+
+        self::assertSame(['a', 'b'], $handled);
+        self::assertSame(['released' => 1, 'deadline_ms' => 8000], $this->recordingLogger->records[0]['context']);
+    }
+
+    public function testBackendsWithNativeOrphanRecoveryHaveNoBatchDeadline(): void
+    {
+        $recordingTransport = new RecordingTransport();
+        $recordingTransport->incoming[] = [$this->delivery('test', 'a'), $this->delivery('test', 'b')];
+        $worker = $this->worker(transport: $recordingTransport)->on('test', function (): void {
+            $this->fakeClock->advanceMs(3_600_000);
+        });
+
+        self::assertSame(2, $worker->runOnce());
+        self::assertCount(2, $recordingTransport->acked);
+    }
+
     // --- configurazione --------------------------------------------------------------------------------------
 
     public function testTimeoutMustBeShorterThanClaimIdle(): void

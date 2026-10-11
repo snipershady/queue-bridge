@@ -109,7 +109,8 @@ consumer dies before the ack defines the guarantee:
 queue-bridge is **at-least-once**: the worker acknowledges only after the handler has returned, so no message is lost, even
 on a segfault, an out-of-memory error or `kill -9`. The price is that a message can be processed twice (the handler
 finishes, the process dies before the ack). Handlers must therefore be **idempotent**, or protected by
-`IdempotencyMiddleware`, which records the message ID in a store and skips the messages already completed:
+`IdempotencyMiddleware`, which records the message ID in a store and skips the messages already completed (a duplicate
+still being processed by another worker is retried when that worker's lock expires, never acknowledged):
 
 ```php
 $store = RedisIdempotencyStore::create($redisClient, $config);   // or InMemoryIdempotencyStore, or your own
@@ -132,6 +133,11 @@ dies, the message becomes an **orphan** and must come back to the queue:
 
 `claimIdleMs` must be longer than the slowest handler, otherwise a slow but alive message is taken for an orphan and
 processed twice in parallel. The worker validates this against `TimeoutMiddleware`.
+
+A whole batch is in flight as soon as it is received, including the messages still waiting for their turn. On Redis and
+InMemory the worker therefore starts a delivery only if it was received less than `claimIdleMs - handler timeout` ago
+(`claimIdleMs / 2` without `TimeoutMiddleware`); the rest of the batch is returned with `release()`, after acknowledging
+the messages already handled, and a warning is logged. If the warning shows up, lower `batchSize` or the handler timeout.
 
 ```php
 new QueueConfig(name: 'reports', claimIdleMs: 900_000);   // handlers may take up to ~10 minutes
@@ -995,11 +1001,14 @@ sequenceDiagram
     participant H as Handler
     W->>I: process(message, next)
     I->>S: acquire(id, lockTtlMs)
-    alt already completed or being processed elsewhere
-        S-->>I: null
+    alt already completed
+        S-->>I: Completed
         I-->>W: return (the worker acknowledges the duplicate)
+    else being processed by another worker
+        S-->>I: InProgress(lockRemainingMs)
+        I-->>W: RetryableException(delayMs = lockRemainingMs)
     else lock acquired
-        S-->>I: LockToken
+        S-->>I: Acquired(LockToken)
         I->>H: next(message)
         alt handler succeeds
             I->>S: complete(token, doneTtlMs)
@@ -1090,7 +1099,9 @@ flowchart TD
     E -- no --> FE["for each delivery"]
     FE --> SR{"stop requested meanwhile?"}
     SR -- yes --> RL["release(delivery)"]
-    SR -- no --> PR["process(delivery): see 5.2"]
+    SR -- no --> AG{"received too long ago to finish before claimIdleMs? (Redis, InMemory)"}
+    AG -- yes --> RL
+    AG -- no --> PR["process(delivery): see 5.2"]
     RL --> NX{"more deliveries?"}
     PR --> NX
     NX -- yes --> FE
@@ -1403,7 +1414,12 @@ At-least-once means a message can be processed twice: crash after the side effec
 while the original worker was only slow, a publish confirmed by the broker after a network timeout. `IdempotencyMiddleware`
 serializes concurrent duplicates with a **two-phase lock** in a shared store:
 
-1. `acquire(id, lockTtlMs)`: `SET NX PX` on Redis; fails if another worker is processing the same ID or has completed it;
+1. `acquire(id, lockTtlMs)`: `SET NX PX` on Redis, in a Lua script that tells the three outcomes apart atomically:
+   - `Acquired`: run the handler;
+   - `Completed`: acknowledge the duplicate without running the handler;
+   - `InProgress`: another worker holds the lock. The message is **not** acknowledged (that worker may still fail or die,
+     and the message would be lost): `RetryableException` with a delay equal to the remaining lock time. The retry uses
+     one attempt of `maxAttempts`;
 2. handler;
 3. `complete(token, doneTtlMs)` marks it done for a long TTL; on error `release(token)` frees it only if the token still
    matches (compare-and-delete: `DELEX ... IFEQ` on Redis 8.4, a Lua script before).

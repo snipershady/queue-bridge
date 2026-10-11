@@ -17,6 +17,8 @@ use Throwable;
 interface HandlerInterface
 {
     /**
+     * Complessità: Dipende dall'handler.
+     *
      * @throws Throwable RetryableException per ritentare, UnrecoverableMessageException per la DLQ immediata
      */
     public function handle(Message $message, DecodedText $text): void;

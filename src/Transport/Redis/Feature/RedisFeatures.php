@@ -13,6 +13,9 @@ use snipershady\Queue\Transport\Redis\Version\RedisCapabilities;
  */
 final readonly class RedisFeatures
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         public RedisCapabilities $capabilities,
         public IdleClaimStrategyInterface $idleClaim,

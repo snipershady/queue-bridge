@@ -20,10 +20,17 @@ final readonly class TraceContextMiddleware implements ProducerMiddlewareInterfa
 
     private const string TRACEPARENT_PATTERN = '/^00-(?!0{32})[0-9a-f]{32}-(?!0{16})[0-9a-f]{16}-[0-9a-f]{2}$/D';
 
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(private TraceContextProviderInterface $provider)
     {
     }
 
+    /**
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi). Più il costo di
+     * $next.
+     */
     #[Override]
     public function process(Message $message, callable $next): void
     {

@@ -18,12 +18,16 @@ interface EnvelopeCodecInterface
     /**
      * Scrive sempre la versione più recente del formato.
      *
+     * Complessità: O(t + h) nel codec fornito, t = byte del testo, h = byte degli header.
+     *
      * @return array<string, string>
      */
     public function encode(Message $message): array;
 
     /**
      * Legge tutte le versioni supportate del formato.
+     *
+     * Complessità: O(t + h) nel codec fornito, t = byte del testo, h = byte degli header.
      *
      * @param array<array-key, string> $fields
      *

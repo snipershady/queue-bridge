@@ -15,6 +15,8 @@ use snipershady\Queue\Message\MessageId;
 final readonly class LockToken
 {
     /**
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se $token è vuoto
      */
     public function __construct(

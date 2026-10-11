@@ -15,6 +15,8 @@ use snipershady\Queue\Transport\Redis\RedisReply;
 final class PendingEntries
 {
     /**
+     * Complessità: O(n), n = voci della risposta di XPENDING.
+     *
      * @throws CommandFailedException
      *
      * @return list<string>

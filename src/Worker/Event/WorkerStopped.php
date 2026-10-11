@@ -11,6 +11,9 @@ use snipershady\Queue\Worker\WorkerExitReason;
  */
 final readonly class WorkerStopped implements WorkerEventInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         public WorkerExitReason $reason,
         public int $processed,

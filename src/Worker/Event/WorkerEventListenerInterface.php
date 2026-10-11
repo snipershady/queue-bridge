@@ -11,5 +11,8 @@ namespace snipershady\Queue\Worker\Event;
  */
 interface WorkerEventListenerInterface
 {
+    /**
+     * Complessità: Dipende dal listener; viene chiamato più volte per ogni messaggio, quindi dovrebbe essere O(1).
+     */
     public function onEvent(WorkerEventInterface $event): void;
 }

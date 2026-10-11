@@ -18,6 +18,8 @@ use snipershady\Queue\Exception\ConnectionException;
 interface RedisClientInterface
 {
     /**
+     * Complessità: O(c + r), c = dimensione del comando, r = dimensione della risposta; un round trip.
+     *
      * @param non-empty-list<string> $command nome del comando seguito dagli argomenti
      *
      * @throws CommandFailedException se il server risponde con un errore
@@ -30,6 +32,8 @@ interface RedisClientInterface
     /**
      * Esegue i comandi con un solo round trip. Da usare solo con comandi che non rispondono mai nil
      * (es. XADD, ZADD): alcuni client non distinguono un nil da un errore dentro una pipeline.
+     *
+     * Complessità: O(c + r) sull'intera pipeline; un round trip.
      *
      * @param non-empty-list<non-empty-list<string>> $commands
      *

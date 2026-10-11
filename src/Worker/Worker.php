@@ -28,6 +28,7 @@ use snipershady\Queue\System\SystemClock;
 use snipershady\Queue\Text\TextDecoder;
 use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
 use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
+use snipershady\Queue\Transport\OrphanRecovery;
 use snipershady\Queue\Transport\TransportInterface;
 use snipershady\Queue\Worker\Event\MessageDeadLettered;
 use snipershady\Queue\Worker\Event\MessageDiscarded;
@@ -62,6 +63,20 @@ final class Worker implements WorkerInterface
     private array $pendingAcks = [];
 
     /**
+     * Età massima (ms dalla ricezione) per iniziare a elaborare una consegna; null se il backend non riprende
+     * gli orfani dopo `claimIdleMs` (OrphanRecovery::Native).
+     */
+    private readonly ?int $startDeadlineMs;
+
+    /**
+     * Con un backend che riprende gli orfani dopo `claimIdleMs` (Redis, InMemory), tutto il batch ricevuto
+     * risulta "in elaborazione" da subito, anche i messaggi che aspettano il proprio turno. Per non farli
+     * riprendere da un altro worker mentre sono ancora qui, una consegna viene elaborata solo se è stata
+     * ricevuta da meno di `claimIdleMs - timeout dell'handler` (TimeoutMiddleware) oppure, senza timeout,
+     * da meno di `claimIdleMs / 2`; le altre vengono restituite con `release()`.
+     *
+     * Complessità: O(m), m = numero di middleware.
+     *
      * @throws InvalidArgumentException se il timeout dell'handler non è inferiore a `QueueConfig::$claimIdleMs`
      */
     public function __construct(
@@ -74,17 +89,32 @@ final class Worker implements WorkerInterface
         private readonly LoggerInterface $logger = new NullLogger(),
         private readonly TextDecoder $textDecoder = new TextDecoder(),
     ) {
+        $timeoutsMs = [];
         foreach ($config->middlewares as $middleware) {
+            if (!$middleware instanceof TimeoutMiddleware) {
+                continue;
+            }
+
             // Un handler ancora in esecuzione oltre claimIdleMs verrebbe ripreso da un altro worker.
-            if ($middleware instanceof TimeoutMiddleware && $middleware->timeoutSeconds() * 1000 >= $queueConfig->claimIdleMs) {
+            if ($middleware->timeoutSeconds() * 1000 >= $queueConfig->claimIdleMs) {
                 throw new InvalidArgumentException(\sprintf('Handler timeout (%d s) must be shorter than claimIdleMs (%d ms).', $middleware->timeoutSeconds(), $queueConfig->claimIdleMs));
             }
+
+            $timeoutsMs[] = $middleware->timeoutSeconds() * 1000;
         }
+
+        $handlerBudgetMs = [] === $timeoutsMs ? intdiv($queueConfig->claimIdleMs, 2) : \max($timeoutsMs);
+        $this->startDeadlineMs = OrphanRecovery::Explicit === $transport->capabilities()->orphanRecovery
+            ? $queueConfig->claimIdleMs - $handlerBudgetMs
+            : null;
 
         $this->handlers = new HandlerRegistry();
         $this->stopConditions = new StopConditions($config, $clock, $memoryMeter);
     }
 
+    /**
+     * Complessità: O(c), c = lunghezza del canale (validazione).
+     */
     #[Override]
     public function on(string $channel, HandlerInterface|callable $handler): static
     {
@@ -93,12 +123,19 @@ final class Worker implements WorkerInterface
         return $this;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function stop(): void
     {
         $this->stopRequested = true;
     }
 
+    /**
+     * Complessità: O(1) per messaggio più handler, middleware (m) e listener (l): O(m + l) di overhead; dura finché un
+     * limite o un segnale non lo ferma.
+     */
     #[Override]
     public function run(): WorkerExitReason
     {
@@ -139,6 +176,10 @@ final class Worker implements WorkerInterface
         return $reason;
     }
 
+    /**
+     * Complessità: O(k·(m + l)) più gli handler, k = consegne ricevute (al più batchSize), m = middleware, l =
+     * listener; una `receive()` e al più una `ackBatch()`.
+     */
     #[Override]
     public function runOnce(): int
     {
@@ -154,6 +195,7 @@ final class Worker implements WorkerInterface
 
         $deliveries = $this->transport->receive($max, $this->config->receiveTimeoutMs);
         $handled = 0;
+        $expired = 0;
 
         foreach ($deliveries as $delivery) {
             if ($this->stopRequested) {
@@ -162,8 +204,23 @@ final class Worker implements WorkerInterface
                 continue;
             }
 
+            // Iniziarla ora rischierebbe di superare claimIdleMs: un altro worker la riprenderebbe in parallelo.
+            if (null !== $this->startDeadlineMs && $this->elapsedMs($delivery->receivedAt) >= $this->startDeadlineMs) {
+                $this->release($delivery);
+                ++$expired;
+
+                continue;
+            }
+
             $this->process($delivery);
             ++$handled;
+        }
+
+        if ($expired > 0) {
+            $this->logger->warning('{released} messages released unprocessed: the batch took longer than {deadline_ms} ms, the safe window before claimIdleMs. Lower batchSize or the handler timeout.', [
+                'released' => $expired,
+                'deadline_ms' => $this->startDeadlineMs,
+            ]);
         }
 
         $this->flushAcks();

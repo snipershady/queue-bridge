@@ -11,6 +11,9 @@ namespace snipershady\Queue\Exception;
  */
 final class UnknownChannelException extends QueueException
 {
+    /**
+     * Complessità: O(1).
+     */
     public static function forChannel(string $channel): self
     {
         return new self(\sprintf('No handler registered for channel "%s".', $channel));

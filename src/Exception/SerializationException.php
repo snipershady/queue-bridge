@@ -13,11 +13,17 @@ use Throwable;
  */
 final class SerializationException extends QueueException
 {
+    /**
+     * Complessità: O(1).
+     */
     public static function unsupportedVersion(string $version): self
     {
         return new self(\sprintf('Unsupported wire format version "%s".', $version));
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public static function invalidField(string $field, string $reason, ?Throwable $previous = null): self
     {
         return new self(\sprintf('Invalid wire format field "%s": %s', $field, $reason), 0, $previous);

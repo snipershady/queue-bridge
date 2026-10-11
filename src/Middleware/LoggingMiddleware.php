@@ -20,12 +20,18 @@ use Throwable;
  */
 final readonly class LoggingMiddleware implements MiddlewareInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private LoggerInterface $logger,
         private ClockInterface $clock = new SystemClock(),
     ) {
     }
 
+    /**
+     * Complessità: O(1) più il costo di $next e del logger.
+     */
     #[Override]
     public function process(Message $message, callable $next): void
     {

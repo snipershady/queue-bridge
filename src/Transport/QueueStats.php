@@ -12,6 +12,8 @@ use InvalidArgumentException;
 final readonly class QueueStats
 {
     /**
+     * Complessità: O(1).
+     *
      * @param int  $ready       messaggi pronti, non ancora consegnati
      * @param int  $inFlight    messaggi consegnati e non ancora confermati
      * @param int  $delayed     messaggi differiti non ancora disponibili

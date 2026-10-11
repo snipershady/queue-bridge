@@ -12,12 +12,16 @@ namespace snipershady\Queue\System;
 interface SignalHandlerInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @param callable(int): void $onTerminate riceve il numero del segnale
      */
     public function onTerminate(callable $onTerminate): void;
 
     /**
      * Ripristina il comportamento di default dei segnali.
+     *
+     * Complessità: O(1).
      */
     public function reset(): void;
 }

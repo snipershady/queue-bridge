@@ -69,6 +69,8 @@ final readonly class Application
     private Closure $queueFactory;
 
     /**
+     * Complessità: O(1).
+     *
      * @param ?Closure(LoggerInterface): QueueFactoryInterface $queueFactory default: QueueBridge::factory()
      * @param array<string, string>                            $environment  variabili d'ambiente (QUEUE_DSN)
      */
@@ -82,6 +84,9 @@ final readonly class Application
     }
 
     /**
+     * Complessità: O(a) per il parsing, a = numero di argomenti; il resto è quello del comando (es. `work` gira finché
+     * un limite non lo ferma, `dlq:list` è O(limit)).
+     *
      * @param list<string> $arguments argomenti senza il nome dello script
      */
     public function run(array $arguments): int

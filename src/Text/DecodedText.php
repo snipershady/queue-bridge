@@ -25,6 +25,8 @@ final readonly class DecodedText
     }
 
     /**
+     * Complessità: O(1).
+     *
      * @param array<mixed>|string|int|float|bool|null $value
      */
     public static function json(string $raw, array|string|int|float|bool|null $value): self
@@ -32,11 +34,17 @@ final readonly class DecodedText
         return new self(TextKind::Json, $value, $raw);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public static function plain(string $raw): self
     {
         return new self(TextKind::Plain, $raw, $raw);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function isJson(): bool
     {
         return TextKind::Json === $this->kind;

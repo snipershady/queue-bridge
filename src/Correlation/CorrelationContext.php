@@ -21,16 +21,25 @@ final class CorrelationContext
     /** @var list<Message> */
     private array $stack = [];
 
+    /**
+     * Complessità: O(1) ammortizzato.
+     */
     public function enter(Message $message): void
     {
         $this->stack[] = $message;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function leave(): void
     {
         array_pop($this->stack);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function current(): ?Message
     {
         return $this->stack[\count($this->stack) - 1] ?? null;

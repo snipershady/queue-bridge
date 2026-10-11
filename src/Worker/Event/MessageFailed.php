@@ -14,6 +14,9 @@ use Throwable;
  */
 final readonly class MessageFailed implements WorkerEventInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         public Delivery $delivery,
         public Throwable $error,

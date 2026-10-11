@@ -15,6 +15,8 @@ use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
 interface LockReleaseStrategyInterface
 {
     /**
+     * Complessità: O(1), un round trip.
+     *
      * @throws CommandFailedException
      */
     public function release(RedisClientInterface $redisClient, string $key, string $token): void;

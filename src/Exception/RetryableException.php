@@ -15,6 +15,8 @@ use Throwable;
 final class RetryableException extends QueueException
 {
     /**
+     * Complessità: O(1).
+     *
      * @param ?int $delayMs ritardo del prossimo tentativo; null = quello della retry strategy
      *
      * @throws InvalidArgumentException se $delayMs < 0

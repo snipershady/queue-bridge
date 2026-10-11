@@ -31,6 +31,8 @@ final class MultiQueueWorker
     private bool $stopRequested = false;
 
     /**
+     * Complessità: O(1).
+     *
      * @param non-empty-list<WorkerInterface> $workers worker già configurati con i propri handler
      * @param WorkerConfig                    $config  limiti e `stopWhenEmpty` dell'insieme
      *
@@ -53,6 +55,8 @@ final class MultiQueueWorker
 
     /**
      * Esce dopo il giro corrente; i messaggi già ricevuti dai worker interni tornano in coda.
+     *
+     * Complessità: O(w), w = worker interni.
      */
     public function stop(): void
     {
@@ -64,6 +68,8 @@ final class MultiQueueWorker
 
     /**
      * Un giro: un runOnce() per ogni worker.
+     *
+     * Complessità: O(w) giri di `runOnce()`, w = worker interni.
      *
      * @throws BackendException
      *
@@ -84,6 +90,8 @@ final class MultiQueueWorker
     }
 
     /**
+     * Complessità: O(w) per giro, w = worker interni; dura finché un limite o un segnale non lo ferma.
+     *
      * @throws BackendException
      */
     public function run(): WorkerExitReason

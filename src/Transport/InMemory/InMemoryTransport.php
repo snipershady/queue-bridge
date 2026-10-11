@@ -33,12 +33,18 @@ use snipershady\Queue\Transport\TransportInterface;
  * blocca: nello stesso processo nessuno può pubblicare mentre si attende. Gli orfani si recuperano con
  * `maintain()`, come su Redis.
  *
+ * Complessità dei metodi: t = byte di `text`, h = byte degli header, P = consegne pendenti, d = differiti,
+ * T = scaglioni di attesa (RabbitMQ). "Round trip" = scambi di rete con il backend.
+ *
  * @api
  */
 final readonly class InMemoryTransport implements TransportInterface, SetupAwareInterface, MaintenanceAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface, PurgeAwareInterface, BrowseAwareInterface
 {
     private InMemoryBroker $inMemoryBroker;
 
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private ClockInterface $clock,
         private QueueConfig $config = new QueueConfig(),
@@ -46,6 +52,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         $this->inMemoryBroker = new InMemoryBroker();
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function setup(): void
     {
@@ -53,12 +62,17 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
 
     /**
      * Un altro consumer della stessa coda (stesso stato condiviso), come un secondo worker.
+     *
+     * Complessità: O(1).
      */
     public function newConsumer(): self
     {
         return clone $this;
     }
 
+    /**
+     * Complessità: O(1) ammortizzato.
+     */
     #[Override]
     public function send(Message $message, int $delayMs = 0): void
     {
@@ -70,6 +84,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         $this->inMemoryBroker->enqueue(new InMemoryEntry($message), $nowMs + $delayMs, $nowMs);
     }
 
+    /**
+     * Complessità: O(n), n = messaggi.
+     */
     #[Override]
     public function sendBatch(iterable $envelopes): void
     {
@@ -78,6 +95,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         }
     }
 
+    /**
+     * Complessità: O(d log d + k·r), d = differiti, k = consegne restituite, r = messaggi pronti.
+     */
     #[Override]
     public function receive(int $max = 1, int $timeoutMs = 1000): array
     {
@@ -99,12 +119,18 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         );
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function ack(Delivery $delivery): void
     {
         $this->inMemoryBroker->settle($delivery->receipt);
     }
 
+    /**
+     * Complessità: O(n), n = consegne.
+     */
     #[Override]
     public function ackBatch(array $deliveries): void
     {
@@ -113,6 +139,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         }
     }
 
+    /**
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi).
+     */
     #[Override]
     public function retry(Delivery $delivery, int $delayMs): void
     {
@@ -129,6 +158,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         $this->inMemoryBroker->enqueue(new InMemoryEntry($inMemoryEntry->message->withIncrementedAttempts()), $nowMs + $delayMs, $nowMs);
     }
 
+    /**
+     * Complessità: O(1) ammortizzato; O(l) quando la DLQ supera la lunghezza massima, l = messaggi in DLQ.
+     */
     #[Override]
     public function reject(Delivery $delivery, FailureReason $reason): void
     {
@@ -140,6 +172,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         $this->inMemoryBroker->addDeadLetter(new DeadLetter($inMemoryEntry->message, $reason), $this->config->dlqMaxLength);
     }
 
+    /**
+     * Complessità: O(r), r = messaggi pronti.
+     */
     #[Override]
     public function release(Delivery $delivery): void
     {
@@ -149,11 +184,17 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         }
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function ping(): void
     {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function capabilities(): TransportCapabilities
     {
@@ -168,6 +209,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         );
     }
 
+    /**
+     * Complessità: O(d log d + f), d = differiti, f = messaggi in elaborazione.
+     */
     #[Override]
     public function maintain(): MaintenanceReport
     {
@@ -179,6 +223,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         );
     }
 
+    /**
+     * Complessità: O(d log d + r), d = differiti, r = messaggi pronti.
+     */
     #[Override]
     public function stats(): QueueStats
     {
@@ -193,12 +240,18 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         );
     }
 
+    /**
+     * Complessità: O(limit).
+     */
     #[Override]
     public function deadLetters(int $limit = 100): array
     {
         return $this->inMemoryBroker->deadLetters($this->assertLimit($limit));
     }
 
+    /**
+     * Complessità: O(l + limit·(t + h)), l = messaggi in DLQ.
+     */
     #[Override]
     public function requeueDeadLetters(int $limit = 100): int
     {
@@ -210,6 +263,9 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         return \count($deadLetters);
     }
 
+    /**
+     * Complessità: O(l + t + h), l = messaggi in DLQ.
+     */
     #[Override]
     public function requeueDeadLetter(MessageId $id): bool
     {
@@ -223,18 +279,27 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
         return true;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function purgeDeadLetters(): int
     {
         return $this->inMemoryBroker->purgeDeadLetters();
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function purge(): int
     {
         return $this->inMemoryBroker->purge();
     }
 
+    /**
+     * Complessità: O(f + r + d log d), f = in elaborazione, r = pronti, d = differiti.
+     */
     #[Override]
     public function browse(int $limit = 100): array
     {

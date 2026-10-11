@@ -15,6 +15,9 @@ use snipershady\Queue\System\MemoryMeterInterface;
  */
 final readonly class StopConditions
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private WorkerConfig $config,
         private ClockInterface $clock,
@@ -22,6 +25,9 @@ final readonly class StopConditions
     ) {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function check(int $processed, DateTimeImmutable $startedAt): ?WorkerExitReason
     {
         if (null !== $this->config->maxMessages && $processed >= $this->config->maxMessages) {
@@ -43,6 +49,8 @@ final readonly class StopConditions
 
     /**
      * Quanti messaggi chiedere al prossimo `receive()` senza superare `maxMessages`.
+     *
+     * Complessità: O(1).
      */
     public function nextBatchSize(int $processed): int
     {

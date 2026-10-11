@@ -12,6 +12,8 @@ namespace snipershady\Queue\Transport\Redis\Feature;
 interface LagStrategyInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @param array<string, mixed> $groupInfo voce del gruppo in XINFO GROUPS
      */
     public function lag(array $groupInfo): ?int;

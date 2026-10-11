@@ -15,6 +15,8 @@ interface BatchAckAwareInterface
     /**
      * Conferma più messaggi con un solo round trip, dove il backend lo consente.
      *
+     * Complessità: O(n), n = consegne; un round trip su Redis, nessuna attesa su RabbitMQ.
+     *
      * @param list<Delivery> $deliveries
      *
      * @throws BackendException

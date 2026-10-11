@@ -24,6 +24,8 @@ use snipershady\Queue\Transport\Redis\Version\RedisVersionEnum;
 final readonly class StrategyDtoRedis implements StrategyDtoInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @param ?RedisVersionEnum $version       livello forzato; null = rilevato da INFO server
      * @param bool              $verifyVersion con un livello forzato, fallisce se supera la versione del server
      * @param ?non-empty-string $consumer      nome del consumer nel gruppo (es. nome del pod); null = generato
@@ -42,6 +44,8 @@ final readonly class StrategyDtoRedis implements StrategyDtoInterface
     }
 
     /**
+     * Complessità: O(1).
+     *
      * @param Redis|Closure(): Redis $redis istanza connessa, o factory per la riconnessione automatica
      */
     public static function fromPhpRedis(Redis|Closure $redis, ?RedisVersionEnum $version = null): self
@@ -49,11 +53,17 @@ final readonly class StrategyDtoRedis implements StrategyDtoInterface
         return new self(new PhpRedisClient($redis), $version);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public static function fromPredis(ClientInterface $predis, ?RedisVersionEnum $version = null): self
     {
         return new self(new PredisClient($predis), $version);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function name(): string
     {

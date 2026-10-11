@@ -27,6 +27,9 @@ use snipershady\Queue\Transport\TransportInterface;
  */
 final readonly class RedisTransportBuilder implements TransportBuilderInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private ClockInterface $clock = new SystemClock(),
         private LoggerInterface $logger = new NullLogger(),
@@ -34,12 +37,18 @@ final readonly class RedisTransportBuilder implements TransportBuilderInterface
     ) {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function supports(StrategyDtoInterface $strategy): bool
     {
         return $strategy instanceof StrategyDtoRedis;
     }
 
+    /**
+     * Complessità: O(1), un round trip (INFO server) salvo livello forzato senza verifica.
+     */
     #[Override]
     public function build(StrategyDtoInterface $strategy, QueueConfig $config): TransportInterface
     {

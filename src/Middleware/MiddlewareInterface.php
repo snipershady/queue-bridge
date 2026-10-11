@@ -16,6 +16,8 @@ use snipershady\Queue\Message\Message;
 interface MiddlewareInterface
 {
     /**
+     * Complessità: O(1) nei middleware forniti, più il costo di $next.
+     *
      * @param callable(Message): void $next
      */
     public function process(Message $message, callable $next): void;

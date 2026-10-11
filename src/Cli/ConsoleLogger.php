@@ -29,6 +29,9 @@ final class ConsoleLogger extends AbstractLogger
         LogLevel::EMERGENCY => 7,
     ];
 
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private readonly Output $output,
         private readonly int $verbosity = 0,
@@ -36,6 +39,8 @@ final class ConsoleLogger extends AbstractLogger
     }
 
     /**
+     * Complessità: O(m + c), m = lunghezza del messaggio, c = voci del contesto.
+     *
      * @param array<mixed> $context
      */
     #[Override]

@@ -17,6 +17,9 @@ use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
  */
 final readonly class VersionDetector
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private RedisClientInterface $client,
         private LoggerInterface $logger = new NullLogger(),
@@ -25,6 +28,8 @@ final readonly class VersionDetector
 
     /**
      * Versione del server da `INFO server`; null se il comando è vietato (ACL) o la risposta non la contiene.
+     *
+     * Complessità: O(i), i = dimensione della risposta di INFO server; un round trip.
      */
     public function serverVersion(): ?string
     {
@@ -46,6 +51,8 @@ final readonly class VersionDetector
     }
 
     /**
+     * Complessità: O(i), i = dimensione della risposta di INFO server; al più un round trip.
+     *
      * @param ?RedisVersionEnum $override livello forzato; null = auto-rilevamento
      * @param bool              $verify   con un override, fallisce se supera la versione del server
      *

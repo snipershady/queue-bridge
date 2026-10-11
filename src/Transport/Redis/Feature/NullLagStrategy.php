@@ -13,6 +13,9 @@ use Override;
  */
 final readonly class NullLagStrategy implements LagStrategyInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function lag(array $groupInfo): ?int
     {

@@ -34,5 +34,10 @@ First stable release: nothing to migrate.
 - RabbitMQ topology: topic exchange `{prefix}.{queue}`, quorum queue `{prefix}.{queue}` with `x-delivery-limit`, wait queues
   `{prefix}.{queue}.retry.<ms>`, classic DLQ `{prefix}.{queue}.dlq`.
 
+If you wrote your own `IdempotencyStoreInterface` against a pre-release snapshot: `acquire()` now returns an
+`AcquireResult` instead of `?LockToken`. Return `AcquireResult::acquired($token)`, `AcquireResult::completed()` when the
+message was already processed, or `AcquireResult::inProgress($remainingLockMs)` when another worker holds the lock, and
+decide among them atomically.
+
 Changing `QueueConfig::$maxDeliveries` on RabbitMQ after the queue exists requires deleting and recreating the main queue
 (queue arguments cannot be changed in place): drain it first.

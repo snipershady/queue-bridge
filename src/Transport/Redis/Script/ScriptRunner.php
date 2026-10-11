@@ -14,11 +14,17 @@ use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
  */
 final readonly class ScriptRunner
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(private RedisClientInterface $client)
     {
     }
 
     /**
+     * Complessità: O(s + a), s = lunghezza dello script (SHA1), a = argomenti; un round trip, due se lo script non è in
+     * cache (NOSCRIPT).
+     *
      * @param list<string> $keys
      * @param list<string> $arguments
      *

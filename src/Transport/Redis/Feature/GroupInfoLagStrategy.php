@@ -14,6 +14,9 @@ use snipershady\Queue\Transport\Redis\RedisReply;
  */
 final readonly class GroupInfoLagStrategy implements LagStrategyInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function lag(array $groupInfo): ?int
     {

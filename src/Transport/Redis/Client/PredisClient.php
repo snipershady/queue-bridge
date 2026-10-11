@@ -27,16 +27,27 @@ use snipershady\Queue\Exception\ConnectionException;
  */
 final readonly class PredisClient implements RedisClientInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(private ClientInterface $client)
     {
     }
 
+    /**
+     * Complessità: O(c + r), c = dimensione del comando, r = dimensione della risposta; un round trip (due dopo una
+     * riconnessione).
+     */
     #[Override]
     public function execute(array $command): array|int|string|null
     {
         return $this->withRetry(fn (): array|int|string|null => $this->toReply($command[0], $this->send($command)));
     }
 
+    /**
+     * Complessità: O(c + r) sull'intera pipeline; un round trip con `Predis\Client`, uno per comando con altri
+     * `ClientInterface`.
+     */
     #[Override]
     public function pipeline(array $commands): array
     {

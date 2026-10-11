@@ -16,6 +16,9 @@ final readonly class PcntlSignalHandler implements SignalHandlerInterface
 {
     private const array SIGNALS = [\SIGTERM, \SIGINT];
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function onTerminate(callable $onTerminate): void
     {
@@ -27,6 +30,9 @@ final readonly class PcntlSignalHandler implements SignalHandlerInterface
         }
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function reset(): void
     {

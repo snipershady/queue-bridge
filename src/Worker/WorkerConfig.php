@@ -18,6 +18,8 @@ use snipershady\Queue\Worker\Event\WorkerEventListenerInterface;
 final readonly class WorkerConfig
 {
     /**
+     * Complessità: O(1).
+     *
      * @param int                                $batchSize             messaggi chiesti a ogni `receive()`
      * @param int                                $receiveTimeoutMs      attesa massima di `receive()` a coda vuota
      * @param ?int                               $maxMessages           esce dopo aver elaborato questi messaggi

@@ -19,6 +19,8 @@ final readonly class RetryTiers
     public array $tiersMs;
 
     /**
+     * Complessità: O(T), T = scaglioni.
+     *
      * @param list<int> $tiersMs durate in ms, strettamente crescenti e >= 1
      *
      * @throws InvalidArgumentException
@@ -43,6 +45,8 @@ final readonly class RetryTiers
 
     /**
      * Scaglione per un ritardo residuo di $remainingMs (> 0).
+     *
+     * Complessità: O(T), T = scaglioni.
      */
     public function tierFor(int $remainingMs): int
     {

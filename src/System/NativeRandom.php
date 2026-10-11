@@ -12,6 +12,9 @@ use Override;
  */
 final readonly class NativeRandom implements RandomInterface
 {
+    /**
+     * Complessità: O(l), l = numero di byte.
+     */
     #[Override]
     public function bytes(int $length): string
     {

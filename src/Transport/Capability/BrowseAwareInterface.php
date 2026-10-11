@@ -20,6 +20,8 @@ use snipershady\Queue\Transport\QueuedMessage;
 interface BrowseAwareInterface
 {
     /**
+     * Complessità: O(limit) messaggi decodificati: un numero costante di round trip su Redis, limit + 1 su RabbitMQ.
+     *
      * @throws InvalidArgumentException se $limit < 1
      * @throws BackendException
      *

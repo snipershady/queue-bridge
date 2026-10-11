@@ -14,6 +14,8 @@ use InvalidArgumentException;
 final readonly class Dsn
 {
     /**
+     * Complessità: O(1).
+     *
      * @param string                $path    database (Redis) o vhost (AMQP), senza "/" iniziale
      * @param array<string, string> $options
      */
@@ -29,12 +31,17 @@ final readonly class Dsn
     ) {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function option(string $name, string $default): string
     {
         return $this->options[$name] ?? $default;
     }
 
     /**
+     * Complessità: O(v), v = lunghezza del valore.
+     *
      * @throws InvalidArgumentException se il valore non è un intero >= $minimum
      */
     public function intOption(string $name, int $default, int $minimum = 0): int
@@ -52,6 +59,8 @@ final readonly class Dsn
     }
 
     /**
+     * Complessità: O(v), v = lunghezza del valore.
+     *
      * @throws InvalidArgumentException se il valore non è un numero > 0
      */
     public function floatOption(string $name, float $default): float
@@ -69,6 +78,8 @@ final readonly class Dsn
     }
 
     /**
+     * Complessità: O(v), v = lunghezza del valore.
+     *
      * @throws InvalidArgumentException se il valore non è un booleano (1/0, true/false, yes/no, on/off)
      */
     public function boolOption(string $name, bool $default): bool

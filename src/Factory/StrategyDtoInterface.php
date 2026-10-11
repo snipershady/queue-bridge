@@ -14,6 +14,8 @@ interface StrategyDtoInterface
 {
     /**
      * Nome leggibile per log e diagnostica (es. "redis").
+     *
+     * Complessità: O(1).
      */
     public function name(): string;
 }

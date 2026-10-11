@@ -14,6 +14,8 @@ use InvalidArgumentException;
 final readonly class Envelope
 {
     /**
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se $delayMs < 0
      */
     public function __construct(

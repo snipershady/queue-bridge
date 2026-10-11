@@ -10,7 +10,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use snipershady\Queue\Config\QueueConfig;
+use snipershady\Queue\Exception\CommandFailedException;
 use snipershady\Queue\Exception\VersionMismatchException;
+use snipershady\Queue\Idempotency\AcquireResult;
+use snipershady\Queue\Idempotency\AcquireStatus;
 use snipershady\Queue\Idempotency\LockToken;
 use snipershady\Queue\Message\MessageId;
 use snipershady\Queue\System\NativeRandom;
@@ -19,6 +22,9 @@ use snipershady\Queue\Tests\Support\RecordingRedisClient;
 use snipershady\Queue\Transport\Redis\Feature\DelexLockRelease;
 use snipershady\Queue\Transport\Redis\RedisIdempotencyStore;
 use snipershady\Queue\Transport\Redis\RedisKeys;
+use snipershady\Queue\Transport\Redis\RedisReply;
+use snipershady\Queue\Transport\Redis\Script\RedisScripts;
+use snipershady\Queue\Transport\Redis\Script\ScriptRunner;
 
 #[CoversClass(RedisIdempotencyStore::class)]
 #[CoversClass(VersionMismatchException::class)]
@@ -28,6 +34,11 @@ use snipershady\Queue\Transport\Redis\RedisKeys;
 #[UsesClass(LockToken::class)]
 #[UsesClass(DelexLockRelease::class)]
 #[UsesClass(NativeRandom::class)]
+#[UsesClass(AcquireResult::class)]
+#[UsesClass(CommandFailedException::class)]
+#[UsesClass(RedisReply::class)]
+#[CoversClass(RedisScripts::class)]
+#[UsesClass(ScriptRunner::class)]
 final class RedisIdempotencyStoreTest extends TestCase
 {
     private const string KEY = 'rq:{q}:idem:0190f2a4-5b6c-7d8e-9f01-23456789abcd';
@@ -40,17 +51,60 @@ final class RedisIdempotencyStoreTest extends TestCase
         $this->messageId = MessageId::fromString('0190f2a4-5b6c-7d8e-9f01-23456789abcd');
     }
 
-    public function testAcquireSetsTheLockOnlyIfAbsent(): void
+    public function testAcquireRunsTheLockScriptAndReturnsTheToken(): void
     {
-        $recordingRedisClient = (new RecordingRedisClient())->reply('SET', 'OK')->reply('SET', reply: null);
-        $redisIdempotencyStore = $this->store($recordingRedisClient);
+        $recordingRedisClient = (new RecordingRedisClient())->reply('EVALSHA', [1, 0]);
 
-        $lockToken = $redisIdempotencyStore->acquire($this->messageId, 1500);
+        $acquireResult = $this->store($recordingRedisClient)->acquire($this->messageId, 1500);
 
-        self::assertInstanceOf(LockToken::class, $lockToken);
-        self::assertSame(str_repeat('ab', 16), $lockToken->token);
-        self::assertSame(['SET', self::KEY, str_repeat('ab', 16), 'NX', 'PX', '1500'], $recordingRedisClient->commands[0]);
-        self::assertNull($redisIdempotencyStore->acquire($this->messageId, 1500));
+        self::assertSame(AcquireStatus::Acquired, $acquireResult->status);
+        self::assertInstanceOf(LockToken::class, $acquireResult->token);
+        self::assertSame(str_repeat('ab', 16), $acquireResult->token->token);
+        self::assertSame($this->messageId, $acquireResult->token->messageId);
+        self::assertSame(
+            [['EVALSHA', sha1(RedisScripts::acquireLock()), '1', self::KEY, str_repeat('ab', 16), '1500', 'done']],
+            $recordingRedisClient->commands,
+        );
+    }
+
+    public function testAcquireReportsACompletedMessage(): void
+    {
+        $acquireResult = $this->store((new RecordingRedisClient())->reply('EVALSHA', [2, 0]))->acquire($this->messageId, 1500);
+
+        self::assertSame(AcquireStatus::Completed, $acquireResult->status);
+        self::assertNull($acquireResult->token);
+    }
+
+    public function testAcquireReportsAMessageInProgressWithTheRemainingLockTime(): void
+    {
+        $acquireResult = $this->store((new RecordingRedisClient())->reply('EVALSHA', [0, 1234]))->acquire($this->messageId, 1500);
+
+        self::assertSame(AcquireStatus::InProgress, $acquireResult->status);
+        self::assertNull($acquireResult->token);
+        self::assertSame(1234, $acquireResult->lockRemainingMs);
+    }
+
+    public function testAcquireRetriesSoonWhenTheOtherLockHasNoValidTtl(): void
+    {
+        foreach ([0, -1, -2] as $pttl) {
+            $acquireResult = $this->store((new RecordingRedisClient())->reply('EVALSHA', [0, $pttl]))->acquire($this->messageId, 1500);
+
+            self::assertSame(AcquireStatus::InProgress, $acquireResult->status);
+            self::assertSame(1, $acquireResult->lockRemainingMs);
+        }
+    }
+
+    public function testAcquireFallsBackToEvalWhenTheScriptIsNotCached(): void
+    {
+        $recordingRedisClient = (new RecordingRedisClient())
+            ->reply('EVALSHA', CommandFailedException::rejected('EVALSHA', 'NOSCRIPT No matching script.'))
+            ->reply('EVAL', [1, 0]);
+
+        $acquireResult = $this->store($recordingRedisClient)->acquire($this->messageId, 1500);
+
+        self::assertSame(AcquireStatus::Acquired, $acquireResult->status);
+        self::assertSame(['EVALSHA', 'EVAL'], $recordingRedisClient->names());
+        self::assertSame(RedisScripts::acquireLock(), $recordingRedisClient->commands[1][1]);
     }
 
     public function testCompleteMarksTheMessageAsDone(): void
@@ -73,13 +127,13 @@ final class RedisIdempotencyStoreTest extends TestCase
 
     public function testDefaultsUseTheDefaultQueueAndANativeRandomToken(): void
     {
-        $recordingRedisClient = (new RecordingRedisClient())->reply('SET', 'OK');
+        $recordingRedisClient = (new RecordingRedisClient())->reply('EVALSHA', [1, 0]);
 
-        $lockToken = (new RedisIdempotencyStore($recordingRedisClient, new DelexLockRelease()))->acquire($this->messageId, 1);
+        $lockToken = (new RedisIdempotencyStore($recordingRedisClient, new DelexLockRelease()))->acquire($this->messageId, 1)->token;
 
         self::assertInstanceOf(LockToken::class, $lockToken);
         self::assertSame(32, \strlen($lockToken->token));
-        self::assertSame('rq:{default}:idem:'.$this->messageId->value, $recordingRedisClient->commands[0][1]);
+        self::assertSame('rq:{default}:idem:'.$this->messageId->value, $recordingRedisClient->commands[0][3]);
     }
 
     public function testTtlsMustBePositive(): void
@@ -87,7 +141,7 @@ final class RedisIdempotencyStoreTest extends TestCase
         $redisIdempotencyStore = $this->store(new RecordingRedisClient());
 
         foreach ([
-            fn (): ?LockToken => $redisIdempotencyStore->acquire($this->messageId, 0),
+            fn (): AcquireResult => $redisIdempotencyStore->acquire($this->messageId, 0),
             fn (): null => $redisIdempotencyStore->complete(new LockToken($this->messageId, 't'), 0),
         ] as $call) {
             try {

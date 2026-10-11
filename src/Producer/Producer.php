@@ -28,6 +28,8 @@ final readonly class Producer implements ProducerInterface
     private IdGeneratorInterface $idGenerator;
 
     /**
+     * Complessità: O(1).
+     *
      * @param list<ProducerMiddlewareInterface> $middlewares eseguiti nell'ordine dato
      */
     public function __construct(
@@ -40,6 +42,10 @@ final readonly class Producer implements ProducerInterface
         $this->idGenerator = $idGenerator ?? new UuidV7Generator($clock);
     }
 
+    /**
+     * Complessità: O(m·(t + h)) più un invio al transport, t = byte del testo, h = byte degli header, m = middleware
+     * del producer.
+     */
     #[Override]
     public function publish(string $channel, string $text, array $headers = [], int $delayMs = 0, ?int $ttlMs = null): MessageId
     {
@@ -53,6 +59,10 @@ final readonly class Producer implements ProducerInterface
         return $id;
     }
 
+    /**
+     * Complessità: O(n·m·(t + h)) più un invio in batch al transport (un round trip su Redis, una attesa di conferma su
+     * RabbitMQ), n = messaggi, m = middleware del producer.
+     */
     #[Override]
     public function publishBatch(iterable $messages): array
     {

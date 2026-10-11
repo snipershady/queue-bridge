@@ -15,18 +15,27 @@ use snipershady\Queue\Transport\Redis\RedisKeys;
  */
 final readonly class PendingClaimStrategy implements IdleClaimStrategyInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function claimsOnRead(): bool
     {
         return false;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function readArguments(int $minIdleMs): array
     {
         return [];
     }
 
+    /**
+     * Complessità: O(limit), un round trip (filtro di inattività lato client).
+     */
     #[Override]
     public function findIdle(RedisClientInterface $redisClient, RedisKeys $redisKeys, int $minIdleMs, int $limit): array
     {

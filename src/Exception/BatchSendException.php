@@ -15,6 +15,8 @@ use Throwable;
 final class BatchSendException extends BackendException
 {
     /**
+     * Complessità: O(1).
+     *
      * @param list<MessageId> $sentIds
      * @param list<MessageId> $failedIds
      */

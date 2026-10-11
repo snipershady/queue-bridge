@@ -54,6 +54,9 @@ use snipershady\Queue\Transport\TransportInterface;
  * - purge() svuota a pagine (uno script atomico per pagina) fino all'ultima entry presente all'inizio:
  *   non blocca Redis con backlog grandi e non insegue i messaggi pubblicati nel frattempo.
  *
+ * Complessità dei metodi: t = byte di `text`, h = byte degli header, P = consegne pendenti, d = differiti,
+ * T = scaglioni di attesa (RabbitMQ). "Round trip" = scambi di rete con il backend.
+ *
  * @api
  */
 final readonly class RedisTransport implements TransportInterface, SetupAwareInterface, MaintenanceAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface, PurgeAwareInterface, BrowseAwareInterface
@@ -85,6 +88,8 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
     private ScriptRunner $scripts;
 
     /**
+     * Complessità: O(1).
+     *
      * @param non-empty-string $consumer nome univoco del consumer nel gruppo (uno per processo)
      *
      * @throws InvalidArgumentException se $consumer è vuoto
@@ -106,6 +111,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         $this->scripts = new ScriptRunner($client);
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function setup(): void
     {
@@ -118,12 +126,18 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         }
     }
 
+    /**
+     * Complessità: O(t + h), un round trip; lato server XADD O(1), ZADD O(log d) per i differiti (d = differiti).
+     */
     #[Override]
     public function send(Message $message, int $delayMs = 0): void
     {
         $this->client->execute($this->sendCommand($message, $delayMs));
     }
 
+    /**
+     * Complessità: O(n·(t + h)), n = messaggi; un round trip (pipeline).
+     */
     #[Override]
     public function sendBatch(iterable $envelopes): void
     {
@@ -157,6 +171,11 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         }
     }
 
+    /**
+     * Complessità: O(k·(t + h)), k = consegne restituite; due round trip (promozione dei differiti e XREADGROUP), più
+     * uno per ogni entry non decodificabile spostata in DLQ. Lato server la promozione è O(p log d), p = differiti
+     * promossi (al più 100).
+     */
     #[Override]
     public function receive(int $max = 1, int $timeoutMs = 1000): array
     {
@@ -195,12 +214,18 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         return null === $reply ? [] : $this->deliveries($reply);
     }
 
+    /**
+     * Complessità: O(1), un round trip; lato server O(log P), P = consegne pendenti (verifica della proprietà).
+     */
     #[Override]
     public function ack(Delivery $delivery): void
     {
         $this->ackBatch([$delivery]);
     }
 
+    /**
+     * Complessità: O(n), n = consegne; un round trip; lato server O(n log P), P = consegne pendenti.
+     */
     #[Override]
     public function ackBatch(array $deliveries): void
     {
@@ -215,6 +240,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         );
     }
 
+    /**
+     * Complessità: O(t + h), un round trip (script atomico); lato server O(log P + log d).
+     */
     #[Override]
     public function retry(Delivery $delivery, int $delayMs): void
     {
@@ -233,6 +261,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         $this->settle($delivery->receipt, 'stream', '0', '', $fields);
     }
 
+    /**
+     * Complessità: O(t + h), un round trip (script atomico); lato server O(log P) più il trim approssimato della DLQ.
+     */
     #[Override]
     public function reject(Delivery $delivery, FailureReason $reason): void
     {
@@ -242,6 +273,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         ]);
     }
 
+    /**
+     * Complessità: O(t + h), un round trip (script atomico); lato server O(log P).
+     */
     #[Override]
     public function release(Delivery $delivery): void
     {
@@ -251,12 +285,18 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         ]);
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function ping(): void
     {
         $this->client->execute(['PING']);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function capabilities(): TransportCapabilities
     {
@@ -271,6 +311,10 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         );
     }
 
+    /**
+     * Complessità: O(p + o), p = differiti scaduti, o = orfani: ⌈(p + 1) / 100⌉ round trip per la promozione, al più 20
+     * per gli orfani (1000 per chiamata) e al più 3 per il trim.
+     */
     #[Override]
     public function maintain(): MaintenanceReport
     {
@@ -287,6 +331,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         );
     }
 
+    /**
+     * Complessità: O(g), g = consumer group; 4 round trip.
+     */
     #[Override]
     public function stats(): QueueStats
     {
@@ -304,6 +351,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         );
     }
 
+    /**
+     * Complessità: O(limit·(t + h)), un round trip.
+     */
     #[Override]
     public function deadLetters(int $limit = 100): array
     {
@@ -321,6 +371,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         return $deadLetters;
     }
 
+    /**
+     * Complessità: O(1) round trip; lato server O(limit·f), f = campi per messaggio.
+     */
     #[Override]
     public function requeueDeadLetters(int $limit = 100): int
     {
@@ -332,6 +385,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         );
     }
 
+    /**
+     * Complessità: O(L), L = messaggi in DLQ prima di quello cercato: ⌈L / 500⌉ + 1 round trip.
+     */
     #[Override]
     public function requeueDeadLetter(MessageId $id): bool
     {
@@ -361,12 +417,19 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         return false;
     }
 
+    /**
+     * Complessità: O(1) round trip; lato server O(L), L = messaggi in DLQ.
+     */
     #[Override]
     public function purgeDeadLetters(): int
     {
         return RedisReply::int($this->scripts->run(RedisScripts::purgeDeadLetters(), [$this->keys->deadLetters()], []), 'purgeDeadLetters');
     }
 
+    /**
+     * Complessità: O(n), n = entry dello stream presenti alla chiamata: ⌈n / 500⌉ + 2 round trip, ognuno breve (una
+     * pagina) per non bloccare Redis.
+     */
     #[Override]
     public function purge(): int
     {
@@ -395,6 +458,9 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         return $purged;
     }
 
+    /**
+     * Complessità: O(limit·(t + h)), al più 3 round trip.
+     */
     #[Override]
     public function browse(int $limit = 100): array
     {

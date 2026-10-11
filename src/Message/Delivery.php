@@ -15,6 +15,8 @@ use InvalidArgumentException;
 final readonly class Delivery
 {
     /**
+     * Complessità: O(1).
+     *
      * @param string $receipt       identificativo del backend (ID dello stream, delivery tag...): opaco per il core
      * @param int    $deliveryCount consegne di questa copia del messaggio, crash del worker inclusi (>= 1);
      *                              riparte da 1 dopo un retry, che crea una nuova copia

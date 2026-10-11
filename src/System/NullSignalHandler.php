@@ -13,11 +13,17 @@ use Override;
  */
 final readonly class NullSignalHandler implements SignalHandlerInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function onTerminate(callable $onTerminate): void
     {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function reset(): void
     {

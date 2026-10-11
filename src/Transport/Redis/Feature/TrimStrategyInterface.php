@@ -18,6 +18,8 @@ use snipershady\Queue\Transport\Redis\RedisKeys;
 interface TrimStrategyInterface
 {
     /**
+     * Complessità: Un numero costante di round trip; lato server O(e), e = entry rimosse.
+     *
      * @throws CommandFailedException
      *
      * @return int entry rimosse

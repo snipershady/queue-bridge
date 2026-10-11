@@ -57,6 +57,9 @@ use snipershady\Queue\Transport\TransportInterface;
  * - purge() svuota la coda principale e le code di attesa (queue.purge): i messaggi consegnati e non
  *   confermati non vengono toccati dal broker.
  *
+ * Complessità dei metodi: t = byte di `text`, h = byte degli header, P = consegne pendenti, d = differiti,
+ * T = scaglioni di attesa (RabbitMQ). "Round trip" = scambi di rete con il backend.
+ *
  * @api
  */
 final class RabbitMqTransport implements TransportInterface, SetupAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface, PurgeAwareInterface, BrowseAwareInterface
@@ -86,6 +89,8 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     private ?int $consumingGeneration = null;
 
     /**
+     * Complessità: O(T), T = scaglioni di attesa.
+     *
      * @throws InvalidArgumentException se $prefetch o $confirmTimeoutMs sono < 1
      */
     public function __construct(
@@ -105,12 +110,19 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         $this->topology = new Topology($config, $retryTiers);
     }
 
+    /**
+     * Complessità: O(T), T = scaglioni: T + 4 round trip (dichiarazioni e binding).
+     */
     #[Override]
     public function setup(): void
     {
         $this->withChannel(fn (AmqpChannelInterface $amqpChannel) => $this->topology->declare($amqpChannel));
     }
 
+    /**
+     * Complessità: O(t + h + T), t = byte del testo, h = byte degli header, T = scaglioni (solo per i differiti);
+     * attende la conferma del broker.
+     */
     #[Override]
     public function send(Message $message, int $delayMs = 0): void
     {
@@ -123,6 +135,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(n·(t + h + T)), n = messaggi; publish senza attesa, poi una sola attesa di conferma.
+     */
     #[Override]
     public function sendBatch(iterable $envelopes): void
     {
@@ -149,6 +164,10 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(k·(t + h)), k = consegne restituite; una attesa sul broker solo a buffer vuoto, più una conferma
+     * per ogni messaggio tornato in anticipo da una coda di attesa.
+     */
     #[Override]
     public function receive(int $max = 1, int $timeoutMs = 1000): array
     {
@@ -184,6 +203,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(1), nessuna attesa.
+     */
     #[Override]
     public function ack(Delivery $delivery): void
     {
@@ -198,6 +220,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(n), n = consegne; nessuna attesa.
+     */
     #[Override]
     public function ackBatch(array $deliveries): void
     {
@@ -206,6 +231,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         }
     }
 
+    /**
+     * Complessità: O(t + h + T), T = scaglioni; attende la conferma del broker.
+     */
     #[Override]
     public function retry(Delivery $delivery, int $delayMs): void
     {
@@ -222,6 +250,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(t + h); attende la conferma del broker.
+     */
     #[Override]
     public function reject(Delivery $delivery, FailureReason $reason): void
     {
@@ -230,6 +261,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(1), nessuna attesa.
+     */
     #[Override]
     public function release(Delivery $delivery): void
     {
@@ -244,12 +278,18 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(1); apre il canale se chiuso.
+     */
     #[Override]
     public function ping(): void
     {
         $this->withChannel(static fn (AmqpChannelInterface $amqpChannel): bool => $amqpChannel->isOpen());
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function capabilities(): TransportCapabilities
     {
@@ -266,6 +306,8 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
 
     /**
      * Chiude il canale: i messaggi ricevuti e non confermati tornano in coda. Il prossimo uso lo riapre.
+     *
+     * Complessità: O(1), un round trip.
      */
     public function close(): void
     {
@@ -273,6 +315,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         $this->forgetChannel();
     }
 
+    /**
+     * Complessità: O(T + prefetch), T = scaglioni: T + 2 round trip.
+     */
     #[Override]
     public function stats(): QueueStats
     {
@@ -307,6 +352,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(limit): limit + 1 round trip (basic.get), poi nack senza attesa.
+     */
     #[Override]
     public function deadLetters(int $limit = 100): array
     {
@@ -328,6 +376,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(limit): limit + 1 round trip (basic.get), poi una attesa di conferma.
+     */
     #[Override]
     public function requeueDeadLetters(int $limit = 100): int
     {
@@ -350,6 +401,10 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(L), L = messaggi in DLQ prima di quello cercato: L + 1 round trip e O(L) memoria (i messaggi letti
+     * restano non confermati fino al nack).
+     */
     #[Override]
     public function requeueDeadLetter(MessageId $id): bool
     {
@@ -372,12 +427,18 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(1) round trip; lato broker O(L), L = messaggi in DLQ.
+     */
     #[Override]
     public function purgeDeadLetters(): int
     {
         return $this->withChannel(fn (AmqpChannelInterface $amqpChannel): int => $amqpChannel->purgeQueue($this->topology->deadLetterQueue));
     }
 
+    /**
+     * Complessità: O(T + prefetch), T = scaglioni: T + 1 round trip; lato broker O(n), n = messaggi rimossi.
+     */
     #[Override]
     public function purge(): int
     {
@@ -411,6 +472,9 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         });
     }
 
+    /**
+     * Complessità: O(limit): fino a limit + 1 round trip (basic.get), poi nack senza attesa.
+     */
     #[Override]
     public function browse(int $limit = 100): array
     {

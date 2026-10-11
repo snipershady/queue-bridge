@@ -14,6 +14,8 @@ use InvalidArgumentException;
 interface RandomInterface
 {
     /**
+     * Complessità: O(l), l = numero di byte.
+     *
      * @throws InvalidArgumentException se $length < 1
      *
      * @return non-empty-string esattamente $length byte

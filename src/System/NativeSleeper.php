@@ -12,6 +12,9 @@ use Override;
  */
 final readonly class NativeSleeper implements SleeperInterface
 {
+    /**
+     * Complessità: O(1) di calcolo; blocca il processo per $milliseconds.
+     */
     #[Override]
     public function sleepMs(int $milliseconds): void
     {

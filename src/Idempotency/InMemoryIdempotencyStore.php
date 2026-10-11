@@ -23,6 +23,9 @@ final class InMemoryIdempotencyStore implements IdempotencyStoreInterface
     /** @var array<string, array{token: string, expiresAtMs: int}> token vuoto = completato */
     private array $entries = [];
 
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private readonly ClockInterface $clock,
         private readonly RandomInterface $random = new NativeRandom(),
@@ -30,25 +33,32 @@ final class InMemoryIdempotencyStore implements IdempotencyStoreInterface
     }
 
     /**
+     * Complessità: O(1).
+     *
      * @phpstan-impure
      */
     #[Override]
-    public function acquire(MessageId $id, int $ttlMs): ?LockToken
+    public function acquire(MessageId $id, int $ttlMs): AcquireResult
     {
         $this->assertTtl($ttlMs);
         $nowMs = $this->nowMs();
         $entry = $this->entries[$id->value] ?? null;
 
         if (null !== $entry && $entry['expiresAtMs'] > $nowMs) {
-            return null;
+            return self::DONE === $entry['token']
+                ? AcquireResult::completed()
+                : AcquireResult::inProgress($entry['expiresAtMs'] - $nowMs);
         }
 
         $token = bin2hex($this->random->bytes(16));
         $this->entries[$id->value] = ['token' => $token, 'expiresAtMs' => $nowMs + $ttlMs];
 
-        return new LockToken($id, $token);
+        return AcquireResult::acquired(new LockToken($id, $token));
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function complete(LockToken $token, int $ttlMs): void
     {
@@ -56,6 +66,9 @@ final class InMemoryIdempotencyStore implements IdempotencyStoreInterface
         $this->entries[$token->messageId->value] = ['token' => self::DONE, 'expiresAtMs' => $this->nowMs() + $ttlMs];
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function release(LockToken $token): void
     {

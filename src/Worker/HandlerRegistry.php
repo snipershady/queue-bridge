@@ -24,6 +24,8 @@ final class HandlerRegistry
     /**
      * Registra (o sostituisce) l'handler di un canale.
      *
+     * Complessità: O(c), c = lunghezza del canale (validazione).
+     *
      * @param HandlerInterface|callable(Message, DecodedText): void $handler
      *
      * @throws InvalidArgumentException se il canale non è valido
@@ -37,6 +39,9 @@ final class HandlerRegistry
         $this->handlers[$channel] = $handler instanceof HandlerInterface ? $handler : new CallableHandler($handler);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function resolve(string $channel): ?HandlerInterface
     {
         return $this->handlers[$channel] ?? $this->handlers[self::FALLBACK] ?? null;

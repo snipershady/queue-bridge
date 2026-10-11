@@ -28,12 +28,18 @@ final class UuidV7Generator implements IdGeneratorInterface
 
     private int $counter = 0;
 
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private readonly ClockInterface $clock,
         private readonly RandomInterface $random = new NativeRandom(),
     ) {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function generate(): MessageId
     {

@@ -23,6 +23,8 @@ final class MessageRules
     private const string HEADER_NAME_PATTERN = '/^[A-Za-z][A-Za-z0-9._-]*$/D';
 
     /**
+     * Complessità: O(c), c = lunghezza del canale (al più 255).
+     *
      * @throws InvalidArgumentException
      */
     public static function assertChannel(string $channel): void
@@ -33,6 +35,8 @@ final class MessageRules
     }
 
     /**
+     * Complessità: O(t), t = byte del testo.
+     *
      * @throws InvalidArgumentException
      */
     public static function assertText(string $text): void
@@ -43,6 +47,8 @@ final class MessageRules
     }
 
     /**
+     * Complessità: O(h), h = byte degli header.
+     *
      * @param array<string, string> $headers
      *
      * @throws InvalidArgumentException
@@ -62,6 +68,9 @@ final class MessageRules
         }
     }
 
+    /**
+     * Complessità: O(v), v = byte del valore.
+     */
     public static function isValidUtf8(string $value): bool
     {
         return 1 === \preg_match('//u', $value);
@@ -69,6 +78,8 @@ final class MessageRules
 
     /**
      * Tronca a $maxBytes byte senza spezzare un carattere UTF-8.
+     *
+     * Complessità: O(m), m = $maxBytes (al più 3 byte scartati per non spezzare un carattere).
      */
     public static function truncateUtf8(string $value, int $maxBytes): string
     {

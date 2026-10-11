@@ -16,19 +16,25 @@ use snipershady\Queue\Message\MessageId;
 interface IdempotencyStoreInterface
 {
     /**
-     * Acquisisce il lock "in elaborazione" per $ttlMs.
+     * Acquisisce il lock "in elaborazione" per $ttlMs. Il controllo e l'acquisizione sono atomici: lo stesso
+     * messaggio non risulta mai `Acquired` per due worker con lock validi nello stesso momento.
+     *
+     * Le implementazioni devono distinguere "in elaborazione" da "completato": confermare un messaggio
+     * ancora in elaborazione altrove lo perderebbe se quel worker poi fallisse o morisse.
+     *
+     * Complessità: O(1) negli store forniti (uno script su Redis, un round trip).
      *
      * @throws InvalidArgumentException se $ttlMs < 1
      * @throws BackendException
      *
-     * @return ?LockToken null se il messaggio è già in elaborazione o già completato
-     *
      * @phpstan-impure
      */
-    public function acquire(MessageId $id, int $ttlMs): ?LockToken;
+    public function acquire(MessageId $id, int $ttlMs): AcquireResult;
 
     /**
      * Marca il messaggio come completato per $ttlMs (sostituisce il lock).
+     *
+     * Complessità: O(1) negli store forniti (un round trip su Redis).
      *
      * @throws InvalidArgumentException se $ttlMs < 1
      * @throws BackendException
@@ -37,6 +43,8 @@ interface IdempotencyStoreInterface
 
     /**
      * Rilascia il lock solo se è ancora quello di $token (confronto atomico), così un altro worker può riprovare.
+     *
+     * Complessità: O(1) negli store forniti (un round trip su Redis).
      *
      * @throws BackendException
      */

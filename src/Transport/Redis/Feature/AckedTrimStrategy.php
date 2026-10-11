@@ -16,6 +16,9 @@ use snipershady\Queue\Transport\Redis\RedisReply;
  */
 final readonly class AckedTrimStrategy implements TrimStrategyInterface
 {
+    /**
+     * Complessità: O(1) round trip; lato server O(e), e = entry rimosse.
+     */
     #[Override]
     public function trim(RedisClientInterface $redisClient, RedisKeys $redisKeys): int
     {

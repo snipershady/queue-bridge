@@ -11,6 +11,9 @@ use snipershady\Queue\Message\Delivery;
  */
 final readonly class MessageRetried implements WorkerEventInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         public Delivery $delivery,
         public int $delayMs,

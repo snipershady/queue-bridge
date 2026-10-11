@@ -15,6 +15,8 @@ use snipershady\Queue\Exception\CommandFailedException;
 final class RedisReply
 {
     /**
+     * Complessità: O(1).
+     *
      * @throws CommandFailedException
      *
      * @return list<mixed>
@@ -29,6 +31,8 @@ final class RedisReply
     }
 
     /**
+     * Complessità: O(1).
+     *
      * @throws CommandFailedException
      */
     public static function string(mixed $reply, string $context): string
@@ -45,6 +49,8 @@ final class RedisReply
     }
 
     /**
+     * Complessità: O(v), v = cifre del valore.
+     *
      * @throws CommandFailedException
      */
     public static function int(mixed $reply, string $context): int
@@ -62,6 +68,8 @@ final class RedisReply
 
     /**
      * Lista piatta [campo, valore, campo, valore, ...] → mappa.
+     *
+     * Complessità: O(n), n = elementi della risposta.
      *
      * @throws CommandFailedException
      *
@@ -84,6 +92,8 @@ final class RedisReply
 
     /**
      * Come pairs(), con valori stringa (campi di un'entry dello stream).
+     *
+     * Complessità: O(n), n = elementi della risposta.
      *
      * @throws CommandFailedException
      *

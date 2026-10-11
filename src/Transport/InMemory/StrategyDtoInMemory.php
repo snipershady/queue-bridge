@@ -16,12 +16,17 @@ use snipershady\Queue\Factory\StrategyDtoInterface;
 final readonly class StrategyDtoInMemory implements StrategyDtoInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @param ?ClockInterface $clock orologio della coda (es. finto nei test); null = quello del factory
      */
     public function __construct(public ?ClockInterface $clock = null)
     {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function name(): string
     {

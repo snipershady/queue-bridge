@@ -9,6 +9,8 @@ use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use snipershady\Queue\Idempotency\AcquireResult;
+use snipershady\Queue\Idempotency\AcquireStatus;
 use snipershady\Queue\Idempotency\InMemoryIdempotencyStore;
 use snipershady\Queue\Idempotency\LockToken;
 use snipershady\Queue\Message\MessageId;
@@ -17,6 +19,7 @@ use snipershady\Queue\Tests\Support\FakeClock;
 
 #[CoversClass(InMemoryIdempotencyStore::class)]
 #[CoversClass(LockToken::class)]
+#[CoversClass(AcquireResult::class)]
 #[UsesClass(MessageId::class)]
 #[UsesClass(NativeRandom::class)]
 final class InMemoryIdempotencyStoreTest extends TestCase
@@ -37,19 +40,21 @@ final class InMemoryIdempotencyStoreTest extends TestCase
 
     public function testLockIsExclusiveUntilItExpires(): void
     {
-        $lockToken = $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000);
+        $acquireResult = $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000);
 
+        self::assertSame(AcquireStatus::Acquired, $acquireResult->status);
+        self::assertSame(0, $acquireResult->lockRemainingMs);
+        $lockToken = $acquireResult->token;
         self::assertInstanceOf(LockToken::class, $lockToken);
         self::assertSame($this->messageId, $lockToken->messageId);
         self::assertSame(32, \strlen($lockToken->token));
-        self::assertNull($this->inMemoryIdempotencyStore->acquire($this->messageId, 1000));
+        $this->assertInProgress(1000);
 
         $this->fakeClock->advanceMs(999);
-        self::assertNull($this->inMemoryIdempotencyStore->acquire($this->messageId, 1000));
+        $this->assertInProgress(1);
 
         $this->fakeClock->advanceMs(1);
-        $second = $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000);
-        self::assertInstanceOf(LockToken::class, $second);
+        $second = $this->acquire();
         self::assertNotSame($lockToken->token, $second->token);
     }
 
@@ -59,20 +64,20 @@ final class InMemoryIdempotencyStoreTest extends TestCase
         $this->inMemoryIdempotencyStore->complete($lockToken, 5000);
 
         $this->fakeClock->advanceMs(4999);
-        self::assertNull($this->inMemoryIdempotencyStore->acquire($this->messageId, 1000));
+        $this->assertCompleted();
 
         $this->fakeClock->advanceMs(1);
-        self::assertInstanceOf(LockToken::class, $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000));
+        $this->acquire();
     }
 
     public function testReleaseFreesTheLockOnlyForItsOwner(): void
     {
         $lockToken = $this->acquire();
         $this->inMemoryIdempotencyStore->release(new LockToken($this->messageId, 'someone-else'));
-        self::assertNull($this->inMemoryIdempotencyStore->acquire($this->messageId, 1000));
+        $this->assertInProgress(1000);
 
         $this->inMemoryIdempotencyStore->release($lockToken);
-        self::assertInstanceOf(LockToken::class, $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000));
+        $this->acquire();
     }
 
     public function testReleaseDoesNotForgetACompletedMessage(): void
@@ -81,14 +86,15 @@ final class InMemoryIdempotencyStoreTest extends TestCase
         $this->inMemoryIdempotencyStore->complete($lockToken, 5000);
         $this->inMemoryIdempotencyStore->release($lockToken);
 
-        self::assertNull($this->inMemoryIdempotencyStore->acquire($this->messageId, 1000));
+        $this->assertCompleted();
     }
 
     public function testReleaseOfUnknownLockIsANoOp(): void
     {
         $this->inMemoryIdempotencyStore->release(new LockToken($this->messageId, 'nobody'));
 
-        self::assertInstanceOf(LockToken::class, $this->inMemoryIdempotencyStore->acquire($this->messageId, 1));
+        // Anche il TTL minimo (1 ms) è accettato.
+        self::assertSame(AcquireStatus::Acquired, $this->inMemoryIdempotencyStore->acquire($this->messageId, 1)->status);
     }
 
     public function testAcquireRejectsNonPositiveTtl(): void
@@ -107,6 +113,16 @@ final class InMemoryIdempotencyStoreTest extends TestCase
         $this->inMemoryIdempotencyStore->complete($lockToken, 0);
     }
 
+    public function testInProgressRequiresAPositiveRemainingTime(): void
+    {
+        self::assertSame(1, AcquireResult::inProgress(1)->lockRemainingMs);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Remaining lock time must be >= 1 ms, got 0.');
+
+        AcquireResult::inProgress(0);
+    }
+
     public function testLockTokenMustNotBeEmpty(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -116,9 +132,28 @@ final class InMemoryIdempotencyStoreTest extends TestCase
 
     private function acquire(): LockToken
     {
-        $lockToken = $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000);
-        self::assertInstanceOf(LockToken::class, $lockToken);
+        $acquireResult = $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000);
+        self::assertSame(AcquireStatus::Acquired, $acquireResult->status);
+        self::assertInstanceOf(LockToken::class, $acquireResult->token);
 
-        return $lockToken;
+        return $acquireResult->token;
+    }
+
+    private function assertInProgress(int $lockRemainingMs): void
+    {
+        $acquireResult = $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000);
+
+        self::assertSame(AcquireStatus::InProgress, $acquireResult->status);
+        self::assertNull($acquireResult->token);
+        self::assertSame($lockRemainingMs, $acquireResult->lockRemainingMs);
+    }
+
+    private function assertCompleted(): void
+    {
+        $acquireResult = $this->inMemoryIdempotencyStore->acquire($this->messageId, 1000);
+
+        self::assertSame(AcquireStatus::Completed, $acquireResult->status);
+        self::assertNull($acquireResult->token);
+        self::assertSame(0, $acquireResult->lockRemainingMs);
     }
 }

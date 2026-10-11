@@ -20,6 +20,8 @@ final readonly class QueueConfig
     private const string NAME_PATTERN = '/^[A-Za-z0-9_-]+$/D';
 
     /**
+     * Complessità: O(1).
+     *
      * @param string $name            nome della coda
      * @param string $prefix          prefisso di chiavi e risorse del backend
      * @param int    $maxTextBytes    dimensione massima di `text`, in byte

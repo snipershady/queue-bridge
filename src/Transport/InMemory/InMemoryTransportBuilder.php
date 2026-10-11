@@ -18,16 +18,25 @@ use snipershady\Queue\Transport\TransportInterface;
  */
 final readonly class InMemoryTransportBuilder implements TransportBuilderInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(private ClockInterface $clock = new SystemClock())
     {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function supports(StrategyDtoInterface $strategy): bool
     {
         return $strategy instanceof StrategyDtoInMemory;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function build(StrategyDtoInterface $strategy, QueueConfig $config): TransportInterface
     {

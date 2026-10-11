@@ -13,6 +13,8 @@ use snipershady\Queue\Transport\QueueStats;
 interface StatsAwareInterface
 {
     /**
+     * Complessità: Un numero costante di round trip su Redis, O(T) su RabbitMQ (T = scaglioni).
+     *
      * @throws BackendException
      */
     public function stats(): QueueStats;

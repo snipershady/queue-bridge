@@ -18,6 +18,8 @@ interface PurgeAwareInterface
      * elaborazione (un worker li sta processando: confermati o tornati in coda, seguono il loro corso), la DLQ
      * (vedi DeadLetterAwareInterface::purgeDeadLetters()) né le risorse del backend: la coda resta utilizzabile.
      *
+     * Complessità: O(n), n = messaggi rimossi (Redis: a pagine da 500).
+     *
      * @throws BackendException
      *
      * @return int messaggi rimossi

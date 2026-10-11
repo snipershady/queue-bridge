@@ -15,10 +15,16 @@ use snipershady\Queue\Message\Message;
  */
 final readonly class CorrelationContextMiddleware implements MiddlewareInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(private CorrelationContext $context)
     {
     }
 
+    /**
+     * Complessità: O(1) più il costo di $next.
+     */
     #[Override]
     public function process(Message $message, callable $next): void
     {

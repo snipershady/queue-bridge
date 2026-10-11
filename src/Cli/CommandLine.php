@@ -13,6 +13,8 @@ namespace snipershady\Queue\Cli;
 final class CommandLine
 {
     /**
+     * Complessità: O(a), a = numero di argomenti.
+     *
      * @return list<string> argomenti dopo il nome dello script; lista vuota se non disponibili
      */
     public static function arguments(): array

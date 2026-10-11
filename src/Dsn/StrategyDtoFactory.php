@@ -48,6 +48,8 @@ final readonly class StrategyDtoFactory
     /**
      * Le closure creano i client nativi; vanno sostituite solo nei test.
      *
+     * Complessità: O(1).
+     *
      * @param ?Closure(): Redis                                                     $newPhpRedis
      * @param ?Closure(array<string, mixed>, array<string, mixed>): ClientInterface $newPredis
      * @param ?Closure(AMQPConnectionConfig): AbstractConnection                    $newAmqp
@@ -65,6 +67,8 @@ final readonly class StrategyDtoFactory
     }
 
     /**
+     * Complessità: O(d), d = lunghezza del DSN; nessuna connessione (i client si connettono in modo lazy).
+     *
      * @throws InvalidArgumentException se il DSN o un'opzione non sono validi
      */
     public function fromDsn(string $dsn): StrategyDtoInterface

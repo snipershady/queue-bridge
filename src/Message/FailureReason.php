@@ -23,6 +23,8 @@ final readonly class FailureReason
     public DateTimeImmutable $failedAt;
 
     /**
+     * Complessità: O(e), e = byte del messaggio di errore (al più 4096 dopo il troncamento).
+     *
      * @param ?string $errorClass nome della classe dell'eccezione; null se il motivo non deriva da un'eccezione
      */
     public function __construct(
@@ -39,6 +41,9 @@ final readonly class FailureReason
         $this->failedAt = $failedAt->setTimezone(new DateTimeZone('UTC'));
     }
 
+    /**
+     * Complessità: O(e), e = byte del messaggio di errore.
+     */
     public static function fromThrowable(
         FailureKind $kind,
         MessageId $originalId,

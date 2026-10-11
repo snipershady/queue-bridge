@@ -25,6 +25,8 @@ final readonly class Input
     }
 
     /**
+     * Complessità: O(a), a = numero di argomenti.
+     *
      * @param list<string> $arguments argomenti senza il nome dello script
      *
      * @throws UsageException
@@ -94,11 +96,17 @@ final readonly class Input
         return new self($command, $options, $verbosity);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function flag(string $name): bool
     {
         return true === ($this->options[$name] ?? false);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function value(string $name): ?string
     {
         $value = $this->options[$name] ?? null;
@@ -107,6 +115,8 @@ final readonly class Input
     }
 
     /**
+     * Complessità: O(v), v = lunghezza del valore.
+     *
      * @throws UsageException se il valore non è un intero >= $minimum
      */
     public function int(string $name, ?int $default, int $minimum = 1): ?int

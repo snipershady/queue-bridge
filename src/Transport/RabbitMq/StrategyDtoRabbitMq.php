@@ -21,6 +21,8 @@ use snipershady\Queue\Transport\RabbitMq\Client\PhpAmqpLibConnector;
 final readonly class StrategyDtoRabbitMq implements StrategyDtoInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @param int $prefetch messaggi consegnati in anticipo a questo consumer
      *
      * @throws InvalidArgumentException se $prefetch < 1
@@ -39,6 +41,8 @@ final readonly class StrategyDtoRabbitMq implements StrategyDtoInterface
     /**
      * Usa la connessione del canale; i canali della coda vengono aperti su di essa.
      *
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se il canale non ha più una connessione
      */
     public static function fromPhpAmqpLib(AMQPChannel $channel, bool $publisherConfirms = true): self
@@ -51,6 +55,9 @@ final readonly class StrategyDtoRabbitMq implements StrategyDtoInterface
         return self::fromConnection($connection, $publisherConfirms);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public static function fromConnection(AbstractConnection $connection, bool $publisherConfirms = true): self
     {
         return new self(new PhpAmqpLibConnector($connection, $publisherConfirms));
@@ -59,6 +66,8 @@ final readonly class StrategyDtoRabbitMq implements StrategyDtoInterface
     /**
      * Riconnessione completa (connessione e canale) dopo una caduta.
      *
+     * Complessità: O(1).
+     *
      * @param Closure(): AbstractConnection $factory
      */
     public static function fromConnectionFactory(Closure $factory, bool $publisherConfirms = true): self
@@ -66,6 +75,9 @@ final readonly class StrategyDtoRabbitMq implements StrategyDtoInterface
         return new self(new PhpAmqpLibConnector($factory, $publisherConfirms));
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function name(): string
     {

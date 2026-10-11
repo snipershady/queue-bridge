@@ -22,6 +22,8 @@ use snipershady\Queue\System\AlarmInterface;
 final readonly class TimeoutMiddleware implements MiddlewareInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se $seconds < 1
      */
     public function __construct(
@@ -38,11 +40,17 @@ final readonly class TimeoutMiddleware implements MiddlewareInterface
         }
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function timeoutSeconds(): int
     {
         return $this->seconds;
     }
 
+    /**
+     * Complessità: O(1) più il costo di $next.
+     */
     #[Override]
     public function process(Message $message, callable $next): void
     {

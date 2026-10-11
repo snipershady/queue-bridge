@@ -28,6 +28,9 @@ final readonly class Topology
 
     public string $deadLetterQueue;
 
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private QueueConfig $config,
         private RetryTiers $retryTiers,
@@ -37,12 +40,17 @@ final readonly class Topology
         $this->deadLetterQueue = $this->exchange.'.dlq';
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function retryQueue(int $tierMs): string
     {
         return $this->queue.'.retry.'.$tierMs;
     }
 
     /**
+     * Complessità: O(T), T = scaglioni.
+     *
      * @return list<string>
      */
     public function retryQueues(): array
@@ -52,6 +60,8 @@ final readonly class Topology
 
     /**
      * Idempotente: dichiarare di nuovo con gli stessi argomenti non ha effetto.
+     *
+     * Complessità: O(T), T = scaglioni: T + 4 round trip.
      *
      * @throws CommandFailedException se una coda esiste già con argomenti diversi
      * @throws ConnectionException

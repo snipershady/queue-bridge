@@ -14,6 +14,9 @@ use snipershady\Queue\Message\FailureKind;
  */
 final readonly class MessageDiscarded implements WorkerEventInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         public Delivery $delivery,
         public FailureKind $reason,

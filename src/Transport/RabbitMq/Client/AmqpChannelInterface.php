@@ -18,6 +18,8 @@ use snipershady\Queue\Exception\ConnectionException;
 interface AmqpChannelInterface
 {
     /**
+     * Complessità: O(1), un round trip.
+     *
      * @param array<string, string|int> $arguments
      *
      * @throws CommandFailedException|ConnectionException
@@ -25,6 +27,8 @@ interface AmqpChannelInterface
     public function declareExchange(string $name, string $type, array $arguments = []): void;
 
     /**
+     * Complessità: O(1), un round trip.
+     *
      * @param array<string, string|int> $arguments
      *
      * @throws CommandFailedException se `$passive` e la coda non esiste, o se gli argomenti differiscono
@@ -35,11 +39,15 @@ interface AmqpChannelInterface
     public function declareQueue(string $name, array $arguments = [], bool $passive = false): array;
 
     /**
+     * Complessità: O(1), un round trip.
+     *
      * @throws CommandFailedException|ConnectionException
      */
     public function bindQueue(string $queue, string $exchange, string $routingKey): void;
 
     /**
+     * Complessità: O(1) round trip; lato broker O(q), q = messaggi rimossi.
+     *
      * @throws CommandFailedException|ConnectionException
      *
      * @return int messaggi rimossi
@@ -47,12 +55,16 @@ interface AmqpChannelInterface
     public function purgeQueue(string $queue): int;
 
     /**
+     * Complessità: O(1), un round trip.
+     *
      * @throws CommandFailedException|ConnectionException
      */
     public function prefetch(int $count): void;
 
     /**
      * Avvia un consumer: i messaggi arrivano a $onMessage durante wait().
+     *
+     * Complessità: O(1), un round trip.
      *
      * @param Closure(AmqpMessage): void $onMessage
      *
@@ -63,6 +75,8 @@ interface AmqpChannelInterface
     /**
      * Elabora i frame in arrivo per al più $timeoutMs (0 = senza attendere).
      *
+     * Complessità: O(e), e = frame già arrivati; attende al più $timeoutMs.
+     *
      * @throws ConnectionException
      *
      * @return bool false se è scaduto il timeout senza ricevere nulla
@@ -72,17 +86,23 @@ interface AmqpChannelInterface
     /**
      * Preleva un messaggio senza consumer (basic.get), da confermare o restituire.
      *
+     * Complessità: O(b), b = byte del messaggio; un round trip.
+     *
      * @throws CommandFailedException|ConnectionException
      */
     public function get(string $queue): ?AmqpMessage;
 
     /**
+     * Complessità: O(b), b = byte del messaggio; nessuna attesa.
+     *
      * @throws ConnectionException
      */
     public function publish(AmqpMessage $amqpMessage, string $exchange, string $routingKey): void;
 
     /**
      * Attende le conferme del broker per i messaggi pubblicati dall'ultima chiamata.
+     *
+     * Complessità: O(c), c = publish in attesa di conferma; attende al più $timeoutMs.
      *
      * @throws ConnectionException
      *
@@ -91,19 +111,28 @@ interface AmqpChannelInterface
     public function confirm(int $timeoutMs): array;
 
     /**
+     * Complessità: O(1), nessuna attesa.
+     *
      * @throws ConnectionException
      */
     public function ack(int $deliveryTag): void;
 
     /**
+     * Complessità: O(1), nessuna attesa.
+     *
      * @throws ConnectionException
      */
     public function nack(int $deliveryTag, bool $requeue): void;
 
+    /**
+     * Complessità: O(1).
+     */
     public function isOpen(): bool;
 
     /**
      * Chiude il canale: i messaggi consegnati e non confermati tornano in coda. Non lancia eccezioni.
+     *
+     * Complessità: O(1), un round trip.
      */
     public function close(): void;
 }

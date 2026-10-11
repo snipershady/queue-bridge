@@ -13,6 +13,8 @@ namespace snipershady\Queue\Retry;
 interface RetryStrategyInterface
 {
     /**
+     * Complessità: O(1) nelle strategie fornite.
+     *
      * @param int $attempt tentativo appena fallito (1 = la prima esecuzione)
      *
      * @return ?int ritardo in ms prima del prossimo tentativo; null = niente più retry

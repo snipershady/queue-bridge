@@ -267,7 +267,8 @@ ignorarlo e decodificare `$message->text` da solo.
   ricezione vuota (job batch, cron).
 - **Middleware**: `LoggingMiddleware`, `TimeoutMiddleware` (richiede `ext-pcntl`; un timeout viene ritentato),
   `IdempotencyMiddleware` (lock a due fasi sull'ID del messaggio con `InMemoryIdempotencyStore`,
-  `RedisIdempotencyStore::create()` o una tua `IdempotencyStoreInterface`, su qualsiasi backend),
+  `RedisIdempotencyStore::create()` o una tua `IdempotencyStoreInterface`, su qualsiasi backend; un duplicato ancora in
+  elaborazione presso un altro worker viene ritentato allo scadere del lock di quel worker, mai confermato),
   `CorrelationContextMiddleware`.
 - **Eventi**: `MessageReceived`, `MessageHandled`, `MessageFailed`, `MessageRetried`, `MessageDeadLettered`,
   `MessageDiscarded`, `MessageReleased`, `WorkerStopped`.
@@ -463,7 +464,10 @@ esplicitamente (altrimenti la libreria ripiega sul livello base 6.0 e scrive un 
   sulla stessa coda; due worker non elaborano mai lo stesso messaggio nello stesso momento.
 - **`claimIdleMs` e durata degli handler (Redis)**: un messaggio non confermato per `claimIdleMs` è considerato orfano e
   passato a un altro worker. `claimIdleMs` deve superare l'handler più lento (imponilo con `TimeoutMiddleware`), altrimenti
-  un messaggio lento viene elaborato due volte in parallelo.
+  un messaggio lento viene elaborato due volte in parallelo. L'intero batch conta come in elaborazione dal momento in cui
+  viene ricevuto: il worker inizia un messaggio solo se è stato ricevuto da meno di `claimIdleMs - timeout dell'handler`
+  (`claimIdleMs / 2` senza `TimeoutMiddleware`) e restituisce il resto del batch con un warning nel log. Se il warning
+  compare, riduci `batchSize`.
 - **RabbitMQ**: gli orfani tornano appena la connessione si chiude; i limiti sono l'heartbeat e `consumer_timeout` descritti
   sopra. `x-delivery-limit` è uguale a `maxDeliveries`, quindi un messaggio che continua a far bloccare il worker viene
   spostato in DLQ dal broker come ultima difesa.

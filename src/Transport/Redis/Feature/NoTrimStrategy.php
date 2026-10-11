@@ -15,6 +15,9 @@ use snipershady\Queue\Transport\Redis\RedisKeys;
  */
 final readonly class NoTrimStrategy implements TrimStrategyInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function trim(RedisClientInterface $redisClient, RedisKeys $redisKeys): int
     {

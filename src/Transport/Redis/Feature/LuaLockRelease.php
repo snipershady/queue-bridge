@@ -16,6 +16,9 @@ use snipershady\Queue\Transport\Redis\Script\ScriptRunner;
  */
 final readonly class LuaLockRelease implements LockReleaseStrategyInterface
 {
+    /**
+     * Complessità: O(1), un round trip (due se lo script non è in cache).
+     */
     #[Override]
     public function release(RedisClientInterface $redisClient, string $key, string $token): void
     {

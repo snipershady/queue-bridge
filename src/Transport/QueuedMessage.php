@@ -16,6 +16,8 @@ use snipershady\Queue\Message\Message;
 final readonly class QueuedMessage
 {
     /**
+     * Complessità: O(1).
+     *
      * @param ?DateTimeImmutable $availableAt quando il messaggio diventa disponibile: solo per i differiti
      *
      * @throws InvalidArgumentException se $availableAt manca per un differito o è presente per gli altri stati

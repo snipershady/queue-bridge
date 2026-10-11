@@ -18,10 +18,17 @@ use snipershady\Queue\Producer\ProducerMiddlewareInterface;
  */
 final readonly class CorrelationIdMiddleware implements ProducerMiddlewareInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(private CorrelationContext $context = new CorrelationContext())
     {
     }
 
+    /**
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi). Più il costo di
+     * $next.
+     */
     #[Override]
     public function process(Message $message, callable $next): void
     {

@@ -13,6 +13,8 @@ namespace snipershady\Queue\Transport\RabbitMq\Client;
 final readonly class AmqpMessage
 {
     /**
+     * Complessità: O(1).
+     *
      * @param array<string, string|int> $headers
      * @param ?int                      $deliveryTag presente solo nei messaggi ricevuti
      */

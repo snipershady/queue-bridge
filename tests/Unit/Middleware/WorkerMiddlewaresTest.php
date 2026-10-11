@@ -11,6 +11,8 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use snipershady\Queue\Exception\RetryableException;
+use snipershady\Queue\Idempotency\AcquireResult;
+use snipershady\Queue\Idempotency\AcquireStatus;
 use snipershady\Queue\Idempotency\InMemoryIdempotencyStore;
 use snipershady\Queue\Idempotency\LockToken;
 use snipershady\Queue\Message\Message;
@@ -30,6 +32,7 @@ use snipershady\Queue\Tests\Support\RecordingLogger;
 #[CoversClass(LoggingMiddleware::class)]
 #[UsesClass(InMemoryIdempotencyStore::class)]
 #[UsesClass(LockToken::class)]
+#[UsesClass(AcquireResult::class)]
 #[UsesClass(Message::class)]
 #[UsesClass(MessageId::class)]
 #[UsesClass(MessageRules::class)]
@@ -51,6 +54,37 @@ final class WorkerMiddlewaresTest extends TestCase
         $idempotencyMiddleware->process($message, $handler);
         $idempotencyMiddleware->process($message->withIncrementedAttempts(), $handler);
 
+        self::assertSame(1, $runs);
+    }
+
+    public function testIdempotencyRetriesAMessageInProgressElsewhereInsteadOfAcknowledgingIt(): void
+    {
+        $fakeClock = new FakeClock();
+        $inMemoryIdempotencyStore = new InMemoryIdempotencyStore($fakeClock);
+        $idempotencyMiddleware = new IdempotencyMiddleware($inMemoryIdempotencyStore, lockTtlMs: 5000);
+        $message = $this->message();
+        // Un altro worker ha preso il lock ed è morto (o è ancora in esecuzione).
+        self::assertSame(AcquireStatus::Acquired, $inMemoryIdempotencyStore->acquire($message->id, 5000)->status);
+        $fakeClock->advanceMs(1200);
+        $runs = 0;
+
+        try {
+            $idempotencyMiddleware->process($message, static function () use (&$runs): void {
+                ++$runs;
+            });
+            self::fail('Expected RetryableException');
+        } catch (RetryableException $retryableException) {
+            self::assertSame(3800, $retryableException->delayMs);
+            self::assertSame(\sprintf('Message %s is being processed by another worker: retrying when its lock expires.', $message->id->value), $retryableException->getMessage());
+        }
+
+        self::assertSame(0, $runs);
+
+        // Allo scadere del lock il messaggio ritentato viene elaborato.
+        $fakeClock->advanceMs(3800);
+        $idempotencyMiddleware->process($message->withIncrementedAttempts(), static function () use (&$runs): void {
+            ++$runs;
+        });
         self::assertSame(1, $runs);
     }
 
@@ -85,13 +119,13 @@ final class WorkerMiddlewaresTest extends TestCase
         $idempotencyMiddleware->process($message, static function () use ($inMemoryIdempotencyStore, $message, $fakeClock): void {
             $fakeClock->advanceMs(100);
             // Il lock è scaduto durante l'esecuzione: un altro worker potrebbe acquisirlo.
-            self::assertInstanceOf(LockToken::class, $inMemoryIdempotencyStore->acquire($message->id, 1));
+            self::assertInstanceOf(LockToken::class, $inMemoryIdempotencyStore->acquire($message->id, 1)->token);
         });
 
         $fakeClock->advanceMs(199);
-        self::assertNull($inMemoryIdempotencyStore->acquire($message->id, 1));
+        self::assertSame(AcquireStatus::Completed, $inMemoryIdempotencyStore->acquire($message->id, 1)->status);
         $fakeClock->advanceMs(1);
-        self::assertInstanceOf(LockToken::class, $inMemoryIdempotencyStore->acquire($message->id, 1));
+        self::assertSame(AcquireStatus::Acquired, $inMemoryIdempotencyStore->acquire($message->id, 1)->status);
     }
 
     public function testIdempotencyDefaultTtls(): void
@@ -103,13 +137,13 @@ final class WorkerMiddlewaresTest extends TestCase
 
         $idempotencyMiddleware->process($message, static function () use ($inMemoryIdempotencyStore, $message, $fakeClock): void {
             $fakeClock->advanceMs(299_999);
-            self::assertNull($inMemoryIdempotencyStore->acquire($message->id, 1));
+            self::assertSame(1, $inMemoryIdempotencyStore->acquire($message->id, 1)->lockRemainingMs);
         });
 
         $fakeClock->advanceMs(86_399_999);
-        self::assertNull($inMemoryIdempotencyStore->acquire($message->id, 1));
+        self::assertSame(AcquireStatus::Completed, $inMemoryIdempotencyStore->acquire($message->id, 1)->status);
         $fakeClock->advanceMs(1);
-        self::assertInstanceOf(LockToken::class, $inMemoryIdempotencyStore->acquire($message->id, 1));
+        self::assertSame(AcquireStatus::Acquired, $inMemoryIdempotencyStore->acquire($message->id, 1)->status);
     }
 
     public function testIdempotencyAcceptsMinimalTtls(): void

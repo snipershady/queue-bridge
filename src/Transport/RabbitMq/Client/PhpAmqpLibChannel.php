@@ -27,6 +27,9 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
     /** @var list<string> */
     private array $failed = [];
 
+    /**
+     * Complessità: O(1), un round trip per `confirm.select` se le conferme sono attive.
+     */
     public function __construct(
         private readonly AMQPChannel $channel,
         private readonly bool $publisherConfirms = true,
@@ -44,12 +47,18 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         });
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function declareExchange(string $name, string $type, array $arguments = []): void
     {
         $this->guard('exchange.declare', fn () => $this->channel->exchange_declare($name, $type, passive: false, durable: true, auto_delete: false, internal: false, nowait: false, arguments: new AMQPTable($arguments)));
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function declareQueue(string $name, array $arguments = [], bool $passive = false): array
     {
@@ -65,12 +74,18 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         return [\is_int($messages) ? $messages : 0, \is_int($consumers) ? $consumers : 0];
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function bindQueue(string $queue, string $exchange, string $routingKey): void
     {
         $this->guard('queue.bind', fn () => $this->channel->queue_bind($queue, $exchange, $routingKey));
     }
 
+    /**
+     * Complessità: O(1) round trip; lato broker O(q), q = messaggi rimossi.
+     */
     #[Override]
     public function purgeQueue(string $queue): int
     {
@@ -79,12 +94,18 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         return \is_int($purged) ? $purged : 0;
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function prefetch(int $count): void
     {
         $this->guard('basic.qos', fn () => $this->channel->basic_qos(0, $count, a_global: false));
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function consume(string $queue, Closure $onMessage): void
     {
@@ -93,6 +114,9 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         }));
     }
 
+    /**
+     * Complessità: O(e), e = frame già arrivati; attende al più $timeoutMs.
+     */
     #[Override]
     public function wait(int $timeoutMs): bool
     {
@@ -109,6 +133,9 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         return true;
     }
 
+    /**
+     * Complessità: O(b), b = byte del messaggio; un round trip.
+     */
     #[Override]
     public function get(string $queue): ?AmqpMessage
     {
@@ -117,6 +144,9 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         return $nativeMessage instanceof NativeMessage ? self::toMessage($nativeMessage) : null;
     }
 
+    /**
+     * Complessità: O(b), b = byte del messaggio; nessuna attesa.
+     */
     #[Override]
     public function publish(AmqpMessage $amqpMessage, string $exchange, string $routingKey): void
     {
@@ -128,6 +158,9 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         $this->guard('basic.publish', fn () => $this->channel->basic_publish(new NativeMessage($amqpMessage->body, $properties), $exchange, $routingKey, mandatory: true));
     }
 
+    /**
+     * Complessità: O(c), c = publish in attesa di conferma; attende al più $timeoutMs.
+     */
     #[Override]
     public function confirm(int $timeoutMs): array
     {
@@ -141,24 +174,36 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
         return $failed;
     }
 
+    /**
+     * Complessità: O(1), nessuna attesa.
+     */
     #[Override]
     public function ack(int $deliveryTag): void
     {
         $this->guard('basic.ack', fn () => $this->channel->basic_ack($deliveryTag));
     }
 
+    /**
+     * Complessità: O(1), nessuna attesa.
+     */
     #[Override]
     public function nack(int $deliveryTag, bool $requeue): void
     {
         $this->guard('basic.nack', fn () => $this->channel->basic_nack($deliveryTag, multiple: false, requeue: $requeue));
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function isOpen(): bool
     {
         return $this->channel->is_open();
     }
 
+    /**
+     * Complessità: O(1), un round trip.
+     */
     #[Override]
     public function close(): void
     {

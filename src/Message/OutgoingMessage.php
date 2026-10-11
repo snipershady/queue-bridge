@@ -14,6 +14,8 @@ use InvalidArgumentException;
 final readonly class OutgoingMessage
 {
     /**
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi).
+     *
      * @param array<string, string> $headers
      * @param int                   $delayMs ritardo prima della consegna (>= 0)
      * @param ?int                  $ttlMs   scadenza dalla creazione (>= 1), null = nessuna

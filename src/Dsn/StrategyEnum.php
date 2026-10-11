@@ -19,6 +19,8 @@ enum StrategyEnum: string
     case InMemory = 'in-memory';
 
     /**
+     * Complessità: O(s), s = lunghezza dello schema.
+     *
      * @throws InvalidArgumentException se lo schema non è supportato
      */
     public static function fromScheme(string $scheme): self

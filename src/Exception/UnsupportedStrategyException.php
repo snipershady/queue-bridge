@@ -14,6 +14,8 @@ use snipershady\Queue\Factory\StrategyDtoInterface;
 final class UnsupportedStrategyException extends QueueException
 {
     /**
+     * Complessità: O(b), b = numero di builder.
+     *
      * @param list<string> $builders classi dei builder registrati
      */
     public static function noBuilderFor(StrategyDtoInterface $strategyDto, array $builders): self

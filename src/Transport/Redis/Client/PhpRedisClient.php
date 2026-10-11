@@ -25,6 +25,8 @@ final class PhpRedisClient implements RedisClientInterface
     private readonly ?Closure $factory;
 
     /**
+     * Complessità: O(1).
+     *
      * @param Redis|Closure(): Redis $redis istanza già connessa, o factory che ne crea una
      */
     public function __construct(Redis|Closure $redis)
@@ -33,6 +35,10 @@ final class PhpRedisClient implements RedisClientInterface
         $this->factory = $redis instanceof Closure ? $redis : null;
     }
 
+    /**
+     * Complessità: O(c + r), c = dimensione del comando, r = dimensione della risposta; un round trip (due dopo una
+     * riconnessione).
+     */
     #[Override]
     public function execute(array $command): array|int|string|null
     {
@@ -51,6 +57,9 @@ final class PhpRedisClient implements RedisClientInterface
         });
     }
 
+    /**
+     * Complessità: O(c + r) sull'intera pipeline; un round trip (due dopo una riconnessione).
+     */
     #[Override]
     public function pipeline(array $commands): array
     {

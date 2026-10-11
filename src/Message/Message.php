@@ -20,6 +20,8 @@ final readonly class Message
     public ?DateTimeImmutable $expiresAt;
 
     /**
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi).
+     *
      * @param string                $text     contenuto arbitrario, UTF-8 valido
      * @param int                   $attempts tentativi falliti già fatti
      * @param array<string, string> $headers
@@ -54,6 +56,9 @@ final readonly class Message
 
     /**
      * Copia con un tentativo fallito in più: stesso ID, stessi dati.
+     *
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi). Il nuovo
+     * messaggio viene validato di nuovo.
      */
     public function withIncrementedAttempts(): self
     {
@@ -62,6 +67,9 @@ final readonly class Message
 
     /**
      * Copia con il numero di tentativi indicato (es. 0 quando si riaccoda dalla DLQ).
+     *
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi). Il nuovo
+     * messaggio viene validato di nuovo.
      *
      * @throws InvalidArgumentException se $attempts < 0
      */
@@ -81,6 +89,9 @@ final readonly class Message
     /**
      * Copia con gli header indicati al posto di quelli attuali.
      *
+     * Complessità: O(t + h), t = byte del testo, h = byte degli header (validazione UTF-8 e dei nomi). Il nuovo
+     * messaggio viene validato di nuovo.
+     *
      * @param array<string, string> $headers
      *
      * @throws InvalidArgumentException se un header non è valido
@@ -98,6 +109,9 @@ final readonly class Message
         );
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function isExpired(DateTimeImmutable $now): bool
     {
         return $this->expiresAt instanceof DateTimeImmutable && $now >= $this->expiresAt;

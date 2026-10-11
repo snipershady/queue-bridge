@@ -32,6 +32,9 @@ final class InMemoryBroker
 
     private int $sequence = 0;
 
+    /**
+     * Complessità: O(1) ammortizzato.
+     */
     public function enqueue(InMemoryEntry $inMemoryEntry, int $dueMs, int $nowMs): void
     {
         if ($dueMs <= $nowMs) {
@@ -43,6 +46,9 @@ final class InMemoryBroker
         $this->delayed[] = ['dueMs' => $dueMs, 'entry' => $inMemoryEntry];
     }
 
+    /**
+     * Complessità: O(r), r = messaggi pronti (array_unshift reindicizza).
+     */
     public function pushFront(InMemoryEntry $inMemoryEntry): void
     {
         array_unshift($this->ready, $inMemoryEntry);
@@ -50,6 +56,8 @@ final class InMemoryBroker
 
     /**
      * Sposta in coda i differiti scaduti, in ordine di scadenza (a parità, di inserimento).
+     *
+     * Complessità: O(d log d), d = differiti.
      */
     public function promoteDue(int $nowMs): int
     {
@@ -70,6 +78,8 @@ final class InMemoryBroker
     /**
      * Consegna fino a $max messaggi, registrandoli come in elaborazione con una ricevuta nuova.
      *
+     * Complessità: O(k·r), k = messaggi presi, r = messaggi pronti (array_shift reindicizza).
+     *
      * @return list<array{receipt: non-empty-string, entry: InMemoryEntry}>
      */
     public function take(int $max, int $nowMs): array
@@ -87,6 +97,8 @@ final class InMemoryBroker
 
     /**
      * Rimuove il messaggio dagli "in elaborazione"; null se la ricevuta non è più valida.
+     *
+     * Complessità: O(1).
      */
     public function settle(string $receipt): ?InMemoryEntry
     {
@@ -98,6 +110,8 @@ final class InMemoryBroker
 
     /**
      * Rimette in coda i messaggi in elaborazione da almeno $idleMs: la vecchia ricevuta smette di valere.
+     *
+     * Complessità: O(f), f = messaggi in elaborazione.
      */
     public function recoverOrphans(int $nowMs, int $idleMs): int
     {
@@ -115,6 +129,9 @@ final class InMemoryBroker
         return $recovered;
     }
 
+    /**
+     * Complessità: O(1) ammortizzato; O(l) quando la DLQ supera la lunghezza massima, l = messaggi in DLQ.
+     */
     public function addDeadLetter(DeadLetter $deadLetter, int $maxLength): void
     {
         $this->deadLetters[] = $deadLetter;
@@ -124,6 +141,8 @@ final class InMemoryBroker
     }
 
     /**
+     * Complessità: O(limit).
+     *
      * @return list<DeadLetter>
      */
     public function deadLetters(int $limit): array
@@ -132,6 +151,8 @@ final class InMemoryBroker
     }
 
     /**
+     * Complessità: O(l), l = messaggi in DLQ.
+     *
      * @return list<DeadLetter>
      */
     public function takeDeadLetters(int $limit): array
@@ -142,6 +163,9 @@ final class InMemoryBroker
         return $taken;
     }
 
+    /**
+     * Complessità: O(l), l = messaggi in DLQ.
+     */
     public function takeDeadLetter(MessageId $messageId): ?DeadLetter
     {
         foreach ($this->deadLetters as $index => $deadLetter) {
@@ -155,6 +179,9 @@ final class InMemoryBroker
         return null;
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function purgeDeadLetters(): int
     {
         $count = \count($this->deadLetters);
@@ -165,6 +192,8 @@ final class InMemoryBroker
 
     /**
      * Rimuove pronti e differiti; gli "in elaborazione" restano.
+     *
+     * Complessità: O(1).
      */
     public function purge(): int
     {
@@ -177,6 +206,8 @@ final class InMemoryBroker
 
     /**
      * In elaborazione (in ordine di consegna), pronti, poi differiti per scadenza.
+     *
+     * Complessità: O(f + r + d log d), f = in elaborazione, r = pronti, d = differiti.
      *
      * @return list<QueuedMessage>
      */
@@ -202,6 +233,9 @@ final class InMemoryBroker
         return \array_slice($queued, 0, $limit);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function readyCount(): int
     {
         return \count($this->ready);
@@ -209,22 +243,33 @@ final class InMemoryBroker
 
     /**
      * Messaggi pronti mai consegnati: l'equivalente del lag di un consumer group.
+     *
+     * Complessità: O(r), r = messaggi pronti.
      */
     public function neverDeliveredCount(): int
     {
         return \count(array_filter($this->ready, static fn (InMemoryEntry $inMemoryEntry): bool => 0 === $inMemoryEntry->deliveries));
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function inFlightCount(): int
     {
         return \count($this->inFlight);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function delayedCount(): int
     {
         return \count($this->delayed);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function deadLetterCount(): int
     {
         return \count($this->deadLetters);

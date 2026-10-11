@@ -12,6 +12,9 @@ use snipershady\Queue\Message\FailureReason;
  */
 final readonly class MessageDeadLettered implements WorkerEventInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         public Delivery $delivery,
         public FailureReason $reason,

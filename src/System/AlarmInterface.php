@@ -15,11 +15,15 @@ interface AlarmInterface
 {
     /**
      * Indica se l'allarme può davvero interrompere l'esecuzione.
+     *
+     * Complessità: O(1).
      */
     public function isSupported(): bool;
 
     /**
      * Programma $onAlarm dopo $seconds secondi, sostituendo l'allarme precedente.
+     *
+     * Complessità: O(1).
      *
      * @param callable(): void $onAlarm
      *
@@ -27,5 +31,8 @@ interface AlarmInterface
      */
     public function schedule(int $seconds, callable $onAlarm): void;
 
+    /**
+     * Complessità: O(1).
+     */
     public function cancel(): void;
 }

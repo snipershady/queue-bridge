@@ -13,6 +13,8 @@ use Override;
 final readonly class FixedDelay implements RetryStrategyInterface
 {
     /**
+     * Complessità: O(1).
+     *
      * @throws InvalidArgumentException se $delayMs < 0
      */
     public function __construct(private int $delayMs = 1000)
@@ -22,6 +24,9 @@ final readonly class FixedDelay implements RetryStrategyInterface
         }
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function nextDelayMs(int $attempt): int
     {

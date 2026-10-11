@@ -16,6 +16,9 @@ use snipershady\Queue\Message\OutgoingMessage;
 interface ProducerInterface
 {
     /**
+     * Complessità: O(m·(t + h)) più un invio al transport, t = byte del testo, h = byte degli header, m = middleware
+     * del producer.
+     *
      * @param array<string, string> $headers
      * @param int                   $delayMs ritardo prima della consegna
      * @param ?int                  $ttlMs   scadenza dalla creazione: oltre, il messaggio non viene processato
@@ -26,6 +29,8 @@ interface ProducerInterface
     public function publish(string $channel, string $text, array $headers = [], int $delayMs = 0, ?int $ttlMs = null): MessageId;
 
     /**
+     * Complessità: O(n·m·(t + h)) più un invio in batch al transport, n = messaggi, m = middleware del producer.
+     *
      * @param iterable<OutgoingMessage> $messages
      *
      * @throws InvalidArgumentException se un messaggio supera i limiti di QueueConfig (nessuno viene inviato)

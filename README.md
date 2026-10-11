@@ -265,7 +265,8 @@ ignore it and decode `$message->text` yourself.
   first empty receive (batch jobs, cron).
 - **Middleware**: `LoggingMiddleware`, `TimeoutMiddleware` (needs `ext-pcntl`; a timeout is retried),
   `IdempotencyMiddleware` (two-phase lock on the message ID with `InMemoryIdempotencyStore`,
-  `RedisIdempotencyStore::create()` or your own `IdempotencyStoreInterface`, on any backend),
+  `RedisIdempotencyStore::create()` or your own `IdempotencyStoreInterface`, on any backend; a duplicate still being
+  processed by another worker is retried when that worker's lock expires, never acknowledged),
   `CorrelationContextMiddleware`.
 - **Events**: `MessageReceived`, `MessageHandled`, `MessageFailed`, `MessageRetried`, `MessageDeadLettered`,
   `MessageDiscarded`, `MessageReleased`, `WorkerStopped`.
@@ -461,7 +462,10 @@ falls back to the 6.0 baseline and logs a warning).
   same queue; two workers never handle the same message at the same time.
 - **`claimIdleMs` and handler duration (Redis)**: a message unacknowledged for `claimIdleMs` is considered orphaned and
   given to another worker. `claimIdleMs` must be larger than the longest handler (enforce it with `TimeoutMiddleware`),
-  otherwise a slow message is processed twice in parallel.
+  otherwise a slow message is processed twice in parallel. The whole batch counts as in flight from the moment it is
+  received: the worker starts a message only if it was received less than `claimIdleMs - handler timeout` ago
+  (`claimIdleMs / 2` without `TimeoutMiddleware`) and releases the rest of the batch with a warning in the log. If the
+  warning shows up, lower `batchSize`.
 - **RabbitMQ**: orphans come back as soon as the connection closes; the limits are the heartbeat and `consumer_timeout`
   described above. `x-delivery-limit` equals `maxDeliveries`, so a message that keeps crashing the worker is dead-lettered by
   the broker as a last resort.

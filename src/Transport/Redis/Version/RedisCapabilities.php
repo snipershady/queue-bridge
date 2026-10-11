@@ -12,6 +12,8 @@ namespace snipershady\Queue\Transport\Redis\Version;
 final readonly class RedisCapabilities
 {
     /**
+     * Complessità: O(1).
+     *
      * @param bool $xpendingIdle   `XPENDING ... IDLE` (filtro di inattività lato server)
      * @param bool $xtrimMinId     `XTRIM ... MINID`
      * @param bool $groupLag       `XINFO GROUPS` con `lag`
@@ -32,6 +34,9 @@ final readonly class RedisCapabilities
     ) {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public static function forVersion(RedisVersionEnum $redisVersionEnum): self
     {
         return new self(

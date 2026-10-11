@@ -20,18 +20,27 @@ use snipershady\Queue\Transport\TransportInterface;
  */
 final readonly class RabbitMqTransportBuilder implements TransportBuilderInterface
 {
+    /**
+     * Complessità: O(1).
+     */
     public function __construct(
         private ClockInterface $clock = new SystemClock(),
         private LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
+    /**
+     * Complessità: O(1).
+     */
     #[Override]
     public function supports(StrategyDtoInterface $strategy): bool
     {
         return $strategy instanceof StrategyDtoRabbitMq;
     }
 
+    /**
+     * Complessità: O(T), T = scaglioni; nessuna connessione.
+     */
     #[Override]
     public function build(StrategyDtoInterface $strategy, QueueConfig $config): TransportInterface
     {

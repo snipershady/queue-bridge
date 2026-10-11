@@ -11,11 +11,17 @@ namespace snipershady\Queue\Exception;
  */
 final class VersionMismatchException extends BackendException
 {
+    /**
+     * Complessità: O(1).
+     */
     public static function overrideAboveServer(string $requested, string $server): self
     {
         return new self(\sprintf('Requested Redis level %s but the server reports %s: lower the override or set verifyVersion to false.', $requested, $server));
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public static function unsupported(string $server, string $minimum): self
     {
         return new self(\sprintf('Redis %s is not supported: version %s or later is required.', $server, $minimum));

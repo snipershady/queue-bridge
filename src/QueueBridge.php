@@ -30,6 +30,8 @@ final class QueueBridge
      * QueueFactory con i builder di InMemory, Redis e RabbitMQ. Il graceful shutdown sui segnali è attivo
      * se `ext-pcntl` è disponibile.
      *
+     * Complessità: O(1).
+     *
      * @param list<ProducerMiddlewareInterface> $producerMiddlewares
      * @param ?bool                             $signals             null = attivo se ext-pcntl è caricata
      */

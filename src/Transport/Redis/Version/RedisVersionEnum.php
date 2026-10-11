@@ -23,6 +23,8 @@ enum RedisVersionEnum: string
     /**
      * Livello più alto <= alla versione del server (es. "7.4.2" → GE70).
      *
+     * Complessità: O(1) (numero fisso di livelli).
+     *
      * @throws VersionMismatchException se la versione è sotto 6.0 o non è riconoscibile
      */
     public static function fromServerVersion(string $version): self
@@ -42,6 +44,9 @@ enum RedisVersionEnum: string
         return $level ?? throw VersionMismatchException::unsupported($version, self::GE60->value);
     }
 
+    /**
+     * Complessità: O(1).
+     */
     public function isAtLeast(self $other): bool
     {
         return $this->parts() >= $other->parts();

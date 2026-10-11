@@ -17,6 +17,8 @@ use snipershady\Queue\Transport\Redis\RedisReply;
 final class GroupInfo
 {
     /**
+     * Complessità: O(g), g = consumer group dello stream; un round trip.
+     *
      * @throws CommandFailedException
      *
      * @return ?array<string, mixed> null se lo stream o il gruppo non esistono ancora

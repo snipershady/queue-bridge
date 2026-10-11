@@ -15,6 +15,8 @@ use InvalidArgumentException;
 final class DsnParser
 {
     /**
+     * Complessità: O(d), d = lunghezza del DSN.
+     *
      * @throws InvalidArgumentException se il DSN non è valido
      */
     public static function parse(string $dsn): Dsn
@@ -56,6 +58,8 @@ final class DsnParser
 
     /**
      * Nasconde la password nei messaggi d'errore.
+     *
+     * Complessità: O(d), d = lunghezza del DSN.
      */
     public static function redact(string $dsn): string
     {

@@ -14,6 +14,8 @@ use InvalidArgumentException;
 final readonly class MaintenanceReport
 {
     /**
+     * Complessità: O(1).
+     *
      * @param int $promotedDelayed  differiti diventati disponibili
      * @param int $recoveredOrphans messaggi non confermati rimessi in coda
      * @param int $trimmed          entry rimosse dal trim di sicurezza

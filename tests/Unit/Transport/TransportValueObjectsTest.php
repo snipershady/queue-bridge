@@ -18,6 +18,8 @@ use snipershady\Queue\Message\MessageRules;
 use snipershady\Queue\Transport\DeadLetter;
 use snipershady\Queue\Transport\MaintenanceReport;
 use snipershady\Queue\Transport\OrphanRecovery;
+use snipershady\Queue\Transport\QueuedMessage;
+use snipershady\Queue\Transport\QueuedMessageState;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\TransportCapabilities;
 
@@ -26,6 +28,8 @@ use snipershady\Queue\Transport\TransportCapabilities;
 #[CoversClass(TransportCapabilities::class)]
 #[CoversClass(OrphanRecovery::class)]
 #[CoversClass(DeadLetter::class)]
+#[CoversClass(QueuedMessage::class)]
+#[CoversClass(QueuedMessageState::class)]
 #[UsesClass(Message::class)]
 #[UsesClass(MessageId::class)]
 #[UsesClass(MessageRules::class)]
@@ -123,5 +127,41 @@ final class TransportValueObjectsTest extends TestCase
 
         self::assertSame($message, $deadLetter->message);
         self::assertSame($failureReason, $deadLetter->reason);
+    }
+
+    public function testQueuedMessage(): void
+    {
+        $message = new Message(MessageId::fromString('0190f2a4-5b6c-7d8e-9f01-23456789abcd'), 'test', 'x', new DateTimeImmutable());
+        $availableAt = new DateTimeImmutable('2026-10-11 12:00:00');
+
+        $ready = new QueuedMessage($message, QueuedMessageState::Ready);
+        $delayed = new QueuedMessage($message, QueuedMessageState::Delayed, $availableAt);
+
+        self::assertSame($message, $ready->message);
+        self::assertSame(QueuedMessageState::Ready, $ready->state);
+        self::assertNull($ready->availableAt);
+        self::assertSame($availableAt, $delayed->availableAt);
+        self::assertSame(['in_flight', 'ready', 'delayed'], array_map(static fn (QueuedMessageState $queuedMessageState): string => $queuedMessageState->value, QueuedMessageState::cases()));
+    }
+
+    /**
+     * @return iterable<string, array{QueuedMessageState, ?DateTimeImmutable}>
+     */
+    public static function inconsistentQueuedMessages(): iterable
+    {
+        yield 'delayed without availableAt' => [QueuedMessageState::Delayed, null];
+        yield 'ready with availableAt' => [QueuedMessageState::Ready, new DateTimeImmutable()];
+        yield 'in flight with availableAt' => [QueuedMessageState::InFlight, new DateTimeImmutable()];
+    }
+
+    #[DataProvider('inconsistentQueuedMessages')]
+    public function testQueuedMessageRequiresAvailableAtForDelayedOnly(QueuedMessageState $queuedMessageState, ?DateTimeImmutable $availableAt): void
+    {
+        $message = new Message(MessageId::fromString('0190f2a4-5b6c-7d8e-9f01-23456789abcd'), 'test', 'x', new DateTimeImmutable());
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(\sprintf('got state "%s"', $queuedMessageState->value));
+
+        new QueuedMessage($message, $queuedMessageState, $availableAt);
     }
 }

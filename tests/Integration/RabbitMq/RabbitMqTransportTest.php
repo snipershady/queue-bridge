@@ -107,6 +107,12 @@ final class RabbitMqTransportTest extends TransportContractTestCase
     }
 
     #[Override]
+    protected function browsesInFlightAndDelayed(): bool
+    {
+        return false;
+    }
+
+    #[Override]
     protected function advanceTimeMs(int $milliseconds): void
     {
         usleep(($milliseconds + 50) * 1000);

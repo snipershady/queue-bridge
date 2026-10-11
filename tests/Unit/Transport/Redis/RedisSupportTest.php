@@ -126,7 +126,7 @@ final class RedisSupportTest extends TestCase
             self::assertStringContainsString("redis.call('XACKDEL'", $script);
         }
 
-        foreach ([RedisScripts::promoteDelayed(), RedisScripts::requeueDeadLetters(), RedisScripts::purgeDeadLetters(), RedisScripts::releaseLock()] as $script) {
+        foreach ([RedisScripts::promoteDelayed(), RedisScripts::requeueDeadLetters(), RedisScripts::purgeDeadLetters(), RedisScripts::purgeReady(), RedisScripts::purgeDelayed(), RedisScripts::releaseLock()] as $script) {
             self::assertStringNotContainsString('local function owned(', $script);
             self::assertStringContainsString('redis.call(', $script);
         }
@@ -135,5 +135,7 @@ final class RedisSupportTest extends TestCase
         self::assertStringContainsString("'failure_'", RedisScripts::requeueDeadLetters());
         self::assertStringContainsString("redis.call('GET', KEYS[1]) == ARGV[1]", RedisScripts::releaseLock());
         self::assertStringContainsString("redis.call('DEL', KEYS[1])", RedisScripts::purgeDeadLetters());
+        self::assertStringContainsString("redis.pcall('XPENDING'", RedisScripts::purgeReady());
+        self::assertStringContainsString("redis.call('ZCARD', KEYS[1])", RedisScripts::purgeDelayed());
     }
 }

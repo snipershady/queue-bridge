@@ -13,7 +13,9 @@ use snipershady\Queue\Producer\ProducerInterface;
 use snipershady\Queue\Producer\ProducerMiddlewareInterface;
 use snipershady\Queue\System\MemoryMeterInterface;
 use snipershady\Queue\System\SignalHandlerInterface;
+use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
 use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
+use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
 use snipershady\Queue\Transport\Capability\SetupAwareInterface;
 use snipershady\Queue\Transport\Capability\StatsAwareInterface;
 use snipershady\Queue\Transport\QueueStats;
@@ -88,6 +90,18 @@ final class Queue implements QueueInterface
     public function deadLetters(): ?DeadLetterAwareInterface
     {
         return $this->transport instanceof DeadLetterAwareInterface ? $this->transport : null;
+    }
+
+    #[Override]
+    public function purge(): ?int
+    {
+        return $this->transport instanceof PurgeAwareInterface ? $this->transport->purge() : null;
+    }
+
+    #[Override]
+    public function browse(int $limit = 100): ?array
+    {
+        return $this->transport instanceof BrowseAwareInterface ? $this->transport->browse($limit) : null;
     }
 
     #[Override]

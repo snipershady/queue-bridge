@@ -24,11 +24,15 @@ use snipershady\Queue\Message\FailureReason;
 use snipershady\Queue\Message\Message;
 use snipershady\Queue\Message\MessageId;
 use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
+use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
 use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
+use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
 use snipershady\Queue\Transport\Capability\SetupAwareInterface;
 use snipershady\Queue\Transport\Capability\StatsAwareInterface;
 use snipershady\Queue\Transport\DeadLetter;
 use snipershady\Queue\Transport\OrphanRecovery;
+use snipershady\Queue\Transport\QueuedMessage;
+use snipershady\Queue\Transport\QueuedMessageState;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\RabbitMq\Client\AmqpChannelInterface;
 use snipershady\Queue\Transport\RabbitMq\Client\AmqpConnectorInterface;
@@ -45,10 +49,17 @@ use snipershady\Queue\Transport\TransportInterface;
  * - Retry e reject pubblicano la nuova copia, attendono la conferma del broker e solo dopo confermano
  *   l'originale: mai persi, al più duplicati.
  * - Le statistiche di "in elaborazione" sono quelle di questo consumer: AMQP non espone gli unacked degli altri.
+ * - browse() vede solo i messaggi pronti della coda principale (più quelli già prefetchati da questo
+ *   consumer): li preleva con basic.get e li restituisce con nack + requeue. Su RabbitMQ 3.13 il nack
+ *   incrementa `x-delivery-count`, quindi un uso frequente avvicina i messaggi a `x-delivery-limit` (DLQ);
+ *   i messaggi in attesa nelle code a scaglioni e quelli in elaborazione presso altri consumer non sono visibili.
+ *   I messaggi letti tornano in fondo alla coda se browse() non arriva a leggerla tutta: l'ordine cambia.
+ * - purge() svuota la coda principale e le code di attesa (queue.purge): i messaggi consegnati e non
+ *   confermati non vengono toccati dal broker.
  *
  * @api
  */
-final class RabbitMqTransport implements TransportInterface, SetupAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface
+final class RabbitMqTransport implements TransportInterface, SetupAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface, PurgeAwareInterface, BrowseAwareInterface
 {
     public const string HEADER_PREFIX = 'x-qb-';
 
@@ -365,6 +376,97 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     public function purgeDeadLetters(): int
     {
         return $this->withChannel(fn (AmqpChannelInterface $amqpChannel): int => $amqpChannel->purgeQueue($this->topology->deadLetterQueue));
+    }
+
+    #[Override]
+    public function purge(): int
+    {
+        return $this->withChannel(function (AmqpChannelInterface $amqpChannel): int {
+            try {
+                $purged = $amqpChannel->purgeQueue($this->topology->queue);
+                foreach ($this->topology->retryQueues() as $retryQueue) {
+                    $purged += $amqpChannel->purgeQueue($retryQueue);
+                }
+            } catch (CommandFailedException) {
+                // Topologia non ancora dichiarata: non c'è nulla da svuotare (l'errore ha chiuso il canale).
+                $this->close();
+
+                return 0;
+            }
+
+            if ($this->consumingGeneration !== $this->connector->generation()) {
+                return $purged;
+            }
+
+            // Già inviati a questo consumer ma non restituiti da receive(): per il broker non sono più in coda.
+            $this->drainPrefetched($amqpChannel, $this->prefetch);
+            foreach ($this->buffer as $amqpMessage) {
+                $amqpChannel->ack($this->tag($amqpMessage));
+            }
+
+            $purged += \count($this->buffer);
+            $this->buffer = [];
+
+            return $purged;
+        });
+    }
+
+    #[Override]
+    public function browse(int $limit = 100): array
+    {
+        $this->assertLimit($limit);
+
+        return $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($limit): array {
+            $nowMs = $this->nowMs();
+            $queued = [];
+            if ($this->consumingGeneration === $this->connector->generation()) {
+                $this->drainPrefetched($amqpChannel, $this->prefetch);
+                foreach ($this->buffer as $amqpMessage) {
+                    $this->addQueued($queued, $amqpMessage, $nowMs, $limit);
+                }
+            }
+
+            $taken = [];
+            try {
+                while (\count($queued) < $limit && ($amqpMessage = $amqpChannel->get($this->topology->queue)) instanceof AmqpMessage) {
+                    $taken[] = $amqpMessage;
+                    $this->addQueued($queued, $amqpMessage, $nowMs, $limit);
+                }
+            } catch (CommandFailedException) {
+                // Coda non ancora dichiarata: l'errore ha chiuso il canale (e restituito i messaggi prelevati).
+                $this->close();
+
+                return [];
+            }
+
+            $this->returnAll($amqpChannel, $taken);
+
+            return $queued;
+        });
+    }
+
+    /**
+     * Aggiunge il messaggio all'elenco di browse(), se decodificabile e se c'è ancora posto. Un messaggio
+     * tornato in anticipo da una coda di attesa è ancora differito fino a `x-qb-due-at`.
+     *
+     * @param list<QueuedMessage> $queued
+     */
+    private function addQueued(array &$queued, AmqpMessage $amqpMessage, int $nowMs, int $limit): void
+    {
+        if (\count($queued) >= $limit) {
+            return;
+        }
+
+        try {
+            $message = $this->codec->decode($this->fields($amqpMessage));
+        } catch (SerializationException) {
+            return;
+        }
+
+        $dueAtMs = (int) ($amqpMessage->headers[self::HEADER_DUE_AT] ?? 0);
+        $queued[] = $dueAtMs > $nowMs
+            ? new QueuedMessage($message, QueuedMessageState::Delayed, new DateTimeImmutable(\sprintf('@%d.%03d', intdiv($dueAtMs, 1000), $dueAtMs % 1000)))
+            : new QueuedMessage($message, QueuedMessageState::Ready);
     }
 
     private function toDelivery(AmqpChannelInterface $amqpChannel, AmqpMessage $amqpMessage, DateTimeImmutable $now): ?Delivery

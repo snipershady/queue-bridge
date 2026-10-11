@@ -57,6 +57,7 @@ use snipershady\Queue\Transport\InMemory\InMemoryTransport;
 use snipershady\Queue\Transport\InMemory\InMemoryTransportBuilder;
 use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
 use snipershady\Queue\Transport\MaintenanceReport;
+use snipershady\Queue\Transport\QueuedMessage;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\RabbitMq\RabbitMqTransportBuilder;
 use snipershady\Queue\Transport\Redis\RedisTransportBuilder;
@@ -92,6 +93,7 @@ use snipershady\Queue\Worker\WorkerConfig;
 #[UsesClass(InMemoryBroker::class)]
 #[UsesClass(InMemoryEntry::class)]
 #[UsesClass(QueueStats::class)]
+#[UsesClass(QueuedMessage::class)]
 #[UsesClass(MaintenanceReport::class)]
 #[UsesClass(TransportCapabilities::class)]
 #[UsesClass(Message::class)]
@@ -337,6 +339,40 @@ final class CliTest extends TestCase
         self::assertSame(3, substr_count($this->stderr(), 'this backend has no dead letter queue'));
     }
 
+    public function testQueueCommands(): void
+    {
+        $this->send('ready');
+        $this->inMemoryTransport->send(new Message(MessageId::fromString('0190f2a4-5b6c-7d8e-9f01-000000000002'), 'mail', 'later', $this->fakeClock->now()), 90_000);
+        $application = $this->sharedApplication();
+
+        self::assertSame(Application::SUCCESS, $application->run(['queue:list', '--dsn=memory://']));
+        self::assertSame(Application::SUCCESS, $application->run(['queue:list', '--dsn=memory://', '--limit=1', '--json']));
+        self::assertSame(Application::SUCCESS, $application->run(['queue:purge', '--dsn=memory://', '--force']));
+        self::assertSame(Application::SUCCESS, $application->run(['queue:list', '--dsn=memory://']));
+
+        self::assertSame(\implode(\PHP_EOL, [
+            self::ID.'  test  ready      attempts=0  2026-01-01T00:00:00+00:00',
+            '0190f2a4-5b6c-7d8e-9f01-000000000002  mail  delayed    attempts=0  2026-01-01T00:00:00+00:00  available_at=2026-01-01T00:01:30+00:00',
+            '2 message(s).',
+            '[{"id":"'.self::ID.'","channel":"test","state":"ready","attempts":0,"created_at":"2026-01-01T00:00:00+00:00","available_at":null}]',
+            'Purged 2 message(s).',
+            '0 message(s).',
+        ]).\PHP_EOL, $this->stdout());
+    }
+
+    public function testQueueCommandsOnABackendWithoutBrowseAndPurge(): void
+    {
+        $application = $this->sharedApplication(new RecordingTransport());
+
+        self::assertSame(Application::FAILURE, $application->run(['queue:list', '--dsn=memory://']));
+        self::assertSame(Application::FAILURE, $application->run(['queue:purge', '--dsn=memory://', '--force']));
+
+        self::assertSame(
+            'Error: this backend cannot list the messages in the queue.'.\PHP_EOL.'Error: this backend cannot purge the queue.'.\PHP_EOL,
+            $this->stderr(),
+        );
+    }
+
     public function testWorkRunsTheBootstrapHandlers(): void
     {
         $this->send('hello');
@@ -504,6 +540,8 @@ final class CliTest extends TestCase
         yield 'unknown strategy' => [['ping', '--dsn=memory://', '--strategy=sqs'], Application::USAGE, 'Unknown strategy "sqs": expected redis, rabbitmq, in-memory'];
         yield 'strategy mismatch' => [['ping', '--dsn=redis://:pw@h', '--strategy=rabbitmq'], Application::USAGE, '--strategy=rabbitmq does not match the DSN "redis://:***@h"'];
         yield 'purge without force' => [['dlq:purge', '--dsn=memory://'], Application::USAGE, 'confirm with --force'];
+        yield 'queue purge without force' => [['queue:purge', '--dsn=memory://'], Application::USAGE, 'queue:purge deletes every ready and delayed message: confirm with --force'];
+        yield 'invalid list limit' => [['queue:list', '--dsn=memory://', '--limit=0'], Application::USAGE, '--limit must be an integer >= 1'];
         yield 'invalid id' => [['dlq:requeue', '--dsn=memory://', '--id=nope'], Application::USAGE, 'Invalid message id'];
         yield 'work without bootstrap' => [['work', '--dsn=memory://'], Application::USAGE, 'requires --bootstrap'];
         yield 'missing bootstrap file' => [['work', '--dsn=memory://', '--bootstrap=/nonexistent.php'], Application::USAGE, 'not found'];

@@ -47,6 +47,9 @@ Passare a RabbitMQ cambia una riga: `StrategyDtoRabbitMq::fromConnection($connec
 - [Estendere](#estendere)
 - [Sviluppo](#sviluppo)
 
+La documentazione di progetto completa (concetti delle code, diagrammi UML, concorrenza, schedulazione del worker) è in
+[DOC_IT.md](DOC_IT.md).
+
 ## Installazione
 
 ```bash
@@ -81,6 +84,7 @@ Differiscono nel modo in cui ottengono le garanzie e in quanto costa farli funzi
 | Throughput (un processo, publish in batch / consume) | ~115.000 / ~30.000 msg/s | ~25.000 / ~6.000 msg/s | ~330.000 / ~68.000 msg/s |
 | Statistiche | pronti, in elaborazione, differiti, DLQ, lag (>= 7.0), consumer | pronti, in elaborazione (di questo consumer), differiti, DLQ, consumer | pronti, in elaborazione, differiti, DLQ, lag |
 | Store di idempotenza | `RedisIdempotencyStore` sullo stesso server | serve Redis o uno store proprio | `InMemoryIdempotencyStore` |
+| Elenco della coda (`browse`) | in elaborazione, pronti e differiti, in sola lettura | solo i pronti, letti con `basic.get` + requeue | in elaborazione, pronti e differiti |
 | Uso tipico | throughput alto, latenza bassa, Redis già presente | durabilità e replica prima di tutto, RabbitMQ già presente | test unitari, sviluppo locale |
 
 | Backend | Vantaggi | Svantaggi |
@@ -291,6 +295,28 @@ $dlq->requeueDeadLetters(100);
 $dlq->purgeDeadLetters();
 ```
 
+Elenco e svuotamento della coda:
+
+```php
+foreach ($queue->browse(50) ?? [] as $queued) {   // null se il backend non sa elencare i messaggi
+    // QueuedMessage: message, state (InFlight | Ready | Delayed), availableAt (solo per i differiti)
+    echo $queued->message->id->value, ' ', $queued->state->value, PHP_EOL;
+}
+
+$removed = $queue->purge();                      // pronti + differiti; null se il backend non sa svuotare la coda
+```
+
+- `browse()` non consuma mai: ID e `attempts` non cambiano. Ordine: in elaborazione, pronti, differiti per scadenza. È
+  un'istantanea: con worker attivi i messaggi possono cambiare stato mentre li leggi.
+- `purge()` rimuove i messaggi pronti e differiti presenti al momento della chiamata. I messaggi in elaborazione non
+  vengono toccati (sono confermati o tornano in coda come sempre), la dead letter queue ha il suo `purgeDeadLetters()` e
+  la coda resta utilizzabile.
+- **RabbitMQ**: AMQP non permette di leggere una coda senza consumarla, quindi `browse()` preleva i messaggi pronti con
+  `basic.get` e li restituisce con `nack` + requeue. I messaggi nelle code di attesa e quelli in mano ad altri consumer
+  non sono visibili; su RabbitMQ 3.13 ogni browse incrementa `x-delivery-count` (un uso frequente avvicina i messaggi a
+  `x-delivery-limit` e alla DLQ) e i messaggi letti da un `browse()` che non arriva alla fine della coda tornano in fondo.
+  Usalo per ispezioni occasionali, non per il polling.
+
 ## Consumare senza il Worker
 
 Per inserire la coda in un demone o in un event loop esistente, usa direttamente il transport e decidi tu cosa fare di
@@ -349,6 +375,8 @@ vendor/bin/queue-worker <comando> --dsn=<dsn> [--queue=<nome>] [--prefix=<prefis
 | `dlq:list [--limit=20] [--json]` | dead letter con il motivo del fallimento |
 | `dlq:requeue [--limit=100 \| --id=<uuid>]` | rimette in coda le dead letter (fino al limite) o una sola |
 | `dlq:purge --force` | cancella tutte le dead letter |
+| `queue:list [--limit=20] [--json]` | messaggi in coda (in elaborazione, pronti, differiti) senza consumarli |
+| `queue:purge --force` | cancella i messaggi pronti e differiti |
 
 Il DSN può arrivare anche dalla variabile d'ambiente `QUEUE_DSN`; `--strategy=redis|rabbitmq|in-memory` è un controllo
 facoltativo sullo schema del DSN. `-v`/`-vv` stampano i log info/debug su stderr. Exit code: `0` successo, `1` errore del
@@ -505,7 +533,7 @@ trim), non nel percorso critico, quindi i loro numeri rientrano nella variabilit
 ## Estendere
 
 Un nuovo backend (per esempio SQS) implementa `StrategyDtoInterface`, `TransportInterface` (più le interfacce di
-capability opzionali che supporta) e `TransportBuilderInterface`, e viene registrato nel factory:
+capability opzionali che supporta: setup, manutenzione, statistiche, dead letter, ack in batch, svuotamento, elenco) e `TransportBuilderInterface`, e viene registrato nel factory:
 
 ```php
 $factory = new QueueFactory(builders: [new SqsTransportBuilder(), new RedisTransportBuilder(), new InMemoryTransportBuilder()]);

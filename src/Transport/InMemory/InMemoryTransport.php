@@ -13,8 +13,10 @@ use snipershady\Queue\Message\FailureReason;
 use snipershady\Queue\Message\Message;
 use snipershady\Queue\Message\MessageId;
 use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
+use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
 use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
 use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
+use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
 use snipershady\Queue\Transport\Capability\SetupAwareInterface;
 use snipershady\Queue\Transport\Capability\StatsAwareInterface;
 use snipershady\Queue\Transport\DeadLetter;
@@ -33,7 +35,7 @@ use snipershady\Queue\Transport\TransportInterface;
  *
  * @api
  */
-final readonly class InMemoryTransport implements TransportInterface, SetupAwareInterface, MaintenanceAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface
+final readonly class InMemoryTransport implements TransportInterface, SetupAwareInterface, MaintenanceAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface, PurgeAwareInterface, BrowseAwareInterface
 {
     private InMemoryBroker $inMemoryBroker;
 
@@ -225,6 +227,18 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
     public function purgeDeadLetters(): int
     {
         return $this->inMemoryBroker->purgeDeadLetters();
+    }
+
+    #[Override]
+    public function purge(): int
+    {
+        return $this->inMemoryBroker->purge();
+    }
+
+    #[Override]
+    public function browse(int $limit = 100): array
+    {
+        return $this->inMemoryBroker->browse($this->assertLimit($limit));
     }
 
     private function requeue(DeadLetter $deadLetter): void

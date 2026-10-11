@@ -6,6 +6,7 @@ namespace snipershady\Queue\Transport\Redis;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
+use JsonException;
 use Override;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -22,13 +23,17 @@ use snipershady\Queue\Message\FailureReason;
 use snipershady\Queue\Message\Message;
 use snipershady\Queue\Message\MessageId;
 use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
+use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
 use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
 use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
+use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
 use snipershady\Queue\Transport\Capability\SetupAwareInterface;
 use snipershady\Queue\Transport\Capability\StatsAwareInterface;
 use snipershady\Queue\Transport\DeadLetter;
 use snipershady\Queue\Transport\MaintenanceReport;
 use snipershady\Queue\Transport\OrphanRecovery;
+use snipershady\Queue\Transport\QueuedMessage;
+use snipershady\Queue\Transport\QueuedMessageState;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\Redis\Client\RedisClientInterface;
 use snipershady\Queue\Transport\Redis\Feature\GroupInfo;
@@ -46,10 +51,12 @@ use snipershady\Queue\Transport\TransportInterface;
  *   nel campo `deliveries`; su Redis >= 8.4 li recupera direttamente XREADGROUP ... CLAIM.
  * - I differiti stanno in un sorted set e vengono promossi a ogni receive() e in maintain().
  * - Le entry non decodificabili vanno in DLQ con FailureKind::Serialization e non raggiungono il worker.
+ * - purge() svuota a pagine (uno script atomico per pagina) fino all'ultima entry presente all'inizio:
+ *   non blocca Redis con backlog grandi e non insegue i messaggi pubblicati nel frattempo.
  *
  * @api
  */
-final readonly class RedisTransport implements TransportInterface, SetupAwareInterface, MaintenanceAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface
+final readonly class RedisTransport implements TransportInterface, SetupAwareInterface, MaintenanceAwareInterface, StatsAwareInterface, DeadLetterAwareInterface, BatchAckAwareInterface, PurgeAwareInterface, BrowseAwareInterface
 {
     public const string FIELD_DELIVERIES = 'deliveries';
 
@@ -70,6 +77,8 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
     private const int ORPHAN_MAX_PAGES = 10;
 
     private const int DEAD_LETTER_SCAN_PAGE = 500;
+
+    private const int PURGE_PAGE = 500;
 
     private RedisKeys $keys;
 
@@ -358,6 +367,72 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         return RedisReply::int($this->scripts->run(RedisScripts::purgeDeadLetters(), [$this->keys->deadLetters()], []), 'purgeDeadLetters');
     }
 
+    #[Override]
+    public function purge(): int
+    {
+        // Prima i differiti: quelli promossi nel frattempo finiscono nello stream entro l'ultimo ID letto sotto.
+        $purged = RedisReply::int($this->scripts->run(RedisScripts::purgeDelayed(), [$this->keys->delayed()], []), 'purgeDelayed');
+
+        $newest = RedisReply::list($this->client->execute(['XREVRANGE', $this->keys->stream(), '+', '-', 'COUNT', '1']), 'XREVRANGE');
+        if ([] === $newest) {
+            return $purged;
+        }
+
+        $end = RedisReply::string(RedisReply::list($newest[0], 'XREVRANGE entry')[0] ?? null, 'XREVRANGE id');
+        $start = '-';
+        do {
+            $page = RedisReply::list(
+                $this->scripts->run(RedisScripts::purgeReady(), [$this->keys->stream()], [$this->keys->group(), $start, $end, (string) self::PURGE_PAGE]),
+                'purgeReady',
+            );
+            $purged += RedisReply::int($page[0] ?? null, 'purgeReady deleted');
+            $scanned = RedisReply::int($page[1] ?? null, 'purgeReady scanned');
+            if ($scanned > 0) {
+                $start = $this->nextId(RedisReply::string($page[2] ?? null, 'purgeReady last id'));
+            }
+        } while (self::PURGE_PAGE === $scanned);
+
+        return $purged;
+    }
+
+    #[Override]
+    public function browse(int $limit = 100): array
+    {
+        $this->assertLimit($limit);
+        $entries = RedisReply::list($this->client->execute(['XRANGE', $this->keys->stream(), '-', '+', 'COUNT', (string) $limit]), 'XRANGE');
+
+        $queued = [];
+        $pending = $this->pendingIds($entries);
+        foreach ($entries as $entry) {
+            $entry = RedisReply::list($entry, 'XRANGE entry');
+            $id = RedisReply::string($entry[0] ?? null, 'XRANGE id');
+            $message = $this->decodeOrNull(RedisReply::fields($entry[1] ?? null, 'XRANGE fields'));
+            if ($message instanceof Message) {
+                $queued[] = new QueuedMessage($message, isset($pending[$id]) ? QueuedMessageState::InFlight : QueuedMessageState::Ready);
+            }
+        }
+
+        if (\count($entries) >= $limit) {
+            return $queued;
+        }
+
+        // [membro, score, membro, score, ...]: non una mappa, un membro numerico diventerebbe una chiave intera.
+        $delayed = RedisReply::list(
+            $this->client->execute(['ZRANGE', $this->keys->delayed(), '0', (string) ($limit - \count($entries) - 1), 'WITHSCORES']),
+            'ZRANGE',
+        );
+        for ($i = 0, $count = \count($delayed) - 1; $i < $count; $i += 2) {
+            $message = $this->decodeOrNull($this->memberFields(RedisReply::string($delayed[$i], 'ZRANGE member')));
+            if ($message instanceof Message) {
+                $dueMs = (int) RedisReply::string($delayed[$i + 1], 'ZRANGE score');
+                $availableAt = new DateTimeImmutable(\sprintf('@%d.%03d', intdiv($dueMs, 1000), $dueMs % 1000));
+                $queued[] = new QueuedMessage($message, QueuedMessageState::Delayed, $availableAt);
+            }
+        }
+
+        return $queued;
+    }
+
     /**
      * @return non-empty-list<string>
      */
@@ -453,6 +528,81 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
             // Entry corrotta: resta in DLQ, ispezionabile con XRANGE, ma non è un DeadLetter valido.
             return null;
         }
+    }
+
+    /**
+     * ID delle entry di $entries che sono nella PEL del gruppo (in elaborazione).
+     *
+     * @param list<mixed> $entries risposta di XRANGE
+     *
+     * @return array<string, true>
+     */
+    private function pendingIds(array $entries): array
+    {
+        if ([] === $entries) {
+            return [];
+        }
+
+        $first = RedisReply::string(RedisReply::list($entries[0], 'XRANGE entry')[0] ?? null, 'XRANGE id');
+        $last = RedisReply::string(RedisReply::list($entries[\count($entries) - 1], 'XRANGE entry')[0] ?? null, 'XRANGE id');
+
+        try {
+            $reply = $this->client->execute(['XPENDING', $this->keys->stream(), $this->keys->group(), $first, $last, (string) \count($entries)]);
+        } catch (CommandFailedException $commandFailedException) {
+            if (!\str_contains($commandFailedException->getMessage(), 'NOGROUP')) {
+                throw $commandFailedException;
+            }
+
+            return [];
+        }
+
+        $pending = [];
+        foreach (RedisReply::list($reply, 'XPENDING') as $item) {
+            $pending[RedisReply::string(RedisReply::list($item, 'XPENDING entry')[0] ?? null, 'XPENDING id')] = true;
+        }
+
+        return $pending;
+    }
+
+    /**
+     * @param array<string, string> $fields
+     */
+    private function decodeOrNull(array $fields): ?Message
+    {
+        try {
+            return $this->codec->decode($fields);
+        } catch (SerializationException) {
+            return null;
+        }
+    }
+
+    /**
+     * Campi di un membro del sorted set dei differiti (oggetto JSON {campo: valore}); vuoto se non valido.
+     *
+     * @return array<string, string>
+     */
+    private function memberFields(string $member): array
+    {
+        try {
+            $decoded = json_decode($member, associative: true, depth: 2, flags: \JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return [];
+        }
+
+        if (!\is_array($decoded)) {
+            return [];
+        }
+
+        $fields = [];
+        foreach ($decoded as $name => $value) {
+            if (!\is_string($value)) {
+                return [];
+            }
+
+            $fields[(string) $name] = $value;
+        }
+
+        return $fields;
     }
 
     /**

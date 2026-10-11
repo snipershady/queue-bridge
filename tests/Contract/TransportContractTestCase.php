@@ -17,11 +17,15 @@ use snipershady\Queue\Message\FailureReason;
 use snipershady\Queue\Message\Message;
 use snipershady\Queue\System\UuidV7Generator;
 use snipershady\Queue\Transport\Capability\BatchAckAwareInterface;
+use snipershady\Queue\Transport\Capability\BrowseAwareInterface;
 use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
 use snipershady\Queue\Transport\Capability\MaintenanceAwareInterface;
+use snipershady\Queue\Transport\Capability\PurgeAwareInterface;
 use snipershady\Queue\Transport\Capability\SetupAwareInterface;
 use snipershady\Queue\Transport\Capability\StatsAwareInterface;
 use snipershady\Queue\Transport\OrphanRecovery;
+use snipershady\Queue\Transport\QueuedMessage;
+use snipershady\Queue\Transport\QueuedMessageState;
 use snipershady\Queue\Transport\TransportInterface;
 
 /**
@@ -372,6 +376,138 @@ abstract class TransportContractTestCase extends TestCase
         }
     }
 
+    final public function testBrowseListsReadyMessagesWithoutConsumingThem(): void
+    {
+        $transport = $this->transport();
+        if (!$transport instanceof BrowseAwareInterface) {
+            self::markTestSkipped('Transport without browse.');
+        }
+
+        self::assertSame([], $transport->browse());
+
+        $first = $this->message('test', 'first');
+        $transport->send($first);
+        $transport->send($this->message('test', 'second'));
+        $transport->send($this->message('test', 'third'));
+
+        $queued = $transport->browse();
+        self::assertSame(['first', 'second', 'third'], array_map(static fn (QueuedMessage $queuedMessage): string => $queuedMessage->message->text, $queued));
+        self::assertTrue($queued[0]->message->id->equals($first->id));
+        foreach ($queued as $queuedMessage) {
+            self::assertSame(QueuedMessageState::Ready, $queuedMessage->state);
+            self::assertNull($queuedMessage->availableAt);
+            self::assertSame(0, $queuedMessage->message->attempts);
+        }
+
+        self::assertCount(2, $transport->browse(2));
+
+        $received = $this->drain($transport);
+        // Nessun messaggio consumato; l'ordine non è garantito (RabbitMQ rimette in fondo quelli letti da browse(2)).
+        self::assertEqualsCanonicalizing(['first', 'second', 'third'], $this->texts($received), 'browse() does not consume');
+        foreach ($received as $delivery) {
+            self::assertSame(0, $delivery->message->attempts);
+        }
+    }
+
+    final public function testBrowseShowsInFlightAndDelayedMessages(): void
+    {
+        $transport = $this->transport();
+        if (!$transport instanceof BrowseAwareInterface || !$this->browsesInFlightAndDelayed()) {
+            self::markTestSkipped('Transport that lists ready messages only.');
+        }
+
+        $transport->send($this->message('test', 'in flight'));
+        $this->receive($transport, 1);
+        $transport->send($this->message('test', 'later'), 60_000);
+        $transport->send($this->message('test', 'sooner'), 30_000);
+        $transport->send($this->message('test', 'ready'));
+
+        $expectedSoonerMs = (int) $this->clock()->now()->format('Uv') + 30_000;
+
+        $queued = $transport->browse();
+
+        self::assertSame(['in flight', 'ready', 'sooner', 'later'], array_map(static fn (QueuedMessage $queuedMessage): string => $queuedMessage->message->text, $queued));
+        self::assertSame(
+            [QueuedMessageState::InFlight, QueuedMessageState::Ready, QueuedMessageState::Delayed, QueuedMessageState::Delayed],
+            array_map(static fn (QueuedMessage $queuedMessage): QueuedMessageState => $queuedMessage->state, $queued),
+        );
+        self::assertEqualsWithDelta($expectedSoonerMs, (int) $queued[2]->availableAt?->format('Uv'), 1000);
+        self::assertCount(3, $transport->browse(3));
+    }
+
+    final public function testBrowseRejectsNonPositiveLimit(): void
+    {
+        $transport = $this->transport();
+        if (!$transport instanceof BrowseAwareInterface) {
+            self::markTestSkipped('Transport without browse.');
+        }
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $transport->browse(0);
+    }
+
+    final public function testPurgeRemovesReadyAndDelayedButKeepsInFlightAndDeadLetters(): void
+    {
+        $transport = $this->transport();
+        if (!$transport instanceof PurgeAwareInterface) {
+            self::markTestSkipped('Transport without purge.');
+        }
+
+        self::assertSame(0, $transport->purge());
+
+        $dead = $this->message('test', 'dead');
+        $transport->send($dead);
+        [$deadDelivery] = $this->receive($transport, 1);
+        $transport->reject($deadDelivery, new FailureReason(FailureKind::Unrecoverable, $dead->id, $this->clock()->now()));
+
+        $transport->send($this->message('test', 'in flight'));
+        [$inFlight] = $this->receive($transport, 1);
+        self::assertSame('in flight', $inFlight->message->text);
+
+        $transport->send($this->message('test', 'ready 1'));
+        $transport->send($this->message('test', 'ready 2'));
+        $transport->send($this->message('test', 'delayed'), 2000);
+
+        self::assertSame(3, $transport->purge());
+        self::assertSame(0, $transport->purge());
+
+        // Il messaggio in elaborazione segue il suo corso: se il consumer crasha torna in coda.
+        $this->crash($transport);
+        self::assertSame(['in flight'], $this->texts($this->drain($transport)));
+
+        $this->maintain($transport, 2500);
+        self::assertSame([], $this->drain($transport), 'the delayed message was purged too');
+
+        if ($transport instanceof DeadLetterAwareInterface) {
+            self::assertCount(1, $transport->deadLetters());
+        }
+
+        $transport->send($this->message('test', 'after purge'));
+        self::assertSame(['after purge'], $this->texts($this->drain($transport)), 'the queue is still usable');
+    }
+
+    final public function testPurgeOfABacklogLargerThanOnePage(): void
+    {
+        $transport = $this->transport();
+        if (!$transport instanceof PurgeAwareInterface) {
+            self::markTestSkipped('Transport without purge.');
+        }
+
+        $transport->send($this->message('test', 'in flight'));
+        [$inFlight] = $this->receive($transport, 1);
+        $transport->sendBatch((function (): iterable {
+            for ($i = 0; $i < 1200; ++$i) {
+                yield new Envelope($this->message('test', 'm'.$i));
+            }
+        })());
+
+        self::assertSame(1200, $transport->purge());
+
+        $transport->ack($inFlight);
+        self::assertSame([], $this->drain($transport));
+    }
+
     final public function testSetupIsIdempotentAndPingSucceeds(): void
     {
         $transport = $this->transport();
@@ -425,6 +561,14 @@ abstract class TransportContractTestCase extends TestCase
     abstract protected function advanceTimeMs(int $milliseconds): void;
 
     abstract protected function clock(): ClockInterface;
+
+    /**
+     * false per i backend che elencano solo i messaggi pronti (RabbitMQ).
+     */
+    protected function browsesInFlightAndDelayed(): bool
+    {
+        return true;
+    }
 
     protected function queueConfig(): QueueConfig
     {

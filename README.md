@@ -47,6 +47,8 @@ Switching to RabbitMQ changes one line: `StrategyDtoRabbitMq::fromConnection($co
 - [Extending](#extending)
 - [Development](#development)
 
+The full design documentation (queue concepts, UML diagrams, concurrency, worker scheduling) is in [DOC.md](DOC.md).
+
 ## Installation
 
 ```bash
@@ -81,6 +83,7 @@ They differ in how the guarantees are obtained and in what they cost to run.
 | Throughput (one process, batch publish / consume) | ~115,000 / ~30,000 msg/s | ~25,000 / ~6,000 msg/s | ~330,000 / ~68,000 msg/s |
 | Statistics | ready, in flight, delayed, DLQ, lag (>= 7.0), consumers | ready, in flight (this consumer), delayed, DLQ, consumers | ready, in flight, delayed, DLQ, lag |
 | Idempotency store | `RedisIdempotencyStore` on the same server | needs Redis or your own store | `InMemoryIdempotencyStore` |
+| Listing the queue (`browse`) | in flight, ready and delayed, read-only | ready messages only, read with `basic.get` + requeue | in flight, ready and delayed |
 | Typical use | high throughput, low latency, Redis already in the stack | durability and replication first, existing RabbitMQ | unit tests, local development |
 
 | Backend | Advantages | Disadvantages |
@@ -290,6 +293,28 @@ $dlq->requeueDeadLetters(100);
 $dlq->purgeDeadLetters();
 ```
 
+Listing and purging the queue itself:
+
+```php
+foreach ($queue->browse(50) ?? [] as $queued) {   // null if the backend cannot list messages
+    // QueuedMessage: message, state (InFlight | Ready | Delayed), availableAt (delayed messages only)
+    echo $queued->message->id->value, ' ', $queued->state->value, PHP_EOL;
+}
+
+$removed = $queue->purge();                      // ready + delayed; null if the backend cannot purge
+```
+
+- `browse()` never consumes: IDs and `attempts` do not change. Order: in flight, ready, delayed by due time. It is a
+  snapshot: with running workers messages can change state while you read.
+- `purge()` removes the ready and delayed messages present when it is called. Messages being processed are not touched
+  (they are acknowledged or come back as usual), the dead letter queue has its own `purgeDeadLetters()`, and the queue
+  stays usable.
+- **RabbitMQ**: AMQP cannot read a queue without consuming it, so `browse()` takes the ready messages with `basic.get` and
+  gives them back with `nack` + requeue. Messages in the wait queues and those held by other consumers are not visible;
+  on RabbitMQ 3.13 every browse increments `x-delivery-count` (frequent browsing pushes messages towards
+  `x-delivery-limit` and the DLQ), and messages read by a `browse()` that does not reach the end of the queue go back to
+  its tail. Use it for occasional inspection, not for polling.
+
 ## Consuming without the Worker
 
 To embed the queue in an existing daemon or event loop, use the transport directly and decide yourself what to do with
@@ -348,6 +373,8 @@ vendor/bin/queue-worker <command> --dsn=<dsn> [--queue=<name>] [--prefix=<prefix
 | `dlq:list [--limit=20] [--json]` | dead letters with the failure reason |
 | `dlq:requeue [--limit=100 \| --id=<uuid>]` | requeue the dead letters (up to the limit) or one of them |
 | `dlq:purge --force` | delete every dead letter |
+| `queue:list [--limit=20] [--json]` | messages in the queue (in flight, ready, delayed) without consuming them |
+| `queue:purge --force` | delete the ready and delayed messages |
 
 The DSN can also come from the `QUEUE_DSN` environment variable; `--strategy=redis|rabbitmq|in-memory` is an optional check
 against the DSN scheme. `-v`/`-vv` print info/debug logs on stderr. Exit codes: `0` success, `1` backend error, `2` usage
@@ -504,7 +531,7 @@ hot path, so their numbers are within run-to-run noise.
 ## Extending
 
 A new backend (for example SQS) implements `StrategyDtoInterface`, `TransportInterface` (plus the optional capability
-interfaces it supports) and `TransportBuilderInterface`, and is registered in the factory:
+interfaces it supports: setup, maintenance, stats, dead letters, batch ack, purge, browse) and `TransportBuilderInterface`, and is registered in the factory:
 
 ```php
 $factory = new QueueFactory(builders: [new SqsTransportBuilder(), new RedisTransportBuilder(), new InMemoryTransportBuilder()]);

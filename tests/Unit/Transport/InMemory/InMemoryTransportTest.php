@@ -27,6 +27,7 @@ use snipershady\Queue\Transport\InMemory\InMemoryEntry;
 use snipershady\Queue\Transport\InMemory\InMemoryTransport;
 use snipershady\Queue\Transport\MaintenanceReport;
 use snipershady\Queue\Transport\OrphanRecovery;
+use snipershady\Queue\Transport\QueuedMessage;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\TransportCapabilities;
 use snipershady\Queue\Transport\TransportInterface;
@@ -44,6 +45,7 @@ use snipershady\Queue\Transport\TransportInterface;
 #[UsesClass(DeadLetter::class)]
 #[UsesClass(MaintenanceReport::class)]
 #[UsesClass(QueueStats::class)]
+#[UsesClass(QueuedMessage::class)]
 #[UsesClass(TransportCapabilities::class)]
 #[UsesClass(UuidV7Generator::class)]
 #[UsesClass(NativeRandom::class)]

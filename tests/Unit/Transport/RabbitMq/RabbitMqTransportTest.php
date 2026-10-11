@@ -30,6 +30,8 @@ use snipershady\Queue\Tests\Support\FakeClock;
 use snipershady\Queue\Tests\Support\RecordingLogger;
 use snipershady\Queue\Transport\DeadLetter;
 use snipershady\Queue\Transport\OrphanRecovery;
+use snipershady\Queue\Transport\QueuedMessage;
+use snipershady\Queue\Transport\QueuedMessageState;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\RabbitMq\Client\AmqpMessage;
 use snipershady\Queue\Transport\RabbitMq\RabbitMqTransport;
@@ -51,6 +53,7 @@ use snipershady\Queue\Transport\TransportCapabilities;
 #[UsesClass(FailureReason::class)]
 #[UsesClass(DeadLetter::class)]
 #[UsesClass(QueueStats::class)]
+#[UsesClass(QueuedMessage::class)]
 #[UsesClass(TransportCapabilities::class)]
 #[UsesClass(CommandFailedException::class)]
 #[UsesClass(ConnectionException::class)]
@@ -599,7 +602,7 @@ final class RabbitMqTransportTest extends TestCase
 
     public function testDeadLetterLimitsMustBePositive(): void
     {
-        foreach ([fn (): array => $this->transport()->deadLetters(0), fn (): int => $this->transport()->requeueDeadLetters(0)] as $call) {
+        foreach ([fn (): array => $this->transport()->deadLetters(0), fn (): int => $this->transport()->requeueDeadLetters(0), fn (): array => $this->transport()->browse(0)] as $call) {
             try {
                 $call();
                 self::fail('Expected InvalidArgumentException');
@@ -607,6 +610,91 @@ final class RabbitMqTransportTest extends TestCase
                 self::assertSame('Limit must be >= 1, got 0.', $invalidArgumentException->getMessage());
             }
         }
+    }
+
+    // --- svuotamento ed elenco ----------------------------------------------------------------------------------
+
+    public function testPurgeEmptiesTheMainQueueAndTheWaitingQueues(): void
+    {
+        $this->fakeAmqpChannel->purged = 2;
+
+        self::assertSame(6, $this->transport(retryTiers: new RetryTiers([1000, 5000]))->purge());
+        self::assertSame(['purgeQueue:rq.q', 'purgeQueue:rq.q.retry.1000', 'purgeQueue:rq.q.retry.5000'], $this->fakeAmqpChannel->calls);
+        self::assertSame([], $this->fakeAmqpChannel->acked);
+    }
+
+    public function testPurgeAlsoDropsTheMessagesPrefetchedByThisConsumer(): void
+    {
+        $rabbitMqTransport = $this->transport(retryTiers: new RetryTiers([1000]));
+        $this->fakeAmqpChannel->incoming = [[$this->amqp(1), $this->amqp(2), $this->amqp(3)]];
+        [$inFlight] = $rabbitMqTransport->receive(1);
+        $this->fakeAmqpChannel->incoming = [[$this->amqp(4)]];
+
+        self::assertSame(3, $rabbitMqTransport->purge());
+        self::assertSame([2, 3, 4], $this->fakeAmqpChannel->acked, 'buffered messages are confirmed, the delivery in flight is not');
+        self::assertSame([], $rabbitMqTransport->receive(10, 0));
+
+        $rabbitMqTransport->ack($inFlight);
+        self::assertSame([2, 3, 4, 1], $this->fakeAmqpChannel->acked);
+    }
+
+    public function testPurgeBeforeSetupAbandonsTheClosedChannel(): void
+    {
+        $this->fakeAmqpChannel->failPurge = CommandFailedException::rejected('queue.purge', 'NOT_FOUND');
+
+        self::assertSame(0, $this->transport()->purge());
+        self::assertSame(1, $this->fakeAmqpConnector->resets);
+    }
+
+    public function testBrowseListsPrefetchedThenBrokerMessagesAndGivesThemBack(): void
+    {
+        $rabbitMqTransport = $this->transport();
+        $this->fakeAmqpChannel->incoming = [[$this->amqp(1), $this->amqp(2)]];
+        $rabbitMqTransport->receive(1);
+        $this->fakeAmqpChannel->queues['rq.q'] = [
+            $this->amqp(10),
+            new AmqpMessage('corrupt', ['x-qb-v' => '1'], 'c', 11),
+            $this->amqp(12, ['x-qb-due-at' => '1767225602500']),
+            $this->amqp(13, ['x-qb-due-at' => '1767225599000']),
+        ];
+
+        $queued = $rabbitMqTransport->browse(10);
+
+        self::assertSame(
+            [QueuedMessageState::Ready, QueuedMessageState::Ready, QueuedMessageState::Delayed, QueuedMessageState::Ready],
+            array_map(static fn (QueuedMessage $queuedMessage): QueuedMessageState => $queuedMessage->state, $queued),
+        );
+        self::assertSame('2026-01-01T00:00:02.500+00:00', $queued[2]->availableAt?->format('Y-m-d\TH:i:s.vP'));
+        self::assertSame([[10, true], [11, true], [12, true], [13, true]], $this->fakeAmqpChannel->nacked);
+        self::assertSame(['1:2'], array_map(static fn (Delivery $delivery): string => $delivery->receipt, $rabbitMqTransport->receive(10, 0)), 'the prefetched message is still buffered');
+    }
+
+    public function testBrowseStopsAtTheLimit(): void
+    {
+        $this->fakeAmqpChannel->queues['rq.q'] = [$this->amqp(1), $this->amqp(2), $this->amqp(3)];
+
+        self::assertCount(2, $this->transport()->browse(2));
+        self::assertSame([[1, true], [2, true]], $this->fakeAmqpChannel->nacked);
+        self::assertCount(1, $this->fakeAmqpChannel->queues['rq.q']);
+    }
+
+    public function testBrowseLimitCanBeFilledByPrefetchedMessages(): void
+    {
+        $rabbitMqTransport = $this->transport();
+        $this->fakeAmqpChannel->incoming = [[$this->amqp(1), $this->amqp(2), $this->amqp(3)]];
+        $rabbitMqTransport->receive(1);
+        $this->fakeAmqpChannel->queues['rq.q'] = [$this->amqp(10)];
+
+        self::assertCount(1, $rabbitMqTransport->browse(1));
+        self::assertNotContains('get:rq.q', $this->fakeAmqpChannel->calls);
+    }
+
+    public function testBrowseBeforeSetupAbandonsTheClosedChannel(): void
+    {
+        $this->fakeAmqpChannel->failGet = CommandFailedException::rejected('basic.get', 'NOT_FOUND');
+
+        self::assertSame([], $this->transport()->browse());
+        self::assertSame(1, $this->fakeAmqpConnector->resets);
     }
 
     private function transport(int $prefetch = 10, RetryTiers $retryTiers = new RetryTiers()): RabbitMqTransport

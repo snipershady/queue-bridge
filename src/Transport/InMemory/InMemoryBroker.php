@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace snipershady\Queue\Transport\InMemory;
 
+use DateTimeImmutable;
 use snipershady\Queue\Message\MessageId;
 use snipershady\Queue\Transport\DeadLetter;
+use snipershady\Queue\Transport\QueuedMessage;
+use snipershady\Queue\Transport\QueuedMessageState;
 
 /**
  * Stato condiviso di una coda in memoria: l'equivalente del server Redis o RabbitMQ.
@@ -158,6 +161,45 @@ final class InMemoryBroker
         $this->deadLetters = [];
 
         return $count;
+    }
+
+    /**
+     * Rimuove pronti e differiti; gli "in elaborazione" restano.
+     */
+    public function purge(): int
+    {
+        $count = \count($this->ready) + \count($this->delayed);
+        $this->ready = [];
+        $this->delayed = [];
+
+        return $count;
+    }
+
+    /**
+     * In elaborazione (in ordine di consegna), pronti, poi differiti per scadenza.
+     *
+     * @return list<QueuedMessage>
+     */
+    public function browse(int $limit): array
+    {
+        $delayed = $this->delayed;
+        usort($delayed, static fn (array $a, array $b): int => $a['dueMs'] <=> $b['dueMs']);
+
+        $queued = [];
+        foreach ($this->inFlight as $inFlight) {
+            $queued[] = new QueuedMessage($inFlight['entry']->message, QueuedMessageState::InFlight);
+        }
+
+        foreach ($this->ready as $inMemoryEntry) {
+            $queued[] = new QueuedMessage($inMemoryEntry->message, QueuedMessageState::Ready);
+        }
+
+        foreach ($delayed as $item) {
+            $availableAt = new DateTimeImmutable(\sprintf('@%d.%03d', intdiv($item['dueMs'], 1000), $item['dueMs'] % 1000));
+            $queued[] = new QueuedMessage($item['entry']->message, QueuedMessageState::Delayed, $availableAt);
+        }
+
+        return \array_slice($queued, 0, $limit);
     }
 
     public function readyCount(): int

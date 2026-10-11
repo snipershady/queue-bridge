@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace snipershady\Queue;
 
+use InvalidArgumentException;
 use snipershady\Queue\Exception\BackendException;
 use snipershady\Queue\Exception\ConnectionException;
 use snipershady\Queue\Producer\ProducerInterface;
 use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
+use snipershady\Queue\Transport\QueuedMessage;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\TransportCapabilities;
 use snipershady\Queue\Transport\TransportInterface;
@@ -53,6 +55,25 @@ interface QueueInterface
      * @return ?DeadLetterAwareInterface null se il backend non ha una DLQ ispezionabile
      */
     public function deadLetters(): ?DeadLetterAwareInterface;
+
+    /**
+     * Svuota la coda: messaggi pronti e differiti. In elaborazione e DLQ restano (vedi PurgeAwareInterface).
+     *
+     * @throws BackendException
+     *
+     * @return ?int messaggi rimossi; null se il backend non permette di svuotare la coda
+     */
+    public function purge(): ?int;
+
+    /**
+     * Elenca i messaggi in coda senza consumarli (vedi BrowseAwareInterface).
+     *
+     * @throws InvalidArgumentException se $limit < 1
+     * @throws BackendException
+     *
+     * @return ?list<QueuedMessage> null se il backend non permette di elencare i messaggi
+     */
+    public function browse(int $limit = 100): ?array;
 
     public function capabilities(): TransportCapabilities;
 }

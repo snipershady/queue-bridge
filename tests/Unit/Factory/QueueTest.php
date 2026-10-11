@@ -31,6 +31,7 @@ use snipershady\Queue\Transport\InMemory\InMemoryBroker;
 use snipershady\Queue\Transport\InMemory\InMemoryEntry;
 use snipershady\Queue\Transport\InMemory\InMemoryTransport;
 use snipershady\Queue\Transport\MaintenanceReport;
+use snipershady\Queue\Transport\QueuedMessage;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\TransportCapabilities;
 use snipershady\Queue\Transport\TransportInterface;
@@ -62,6 +63,7 @@ use snipershady\Queue\Worker\WorkerExitReason;
 #[UsesClass(Envelope::class)]
 #[UsesClass(Delivery::class)]
 #[UsesClass(QueueStats::class)]
+#[UsesClass(QueuedMessage::class)]
 #[UsesClass(MaintenanceReport::class)]
 #[UsesClass(TransportCapabilities::class)]
 #[UsesClass(UuidV7Generator::class)]
@@ -109,6 +111,10 @@ final class QueueTest extends TestCase
         self::assertSame($inMemoryTransport, $queue->deadLetters());
         self::assertSame(1, $queue->stats()?->ready);
         self::assertTrue($queue->capabilities()->deadLetter);
+
+        self::assertSame(['a'], array_map(static fn (QueuedMessage $queuedMessage): string => $queuedMessage->message->text, $queue->browse() ?? []));
+        self::assertSame(1, $queue->purge());
+        self::assertSame([], $queue->browse(10));
     }
 
     public function testOptionalCapabilitiesAreNullWhenTheTransportLacksThem(): void
@@ -120,6 +126,8 @@ final class QueueTest extends TestCase
 
         self::assertNull($queue->stats());
         self::assertNull($queue->deadLetters());
+        self::assertNull($queue->purge());
+        self::assertNull($queue->browse());
     }
 
     public function testSetupAndPingAreDelegated(): void

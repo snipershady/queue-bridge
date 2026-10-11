@@ -183,6 +183,44 @@ final class RedisScripts
     }
 
     /**
+     * Una pagina dello svuotamento: elimina le entry dello stream tra due ID che non sono nella PEL del gruppo
+     * (i messaggi in elaborazione restano). Se il gruppo non esiste ancora, nessuna entry è in elaborazione.
+     *
+     * KEYS: stream. ARGV: group, ID iniziale, ID finale, dimensione della pagina
+     * → {entry eliminate, entry esaminate, ultimo ID esaminato ('' se nessuna)}.
+     */
+    public static function purgeReady(): string
+    {
+        return <<<'LUA'
+            local entries = redis.call('XRANGE', KEYS[1], ARGV[2], ARGV[3], 'COUNT', ARGV[4])
+            if #entries == 0 then return {0, 0, ''} end
+            local pending = {}
+            local reply = redis.pcall('XPENDING', KEYS[1], ARGV[1], entries[1][1], entries[#entries][1], #entries)
+            if reply.err == nil then
+              for _, item in ipairs(reply) do pending[item[1]] = true end
+            end
+            local ids = {}
+            for _, entry in ipairs(entries) do
+              if not pending[entry[1]] then ids[#ids + 1] = entry[1] end
+            end
+            if #ids > 0 then redis.call('XDEL', KEYS[1], unpack(ids)) end
+            return {#ids, #entries, entries[#entries][1]}
+            LUA;
+    }
+
+    /**
+     * KEYS: delayed → numero di differiti rimossi.
+     */
+    public static function purgeDelayed(): string
+    {
+        return <<<'LUA'
+            local count = redis.call('ZCARD', KEYS[1])
+            redis.call('DEL', KEYS[1])
+            return count
+            LUA;
+    }
+
+    /**
      * Rilascio condizionato del lock (fallback di DELEX ... IFEQ). KEYS: chiave. ARGV: token → 1 se rilasciato.
      */
     public static function releaseLock(): string

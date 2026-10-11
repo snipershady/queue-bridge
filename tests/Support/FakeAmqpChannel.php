@@ -57,6 +57,10 @@ final class FakeAmqpChannel implements AmqpChannelInterface
 
     public int $purged = 0;
 
+    public ?CommandFailedException $failPurge = null;
+
+    public ?CommandFailedException $failGet = null;
+
     public bool $open = true;
 
     /** @var ?Closure(AmqpMessage): void */
@@ -93,6 +97,9 @@ final class FakeAmqpChannel implements AmqpChannelInterface
     public function purgeQueue(string $queue): int
     {
         $this->calls[] = 'purgeQueue:'.$queue;
+        if ($this->failPurge instanceof CommandFailedException) {
+            throw $this->failPurge;
+        }
 
         return $this->purged;
     }
@@ -131,6 +138,9 @@ final class FakeAmqpChannel implements AmqpChannelInterface
     public function get(string $queue): ?AmqpMessage
     {
         $this->calls[] = 'get:'.$queue;
+        if ($this->failGet instanceof CommandFailedException) {
+            throw $this->failGet;
+        }
 
         return isset($this->queues[$queue]) ? array_shift($this->queues[$queue]) : null;
     }

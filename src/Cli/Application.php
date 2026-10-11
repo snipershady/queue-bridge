@@ -18,6 +18,7 @@ use snipershady\Queue\QueueBridge;
 use snipershady\Queue\QueueInterface;
 use snipershady\Queue\Transport\Capability\DeadLetterAwareInterface;
 use snipershady\Queue\Transport\DeadLetter;
+use snipershady\Queue\Transport\QueuedMessage;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Worker\WorkerConfig;
 
@@ -42,6 +43,8 @@ final readonly class Application
                        that registers the handlers.
           stats        Show queue statistics.
           ping         Check that the backend is reachable.
+          queue:list   List the messages in the queue without consuming them (--limit, default 20).
+          queue:purge  Delete the ready and delayed messages (requires --force).
           dlq:list     List dead letters (--limit, default 20).
           dlq:requeue  Requeue dead letters (--limit, default 100) or one message (--id=<uuid>).
           dlq:purge    Delete every dead letter (requires --force).
@@ -54,7 +57,7 @@ final readonly class Application
           --strategy=<name>    redis | rabbitmq | in-memory (must match the DSN scheme)
           --queue=<name>       Queue name (default: default)
           --prefix=<prefix>    Key/resource prefix (default: rq)
-          --json               JSON output (stats, dlq:list)
+          --json               JSON output (stats, queue:list, dlq:list)
           -v | -vv             More log output (info | debug)
           -h, --help           Show this help
 
@@ -97,6 +100,8 @@ final readonly class Application
                 'work' => $this->work($input, $logger),
                 'stats' => $this->stats($input, $logger),
                 'ping' => $this->ping($input, $logger),
+                'queue:list' => $this->queueList($input, $logger),
+                'queue:purge' => $this->queuePurge($input, $logger),
                 'dlq:list' => $this->deadLetterList($input, $logger),
                 'dlq:requeue' => $this->deadLetterRequeue($input, $logger),
                 'dlq:purge' => $this->deadLetterPurge($input, $logger),
@@ -178,6 +183,57 @@ final readonly class Application
     {
         $this->queue($input, $logger)->ping();
         $this->output->line('OK');
+
+        return self::SUCCESS;
+    }
+
+    private function queueList(Input $input, LoggerInterface $logger): int
+    {
+        $queued = $this->queue($input, $logger)->browse($input->int('limit', 20) ?? 20);
+        if (null === $queued) {
+            $this->output->error('Error: this backend cannot list the messages in the queue.');
+
+            return self::FAILURE;
+        }
+
+        $rows = array_map(static fn (QueuedMessage $queuedMessage): array => [
+            'id' => $queuedMessage->message->id->value,
+            'channel' => $queuedMessage->message->channel,
+            'state' => $queuedMessage->state->value,
+            'attempts' => $queuedMessage->message->attempts,
+            'created_at' => $queuedMessage->message->createdAt->format(\DATE_ATOM),
+            'available_at' => $queuedMessage->availableAt?->format(\DATE_ATOM),
+        ], $queued);
+
+        if ($input->flag('json')) {
+            $this->output->line(json_encode($rows, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES));
+
+            return self::SUCCESS;
+        }
+
+        foreach ($rows as $row) {
+            $this->output->line(\sprintf('%s  %s  %-9s  attempts=%d  %s%s', $row['id'], $row['channel'], $row['state'], $row['attempts'], $row['created_at'], null === $row['available_at'] ? '' : '  available_at='.$row['available_at']));
+        }
+
+        $this->output->line(\sprintf('%d message(s).', \count($rows)));
+
+        return self::SUCCESS;
+    }
+
+    private function queuePurge(Input $input, LoggerInterface $logger): int
+    {
+        if (!$input->flag('force')) {
+            throw new UsageException('queue:purge deletes every ready and delayed message: confirm with --force.');
+        }
+
+        $purged = $this->queue($input, $logger)->purge();
+        if (null === $purged) {
+            $this->output->error('Error: this backend cannot purge the queue.');
+
+            return self::FAILURE;
+        }
+
+        $this->output->line(\sprintf('Purged %d message(s).', $purged));
 
         return self::SUCCESS;
     }

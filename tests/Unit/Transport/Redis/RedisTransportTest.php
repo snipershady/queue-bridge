@@ -29,6 +29,8 @@ use snipershady\Queue\Tests\Support\RecordingRedisClient;
 use snipershady\Queue\Transport\DeadLetter;
 use snipershady\Queue\Transport\MaintenanceReport;
 use snipershady\Queue\Transport\OrphanRecovery;
+use snipershady\Queue\Transport\QueuedMessage;
+use snipershady\Queue\Transport\QueuedMessageState;
 use snipershady\Queue\Transport\QueueStats;
 use snipershady\Queue\Transport\Redis\Feature\AckDelStrategy;
 use snipershady\Queue\Transport\Redis\Feature\AckedTrimStrategy;
@@ -89,6 +91,7 @@ use snipershady\Queue\Transport\TransportCapabilities;
 #[UsesClass(DeadLetter::class)]
 #[UsesClass(MaintenanceReport::class)]
 #[UsesClass(QueueStats::class)]
+#[UsesClass(QueuedMessage::class)]
 #[UsesClass(TransportCapabilities::class)]
 #[UsesClass(CommandFailedException::class)]
 #[UsesClass(BatchSendException::class)]
@@ -616,7 +619,7 @@ final class RedisTransportTest extends TestCase
 
     public function testDeadLetterLimitsMustBePositive(): void
     {
-        foreach ([fn (): array => $this->transport()->deadLetters(0), fn (): int => $this->transport()->requeueDeadLetters(0)] as $call) {
+        foreach ([fn (): array => $this->transport()->deadLetters(0), fn (): int => $this->transport()->requeueDeadLetters(0), fn (): array => $this->transport()->browse(0)] as $call) {
             try {
                 $call();
                 self::fail('Expected InvalidArgumentException');
@@ -624,6 +627,121 @@ final class RedisTransportTest extends TestCase
                 self::assertSame('Limit must be >= 1, got 0.', $invalidArgumentException->getMessage());
             }
         }
+    }
+
+    // --- svuotamento ed elenco ----------------------------------------------------------------------------------
+
+    public function testPurgeClearsDelayedThenTheStreamPageByPageUpToTheNewestEntry(): void
+    {
+        $this->recordingRedisClient
+            ->reply('EVALSHA', 2)
+            ->reply('XREVRANGE', [['9-0', ['v', '1']]])
+            ->reply('EVALSHA', [498, 500, '5-0'])
+            ->reply('EVALSHA', [3, 10, '9-0']);
+
+        self::assertSame(503, $this->transport()->purge());
+
+        $purgeReady = sha1(RedisScripts::purgeReady());
+        self::assertSame([
+            ['EVALSHA', sha1(RedisScripts::purgeDelayed()), '1', self::DELAYED],
+            ['XREVRANGE', self::STREAM, '+', '-', 'COUNT', '1'],
+            ['EVALSHA', $purgeReady, '1', self::STREAM, 'queue-bridge', '-', '9-0', '500'],
+            ['EVALSHA', $purgeReady, '1', self::STREAM, 'queue-bridge', '5-1', '9-0', '500'],
+        ], $this->recordingRedisClient->commands);
+    }
+
+    public function testPurgeOfAnEmptyStreamOnlyClearsDelayed(): void
+    {
+        $this->recordingRedisClient->reply('EVALSHA', 4)->reply('XREVRANGE', []);
+
+        self::assertSame(4, $this->transport()->purge());
+        self::assertSame(['EVALSHA', 'XREVRANGE'], $this->recordingRedisClient->names());
+    }
+
+    public function testPurgeStopsWhenAPageIsEmpty(): void
+    {
+        $this->recordingRedisClient->reply('EVALSHA', 0)->reply('XREVRANGE', [['1-0', []]])->reply('EVALSHA', [0, 0, '']);
+
+        self::assertSame(0, $this->transport()->purge());
+        self::assertSame(['EVALSHA', 'XREVRANGE', 'EVALSHA'], $this->recordingRedisClient->names());
+    }
+
+    public function testBrowseMarksPendingEntriesAndAppendsDelayedMessages(): void
+    {
+        $inFlight = $this->message('flight');
+        $ready = $this->message('ready');
+        $delayed = $this->message('later');
+        $this->recordingRedisClient
+            ->reply('XRANGE', [
+                ['1-0', $this->flat($this->envelopeCodec->encode($inFlight))],
+                ['2-0', $this->flat($this->envelopeCodec->encode($ready))],
+                ['3-0', ['v', '1', 'id', 'corrupt']],
+            ])
+            ->reply('XPENDING', [['1-0', 'consumer-1', '10', '1']])
+            ->reply('ZRANGE', [
+                'not json', '1',
+                '5', '2',
+                '{"a":1}', '3',
+                '{"a":"b"}', '4',
+                json_encode($this->envelopeCodec->encode($delayed), \JSON_THROW_ON_ERROR), '1767225660123',
+            ]);
+
+        $queued = $this->transport()->browse(10);
+
+        self::assertSame([
+            ['XRANGE', self::STREAM, '-', '+', 'COUNT', '10'],
+            ['XPENDING', self::STREAM, 'queue-bridge', '1-0', '3-0', '3'],
+            ['ZRANGE', self::DELAYED, '0', '6', 'WITHSCORES'],
+        ], $this->recordingRedisClient->commands);
+        self::assertSame(['flight', 'ready', 'later'], array_map(static fn (QueuedMessage $queuedMessage): string => $queuedMessage->message->text, $queued));
+        self::assertSame(
+            [QueuedMessageState::InFlight, QueuedMessageState::Ready, QueuedMessageState::Delayed],
+            array_map(static fn (QueuedMessage $queuedMessage): QueuedMessageState => $queuedMessage->state, $queued),
+        );
+        self::assertSame('2026-01-01T00:01:00.123+00:00', $queued[2]->availableAt?->format('Y-m-d\TH:i:s.vP'));
+    }
+
+    public function testBrowseDoesNotReadDelayedWhenTheStreamFillsTheLimit(): void
+    {
+        $this->recordingRedisClient
+            ->reply('XRANGE', [['1-0', $this->flat($this->envelopeCodec->encode($this->message('a')))], ['2-0', $this->flat($this->envelopeCodec->encode($this->message('b')))]])
+            ->reply('XPENDING', []);
+
+        self::assertCount(2, $this->transport()->browse(2));
+        self::assertSame(['XRANGE', 'XPENDING'], $this->recordingRedisClient->names());
+    }
+
+    public function testBrowseOfAnEmptyQueue(): void
+    {
+        $this->recordingRedisClient->reply('XRANGE', [])->reply('ZRANGE', []);
+
+        self::assertSame([], $this->transport()->browse());
+        self::assertSame([['XRANGE', self::STREAM, '-', '+', 'COUNT', '100'], ['ZRANGE', self::DELAYED, '0', '99', 'WITHSCORES']], $this->recordingRedisClient->commands);
+    }
+
+    public function testBrowseBeforeTheGroupExistsSeesOnlyReadyMessages(): void
+    {
+        $this->recordingRedisClient
+            ->reply('XRANGE', [['1-0', $this->flat($this->envelopeCodec->encode($this->message()))]])
+            ->reply('XPENDING', CommandFailedException::rejected('XPENDING', 'NOGROUP No such key or consumer group'))
+            ->reply('ZRANGE', []);
+
+        $queued = $this->transport()->browse();
+
+        self::assertCount(1, $queued);
+        self::assertSame(QueuedMessageState::Ready, $queued[0]->state);
+    }
+
+    public function testBrowseRethrowsOtherErrors(): void
+    {
+        $this->recordingRedisClient
+            ->reply('XRANGE', [['1-0', $this->flat($this->envelopeCodec->encode($this->message()))]])
+            ->reply('XPENDING', CommandFailedException::rejected('XPENDING', 'ERR boom'));
+
+        $this->expectException(CommandFailedException::class);
+        $this->expectExceptionMessage('boom');
+
+        $this->transport()->browse();
     }
 
     private function transport(

@@ -239,7 +239,7 @@ final class CliTest extends TestCase
             $consoleLogger->log(42, 'non string level');
         }
 
-        self::assertSame(implode(\PHP_EOL, [
+        self::assertSame(\implode(\PHP_EOL, [
             '[warning] warn x null 2026-01-01T00:00:00+00:00 LogicException [array] '.self::ID,
             '[info] info',
             '[warning] warn x null 2026-01-01T00:00:00+00:00 LogicException [array] '.self::ID,
@@ -284,7 +284,7 @@ final class CliTest extends TestCase
         self::assertSame(Application::SUCCESS, $application->run(['ping']));
         self::assertSame(Application::SUCCESS, $application->run(['stats']));
 
-        self::assertSame(implode(\PHP_EOL, ['OK', 'ready         0', 'in_flight     0', 'delayed       0', 'dead_letters  0', 'lag           0', 'consumers     n/a']).\PHP_EOL, $this->stdout());
+        self::assertSame(\implode(\PHP_EOL, ['OK', 'ready         0', 'in_flight     0', 'delayed       0', 'dead_letters  0', 'lag           0', 'consumers     n/a']).\PHP_EOL, $this->stdout());
     }
 
     public function testStatsAsJson(): void
@@ -315,7 +315,7 @@ final class CliTest extends TestCase
         $this->deadLetter('third');
         self::assertSame(Application::SUCCESS, $application->run(['dlq:purge', '--dsn=memory://', '--force']));
 
-        self::assertSame(implode(\PHP_EOL, [
+        self::assertSame(\implode(\PHP_EOL, [
             self::ID.'  test  attempts=0  unrecoverable  2026-01-01T00:00:00+00:00  bad first',
             '1 dead letter(s).',
             '[{"id":"'.self::ID.'","channel":"test","attempts":0,"kind":"unrecoverable","failed_at":"2026-01-01T00:00:00+00:00","error":"bad first"},{"id":"0190f2a4-5b6c-7d8e-9f01-000000000002","channel":"test","attempts":0,"kind":"unrecoverable","failed_at":"2026-01-01T00:00:00+00:00","error":"bad second"}]',

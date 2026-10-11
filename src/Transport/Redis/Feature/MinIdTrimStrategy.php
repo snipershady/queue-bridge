@@ -44,7 +44,7 @@ final readonly class MinIdTrimStrategy implements TrimStrategyInterface
      */
     private function next(string $id): string
     {
-        if (1 !== preg_match('/^(\d+)-(\d+)$/D', $id, $matches)) {
+        if (1 !== \preg_match('/^(\d+)-(\d+)$/D', $id, $matches)) {
             throw CommandFailedException::unexpectedReply('stream id', 'ms-seq');
         }
 

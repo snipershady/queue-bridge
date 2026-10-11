@@ -42,7 +42,19 @@ return (new Config())
                     // Disattivata: i limiti di dimensione sono in byte (strlen), mb_strlen li trasformerebbe in caratteri.
                     'mb_str_functions' => false,
                     'use_arrow_functions' => true,
-                    'native_function_invocation' => ['include' => ['@compiler_optimized'], 'scope' => 'namespaced', 'strict' => true],
+                    // Oltre alle @compiler_optimized: le funzioni "frameless" di PHP 8.4+. Senza `\` in un namespace il
+                    // compilatore emette JMP_FRAMELESS (controllo a runtime di una funzione omonima nel namespace), un
+                    // branch mai percorso che Xdebug conta come scoperto. Elenco ricavato dagli opcode di 8.4 e 8.5.
+                    'native_function_invocation' => [
+                        'include' => [
+                            '@compiler_optimized',
+                            'class_exists', 'dechex', 'dirname', 'implode', 'in_array', 'is_numeric', 'max', 'min',
+                            'preg_match', 'preg_replace', 'property_exists', 'str_contains', 'str_replace',
+                            'str_starts_with', 'strpos', 'strstr', 'strtr', 'substr', 'trim',
+                        ],
+                        'scope' => 'namespaced',
+                        'strict' => true,
+                    ],
                     'native_constant_invocation' => ['scope' => 'namespaced', 'strict' => true],
                     // import_functions/import_constants disattivati: entrerebbero in conflitto con native_*_invocation (\strlen).
                     'global_namespace_import' => ['import_classes' => true, 'import_constants' => false, 'import_functions' => false],

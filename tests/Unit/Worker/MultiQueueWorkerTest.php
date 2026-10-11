@@ -178,9 +178,10 @@ final class MultiQueueWorkerTest extends TestCase
         }
     }
 
-    public function testStopOnNonWorkerImplementationsOnlyEndsTheLoop(): void
+    public function testStopIsForwardedToCustomWorkerImplementations(): void
     {
         $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects(self::once())->method('stop');
         $worker->expects(self::once())->method('runOnce')->willReturnCallback(function (): int {
             $this->multi?->stop();
 

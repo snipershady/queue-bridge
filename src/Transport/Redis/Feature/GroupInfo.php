@@ -26,7 +26,7 @@ final class GroupInfo
         try {
             $groups = $redisClient->execute(['XINFO', 'GROUPS', $redisKeys->stream()]);
         } catch (CommandFailedException $commandFailedException) {
-            if (str_contains(strtolower($commandFailedException->getMessage()), 'no such key')) {
+            if (\str_contains(strtolower($commandFailedException->getMessage()), 'no such key')) {
                 return null;
             }
 

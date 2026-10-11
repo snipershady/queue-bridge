@@ -258,7 +258,7 @@ ignorarlo e decodificare `$message->text` da solo.
 | messaggio scaduto (`ttlMs`) | scartato, oppure DLQ con `expiredMessagePolicy: ExpiredMessagePolicy::DeadLetter` |
 | nessun handler per il canale | DLQ, oppure scartato con `unknownChannelPolicy: UnknownChannelPolicy::Discard` |
 
-- **Arresto controllato**: su SIGTERM/SIGINT (con `ext-pcntl`) o `Worker::stop()` il worker termina il messaggio corrente,
+- **Arresto controllato**: su SIGTERM/SIGINT (con `ext-pcntl`) o `stop()` (dichiarato in `WorkerInterface`) il worker termina il messaggio corrente,
   restituisce quelli già ricevuti e ritorna `WorkerExitReason::StopRequested`. `stopWhenEmpty: true` esce alla prima
   ricezione vuota (job batch, cron).
 - **Middleware**: `LoggingMiddleware`, `TimeoutMiddleware` (richiede `ext-pcntl`; un timeout viene ritentato),

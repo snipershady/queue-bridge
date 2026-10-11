@@ -89,7 +89,7 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         private EnvelopeCodecInterface $codec = new EnvelopeCodec(),
         private LoggerInterface $logger = new NullLogger(),
     ) {
-        if ('' === trim($consumer)) {
+        if ('' === \trim($consumer)) {
             throw new InvalidArgumentException('Consumer name must not be empty.');
         }
 
@@ -103,7 +103,7 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         try {
             $this->client->execute(['XGROUP', 'CREATE', $this->keys->stream(), $this->keys->group(), '0', 'MKSTREAM']);
         } catch (CommandFailedException $commandFailedException) {
-            if (!str_contains($commandFailedException->getMessage(), 'BUSYGROUP')) {
+            if (!\str_contains($commandFailedException->getMessage(), 'BUSYGROUP')) {
                 throw $commandFailedException;
             }
         }
@@ -175,7 +175,7 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         try {
             $reply = $this->client->execute($command);
         } catch (CommandFailedException $commandFailedException) {
-            if (!str_contains($commandFailedException->getMessage(), 'NOGROUP')) {
+            if (!\str_contains($commandFailedException->getMessage(), 'NOGROUP')) {
                 throw $commandFailedException;
             }
 
@@ -286,7 +286,7 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
         $inFlight = null === $group ? 0 : RedisReply::int($group['pending'] ?? null, 'XINFO GROUPS pending');
 
         return new QueueStats(
-            ready: max(0, $streamLength - $inFlight),
+            ready: \max(0, $streamLength - $inFlight),
             inFlight: $inFlight,
             delayed: RedisReply::int($this->client->execute(['ZCARD', $this->keys->delayed()]), 'ZCARD'),
             deadLetters: RedisReply::int($this->client->execute(['XLEN', $this->keys->deadLetters()]), 'XLEN'),

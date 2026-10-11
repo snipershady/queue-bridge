@@ -32,7 +32,7 @@ final readonly class RetryTiers
         $previous = 0;
         foreach ($tiersMs as $tierMs) {
             if ($tierMs <= $previous) {
-                throw new InvalidArgumentException(\sprintf('Retry tiers must be positive and strictly increasing, got %s.', implode(', ', $tiersMs)));
+                throw new InvalidArgumentException(\sprintf('Retry tiers must be positive and strictly increasing, got %s.', \implode(', ', $tiersMs)));
             }
 
             $previous = $tierMs;

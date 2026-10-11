@@ -643,7 +643,7 @@ final class RedisTransportTest extends TestCase
 
     private function message(string $text = 'x'): Message
     {
-        $id = 'x' === $text ? self::ID : '0190f2a4-5b6c-7d8e-9f01-'.str_pad(bin2hex(substr($text, 0, 6)), 12, '0', \STR_PAD_LEFT);
+        $id = 'x' === $text ? self::ID : '0190f2a4-5b6c-7d8e-9f01-'.str_pad(bin2hex(\substr($text, 0, 6)), 12, '0', \STR_PAD_LEFT);
 
         return new Message(MessageId::fromString($id), 'test', $text, new DateTimeImmutable('2026-01-01T00:00:00Z'));
     }

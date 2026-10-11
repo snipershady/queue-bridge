@@ -257,7 +257,7 @@ ignore it and decode `$message->text` yourself.
 | message expired (`ttlMs`) | discarded, or DLQ with `expiredMessagePolicy: ExpiredMessagePolicy::DeadLetter` |
 | no handler for the channel | DLQ, or discarded with `unknownChannelPolicy: UnknownChannelPolicy::Discard` |
 
-- **Graceful shutdown**: on SIGTERM/SIGINT (with `ext-pcntl`) or `Worker::stop()` the worker finishes the current message,
+- **Graceful shutdown**: on SIGTERM/SIGINT (with `ext-pcntl`) or `stop()` (declared in `WorkerInterface`) the worker finishes the current message,
   gives back the ones already received and returns `WorkerExitReason::StopRequested`. `stopWhenEmpty: true` exits at the
   first empty receive (batch jobs, cron).
 - **Middleware**: `LoggingMiddleware`, `TimeoutMiddleware` (needs `ext-pcntl`; a timeout is retried),

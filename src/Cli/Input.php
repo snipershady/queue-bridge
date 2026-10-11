@@ -39,7 +39,7 @@ final readonly class Input
             $argument = $arguments[$i];
 
             if ('-v' === $argument || '-vv' === $argument) {
-                $verbosity = max($verbosity, \strlen($argument) - 1);
+                $verbosity = \max($verbosity, \strlen($argument) - 1);
 
                 continue;
             }
@@ -50,7 +50,7 @@ final readonly class Input
                 continue;
             }
 
-            if (!str_starts_with($argument, '--')) {
+            if (!\str_starts_with($argument, '--')) {
                 if (null !== $command) {
                     throw new UsageException(\sprintf('Unexpected argument "%s".', $argument));
                 }
@@ -60,7 +60,7 @@ final readonly class Input
                 continue;
             }
 
-            $parts = explode('=', substr($argument, 2), 2);
+            $parts = explode('=', \substr($argument, 2), 2);
 
             $name = $parts[0];
 
@@ -81,7 +81,7 @@ final readonly class Input
 
             if (null === $value) {
                 $value = $arguments[$i + 1] ?? null;
-                if (null === $value || str_starts_with($value, '-')) {
+                if (null === $value || \str_starts_with($value, '-')) {
                     throw new UsageException(\sprintf('Option --%s requires a value.', $name));
                 }
 
@@ -116,7 +116,7 @@ final readonly class Input
             return $default;
         }
 
-        if (1 !== preg_match('/^\d+$/D', $value) || (int) $value < $minimum) {
+        if (1 !== \preg_match('/^\d+$/D', $value) || (int) $value < $minimum) {
             throw new UsageException(\sprintf('Option --%s must be an integer >= %d, got "%s".', $name, $minimum, $value));
         }
 

@@ -54,6 +54,6 @@ final class UuidV7Generator implements IdGeneratorInterface
         $head = pack('J', ($this->lastMs << 16) | 0x7000 | $this->counter);
         $variant = \chr(0x80 | (\ord($tail[0]) & 0x3F));
 
-        return MessageId::fromBytes($head.$variant.substr($tail, 1));
+        return MessageId::fromBytes($head.$variant.\substr($tail, 1));
     }
 }

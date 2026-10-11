@@ -92,7 +92,7 @@ abstract class RedisTransportTestCase extends TransportContractTestCase
     {
         $dsn = getenv('REDIS_DSN');
         $parts = parse_url(\is_string($dsn) && '' !== $dsn ? $dsn : 'redis://127.0.0.1:6379/15');
-        $database = isset($parts['path']) && '' !== trim($parts['path'], '/') ? (int) trim($parts['path'], '/') : 15;
+        $database = isset($parts['path']) && '' !== \trim($parts['path'], '/') ? (int) \trim($parts['path'], '/') : 15;
 
         return [$parts['host'] ?? '127.0.0.1', $parts['port'] ?? 6379, $database];
     }

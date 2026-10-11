@@ -137,7 +137,7 @@ final class RabbitMqTransportTest extends TestCase
         $this->transport()->sendBatch([]);
 
         self::assertCount(2, $this->fakeAmqpChannel->published);
-        self::assertSame(['confirm:5000'], array_values(array_filter($this->fakeAmqpChannel->calls, static fn (string $call): bool => str_starts_with($call, 'confirm'))));
+        self::assertSame(['confirm:5000'], array_values(array_filter($this->fakeAmqpChannel->calls, static fn (string $call): bool => \str_starts_with($call, 'confirm'))));
     }
 
     public function testSendBatchReportsUnconfirmedMessagesWithoutAbandoningTheChannel(): void
@@ -169,7 +169,7 @@ final class RabbitMqTransportTest extends TestCase
 
         self::assertSame(['1:1', '1:2', '1:3'], array_map(static fn (Delivery $delivery): string => $delivery->receipt, $first));
         self::assertSame([], $second);
-        self::assertSame(['prefetch:3', 'consume:rq.q'], array_values(array_filter($this->fakeAmqpChannel->calls, static fn (string $call): bool => str_starts_with($call, 'prefetch') || str_starts_with($call, 'consume'))));
+        self::assertSame(['prefetch:3', 'consume:rq.q'], array_values(array_filter($this->fakeAmqpChannel->calls, static fn (string $call): bool => \str_starts_with($call, 'prefetch') || \str_starts_with($call, 'consume'))));
         self::assertSame([2000, 0, 0, 2000], $this->fakeAmqpChannel->waits);
     }
 
@@ -326,7 +326,7 @@ final class RabbitMqTransportTest extends TestCase
 
         self::assertSame([], $this->fakeAmqpChannel->acked);
         self::assertSame('2:1', $fresh->receipt);
-        self::assertCount(2, array_filter($this->fakeAmqpChannel->calls, static fn (string $call): bool => str_starts_with($call, 'consume')));
+        self::assertCount(2, array_filter($this->fakeAmqpChannel->calls, static fn (string $call): bool => \str_starts_with($call, 'consume')));
     }
 
     // --- conferma, retry, reject, release ------------------------------------------------------------------------

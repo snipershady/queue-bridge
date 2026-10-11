@@ -19,7 +19,7 @@ final class DsnParser
      */
     public static function parse(string $dsn): Dsn
     {
-        $scheme = strstr($dsn, '://', before_needle: true);
+        $scheme = \strstr($dsn, '://', before_needle: true);
         if (false === $scheme || '' === $scheme) {
             throw new InvalidArgumentException(\sprintf('Invalid DSN "%s": expected scheme://...', self::redact($dsn)));
         }
@@ -59,6 +59,6 @@ final class DsnParser
      */
     public static function redact(string $dsn): string
     {
-        return (string) preg_replace('#(://[^:/@]*:)[^@/]*@#', '$1***@', $dsn);
+        return (string) \preg_replace('#(://[^:/@]*:)[^@/]*@#', '$1***@', $dsn);
     }
 }

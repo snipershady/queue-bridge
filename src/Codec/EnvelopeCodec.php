@@ -127,7 +127,7 @@ final readonly class EnvelopeCodec implements EnvelopeCodecInterface
     private function nonNegativeInt(array $fields, string $name): int
     {
         $value = $this->field($fields, $name);
-        if (1 !== preg_match(self::NON_NEGATIVE_INT_PATTERN, $value)) {
+        if (1 !== \preg_match(self::NON_NEGATIVE_INT_PATTERN, $value)) {
             throw SerializationException::invalidField($name, \sprintf('expected a non-negative integer, got "%s".', $value));
         }
 

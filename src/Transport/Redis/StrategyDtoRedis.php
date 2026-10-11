@@ -36,7 +36,7 @@ final readonly class StrategyDtoRedis implements StrategyDtoInterface
         public bool $verifyVersion = true,
         public ?string $consumer = null,
     ) {
-        if (null !== $consumer && '' === trim($consumer)) {
+        if (null !== $consumer && '' === \trim($consumer)) {
             throw new InvalidArgumentException('Consumer name must not be empty.');
         }
     }

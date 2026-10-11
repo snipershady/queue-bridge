@@ -33,7 +33,7 @@ final readonly class FailureReason
         public ?string $errorClass = null,
     ) {
         $this->errorMessage = MessageRules::truncateUtf8(
-            MessageRules::isValidUtf8($errorMessage) ? $errorMessage : (string) preg_replace('/[\x80-\xFF]/', '?', $errorMessage),
+            MessageRules::isValidUtf8($errorMessage) ? $errorMessage : (string) \preg_replace('/[\x80-\xFF]/', '?', $errorMessage),
             self::MAX_ERROR_MESSAGE_BYTES,
         );
         $this->failedAt = $failedAt->setTimezone(new DateTimeZone('UTC'));

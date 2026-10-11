@@ -72,7 +72,7 @@ final class SwitchBackendTest extends TestCase
         $dsn = parse_url($this->env('REDIS_DSN', 'redis://127.0.0.1:6379/15'));
         $host = $dsn['host'] ?? '127.0.0.1';
         $port = $dsn['port'] ?? 6379;
-        $database = isset($dsn['path']) && '' !== trim($dsn['path'], '/') ? (int) trim($dsn['path'], '/') : 15;
+        $database = isset($dsn['path']) && '' !== \trim($dsn['path'], '/') ? (int) \trim($dsn['path'], '/') : 15;
 
         try {
             $redis = new Redis();

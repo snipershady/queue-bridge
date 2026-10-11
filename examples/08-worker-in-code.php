@@ -70,13 +70,13 @@ final readonly class OrderHandler implements HandlerInterface
     }
 }
 
-$backend = Backend::fromArguments($argv);
+$backend = Backend::fromCommandLine();
 $logger = new StdoutLogger();
 $factory = QueueBridge::factory(logger: $logger);
 
 $orders = $factory->create($backend, new QueueConfig(name: 'example-orders', prefix: 'examples', maxAttempts: 2));
 // One DTO (one connection) per queue: on RabbitMQ every queue gets its own channel.
-$emails = $factory->create(Backend::fromArguments($argv), new QueueConfig(name: 'example-emails', prefix: 'examples'));
+$emails = $factory->create(Backend::fromCommandLine(), new QueueConfig(name: 'example-emails', prefix: 'examples'));
 $orders->setup();
 $emails->setup();
 

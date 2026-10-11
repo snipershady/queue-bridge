@@ -15,6 +15,7 @@ declare(strict_types=1);
  *   php tests/Benchmark/benchmark.php 'memory://'
  */
 
+use snipershady\Queue\Cli\CommandLine;
 use snipershady\Queue\Config\QueueConfig;
 use snipershady\Queue\Dsn\StrategyDtoFactory;
 use snipershady\Queue\Message\OutgoingMessage;
@@ -23,14 +24,15 @@ use snipershady\Queue\Worker\WorkerConfig;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 
-$dsn = $argv[1] ?? null;
+$arguments = CommandLine::arguments();
+$dsn = $arguments[0] ?? null;
 if (!is_string($dsn)) {
     fwrite(\STDERR, "Usage: php tests/Benchmark/benchmark.php <dsn> [messages=20000] [batch=100]\n");
     exit(2);
 }
 
-$messages = max(1, (int) ($argv[2] ?? 20000));
-$batch = max(1, (int) ($argv[3] ?? 100));
+$messages = max(1, (int) ($arguments[1] ?? 20000));
+$batch = max(1, (int) ($arguments[2] ?? 100));
 $text = json_encode(['order' => 12345, 'items' => [['sku' => 'A-1', 'qty' => 2]], 'note' => str_repeat('x', 100)], \JSON_THROW_ON_ERROR);
 
 $strategy = (new StrategyDtoFactory())->fromDsn($dsn);

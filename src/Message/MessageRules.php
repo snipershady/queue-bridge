@@ -27,7 +27,7 @@ final class MessageRules
      */
     public static function assertChannel(string $channel): void
     {
-        if (\strlen($channel) > self::MAX_CHANNEL_LENGTH || 1 !== preg_match(self::CHANNEL_PATTERN, $channel)) {
+        if (\strlen($channel) > self::MAX_CHANNEL_LENGTH || 1 !== \preg_match(self::CHANNEL_PATTERN, $channel)) {
             throw new InvalidArgumentException(\sprintf('Invalid channel "%s": expected 1-%d characters matching %s.', $channel, self::MAX_CHANNEL_LENGTH, self::CHANNEL_PATTERN));
         }
     }
@@ -52,7 +52,7 @@ final class MessageRules
         foreach ($headers as $name => $value) {
             if (!\is_string($name)
                 || \strlen($name) > self::MAX_HEADER_NAME_LENGTH
-                || 1 !== preg_match(self::HEADER_NAME_PATTERN, $name)) {
+                || 1 !== \preg_match(self::HEADER_NAME_PATTERN, $name)) {
                 throw new InvalidArgumentException(\sprintf('Invalid header name "%s": expected 1-%d characters matching %s.', $name, self::MAX_HEADER_NAME_LENGTH, self::HEADER_NAME_PATTERN));
             }
 
@@ -64,7 +64,7 @@ final class MessageRules
 
     public static function isValidUtf8(string $value): bool
     {
-        return 1 === preg_match('//u', $value);
+        return 1 === \preg_match('//u', $value);
     }
 
     /**
@@ -72,9 +72,9 @@ final class MessageRules
      */
     public static function truncateUtf8(string $value, int $maxBytes): string
     {
-        $truncated = substr($value, 0, max(0, $maxBytes));
+        $truncated = \substr($value, 0, \max(0, $maxBytes));
         while (!self::isValidUtf8($truncated)) {
-            $truncated = substr($truncated, 0, -1);
+            $truncated = \substr($truncated, 0, -1);
         }
 
         return $truncated;

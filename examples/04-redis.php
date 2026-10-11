@@ -13,6 +13,7 @@ declare(strict_types=1);
  */
 use QueueBridgeExamples\Backend;
 use QueueBridgeExamples\StdoutLogger;
+use snipershady\Queue\Cli\CommandLine;
 use snipershady\Queue\Config\QueueConfig;
 use snipershady\Queue\Exception\UnrecoverableMessageException;
 use snipershady\Queue\Message\Message;
@@ -29,7 +30,7 @@ require __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Support/Backend.php';
 require_once __DIR__.'/Support/StdoutLogger.php';
 
-$strategy = Backend::strategy('predis' === ($argv[1] ?? null) ? 'predis' : 'redis');
+$strategy = Backend::strategy('predis' === (CommandLine::arguments()[0] ?? null) ? 'predis' : 'redis');
 if (!$strategy instanceof StrategyDtoRedis) {
     throw new LogicException('Expected a Redis strategy.');
 }

@@ -27,7 +27,7 @@ enum RedisVersionEnum: string
      */
     public static function fromServerVersion(string $version): self
     {
-        if (1 !== preg_match('/^(\d+)\.(\d+)/', $version, $matches)) {
+        if (1 !== \preg_match('/^(\d+)\.(\d+)/', $version, $matches)) {
             throw VersionMismatchException::unsupported($version, self::GE60->value);
         }
 

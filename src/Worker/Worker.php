@@ -93,9 +93,7 @@ final class Worker implements WorkerInterface
         return $this;
     }
 
-    /**
-     * Chiede al worker di uscire dopo il messaggio corrente; i messaggi già ricevuti tornano in coda.
-     */
+    #[Override]
     public function stop(): void
     {
         $this->stopRequested = true;

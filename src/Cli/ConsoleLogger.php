@@ -63,6 +63,6 @@ final class ConsoleLogger extends AbstractLogger
             };
         }
 
-        $this->output->error(\sprintf('[%s] %s', $level, strtr((string) $message, $replacements)));
+        $this->output->error(\sprintf('[%s] %s', $level, \strtr((string) $message, $replacements)));
     }
 }

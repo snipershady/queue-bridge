@@ -50,6 +50,6 @@ final readonly class StopConditions
             return $this->config->batchSize;
         }
 
-        return max(1, min($this->config->batchSize, $this->config->maxMessages - $processed));
+        return \max(1, \min($this->config->batchSize, $this->config->maxMessages - $processed));
     }
 }

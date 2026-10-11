@@ -49,7 +49,7 @@ final class RedisReply
      */
     public static function int(mixed $reply, string $context): int
     {
-        if (\is_string($reply) && 1 === preg_match('/^-?\d+$/D', $reply)) {
+        if (\is_string($reply) && 1 === \preg_match('/^-?\d+$/D', $reply)) {
             return (int) $reply;
         }
 

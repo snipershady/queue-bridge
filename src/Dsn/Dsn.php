@@ -44,7 +44,7 @@ final readonly class Dsn
         }
 
         $value = $this->options[$name];
-        if (1 !== preg_match('/^-?\d+$/D', $value) || (int) $value < $minimum) {
+        if (1 !== \preg_match('/^-?\d+$/D', $value) || (int) $value < $minimum) {
             throw new InvalidArgumentException(\sprintf('DSN option "%s" must be an integer >= %d, got "%s".', $name, $minimum, $value));
         }
 
@@ -61,7 +61,7 @@ final readonly class Dsn
         }
 
         $value = $this->options[$name];
-        if (!is_numeric($value) || (float) $value <= 0.0) {
+        if (!\is_numeric($value) || (float) $value <= 0.0) {
             throw new InvalidArgumentException(\sprintf('DSN option "%s" must be a number > 0, got "%s".', $name, $value));
         }
 

@@ -24,6 +24,6 @@ final class StdoutLogger extends AbstractLogger
             $replacements['{'.$key.'}'] = \is_scalar($value) || $value instanceof Stringable ? (string) $value : get_debug_type($value);
         }
 
-        printf("  [%s] %s\n", \is_string($level) ? $level : 'info', strtr((string) $message, $replacements));
+        printf("  [%s] %s\n", \is_string($level) ? $level : 'info', \strtr((string) $message, $replacements));
     }
 }

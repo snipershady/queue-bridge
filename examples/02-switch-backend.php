@@ -17,6 +17,7 @@ declare(strict_types=1);
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Predis\Client;
+use snipershady\Queue\Cli\CommandLine;
 use snipershady\Queue\Config\QueueConfig;
 use snipershady\Queue\Factory\StrategyDtoInterface;
 use snipershady\Queue\Message\Message;
@@ -30,7 +31,7 @@ require __DIR__.'/../vendor/autoload.php';
 
 $env = static fn (string $name, string $default): string => is_string($value = getenv($name)) && '' !== $value ? $value : $default;
 
-$strategy = match ($argv[1] ?? 'memory') {
+$strategy = match (CommandLine::arguments()[0] ?? 'memory') {
     'redis' => StrategyDtoRedis::fromPhpRedis(static function () use ($env): Redis {
         // A factory: the client calls it again to reconnect after a failure.
         $redis = new Redis();

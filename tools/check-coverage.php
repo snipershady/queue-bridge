@@ -23,7 +23,7 @@ const METRICS = [
  */
 function main(array $arguments): int
 {
-    $path = $arguments[1] ?? 'build/clover.xml';
+    $path = $arguments[0] ?? 'build/clover.xml';
     if (!is_file($path)) {
         fwrite(\STDERR, sprintf("Report clover non trovato: %s\n", $path));
 
@@ -115,4 +115,7 @@ function uncovered(SimpleXMLElement $clover): array
     return $result;
 }
 
-exit(main($argv));
+// $_SERVER['argv'] tramite filter_var(): non dipende da register_argc_argv nel php.ini.
+$argv = filter_var($_SERVER['argv'] ?? null, \FILTER_UNSAFE_RAW, \FILTER_REQUIRE_ARRAY);
+
+exit(main(is_array($argv) ? array_values(array_filter(array_slice(array_values($argv), 1), is_string(...))) : []));

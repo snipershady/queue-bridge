@@ -83,8 +83,8 @@ final readonly class StrategyDtoFactory
     private function redis(Dsn $dsn): StrategyDtoRedis
     {
         $version = '' === $dsn->option('version', '') ? null : (RedisVersionEnum::tryFrom($dsn->option('version', ''))
-            ?? throw new InvalidArgumentException(\sprintf('DSN option "version" must be one of %s.', implode(', ', array_map(static fn (RedisVersionEnum $redisVersionEnum): string => $redisVersionEnum->value, RedisVersionEnum::cases())))));
-        if (1 !== preg_match('/^\d{0,4}$/D', $dsn->path)) {
+            ?? throw new InvalidArgumentException(\sprintf('DSN option "version" must be one of %s.', \implode(', ', array_map(static fn (RedisVersionEnum $redisVersionEnum): string => $redisVersionEnum->value, RedisVersionEnum::cases())))));
+        if (1 !== \preg_match('/^\d{0,4}$/D', $dsn->path)) {
             throw new InvalidArgumentException(\sprintf('Invalid Redis database "%s": expected a number.', $dsn->path));
         }
 
@@ -158,11 +158,11 @@ final readonly class StrategyDtoFactory
     {
         $milliseconds = [];
         foreach (explode(',', $tiers) as $tier) {
-            if (1 !== preg_match('/^\d+$/D', trim($tier))) {
+            if (1 !== \preg_match('/^\d+$/D', \trim($tier))) {
                 throw new InvalidArgumentException(\sprintf('DSN option "tiers" must list milliseconds, got "%s".', $tier));
             }
 
-            $milliseconds[] = (int) trim($tier);
+            $milliseconds[] = (int) \trim($tier);
         }
 
         return $milliseconds;

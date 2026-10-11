@@ -9,6 +9,7 @@ use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Predis\Client;
 use Redis;
+use snipershady\Queue\Cli\CommandLine;
 use snipershady\Queue\Factory\StrategyDtoInterface;
 use snipershady\Queue\Transport\InMemory\StrategyDtoInMemory;
 use snipershady\Queue\Transport\RabbitMq\StrategyDtoRabbitMq;
@@ -26,11 +27,11 @@ use snipershady\Queue\Transport\Redis\StrategyDtoRedis;
 final class Backend
 {
     /**
-     * @param list<string> $argv
+     * Backend named by the first command-line argument (default: memory).
      */
-    public static function fromArguments(array $argv): StrategyDtoInterface
+    public static function fromCommandLine(): StrategyDtoInterface
     {
-        return self::strategy($argv[1] ?? 'memory');
+        return self::strategy(CommandLine::arguments()[0] ?? 'memory');
     }
 
     public static function strategy(string $name): StrategyDtoInterface

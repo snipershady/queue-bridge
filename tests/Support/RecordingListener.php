@@ -24,7 +24,7 @@ final class RecordingListener implements WorkerEventListenerInterface
      */
     public function names(): array
     {
-        return array_map(static fn (WorkerEventInterface $workerEvent): string => substr($workerEvent::class, (int) strrpos($workerEvent::class, '\\') + 1), $this->events);
+        return array_map(static fn (WorkerEventInterface $workerEvent): string => \substr($workerEvent::class, (int) strrpos($workerEvent::class, '\\') + 1), $this->events);
     }
 
     /**

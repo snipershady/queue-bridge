@@ -28,7 +28,7 @@ final class UuidV7GeneratorTest extends TestCase
 
         $id = $uuidV7Generator->generate()->value;
 
-        self::assertSame(self::NOW_MS_HEX, str_replace('-', '', substr($id, 0, 13)));
+        self::assertSame(self::NOW_MS_HEX, \str_replace('-', '', \substr($id, 0, 13)));
         self::assertSame('7', $id[14]);
         self::assertSame('b', $id[19]);
         // 11 bit di seed (0x7FF) nel contatore; 62 bit casuali tutti a 1.
@@ -81,7 +81,7 @@ final class UuidV7GeneratorTest extends TestCase
         $second = $uuidV7Generator->generate()->value;
 
         self::assertGreaterThan($first, $second);
-        self::assertSame(self::NOW_MS_HEX, str_replace('-', '', substr($second, 0, 13)));
+        self::assertSame(self::NOW_MS_HEX, \str_replace('-', '', \substr($second, 0, 13)));
     }
 
     public function testNewMillisecondReseedsTheCounter(): void

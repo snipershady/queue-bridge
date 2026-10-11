@@ -51,7 +51,7 @@ final readonly class ExponentialBackoff implements RetryStrategyInterface
     #[Override]
     public function nextDelayMs(int $attempt): int
     {
-        $base = min((float) $this->maxMs, $this->initialMs * $this->multiplier ** max(0, $attempt - 1));
+        $base = \min((float) $this->maxMs, $this->initialMs * $this->multiplier ** \max(0, $attempt - 1));
 
         if ($this->jitter > 0.0) {
             // Frazione uniforme in [-1, 1] da 32 bit casuali.
@@ -59,6 +59,6 @@ final readonly class ExponentialBackoff implements RetryStrategyInterface
             $base += $base * $this->jitter * $unit;
         }
 
-        return (int) round(min((float) $this->maxMs, max(0.0, $base)));
+        return (int) round(\min((float) $this->maxMs, \max(0.0, $base)));
     }
 }

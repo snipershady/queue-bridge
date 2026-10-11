@@ -273,7 +273,7 @@ final readonly class Application
 
         $strategy = $input->value('strategy');
         if (null !== $strategy) {
-            $expected = StrategyEnum::tryFrom($strategy) ?? throw new UsageException(\sprintf('Unknown strategy "%s": expected %s.', $strategy, implode(', ', array_map(static fn (StrategyEnum $strategyEnum): string => $strategyEnum->value, StrategyEnum::cases()))));
+            $expected = StrategyEnum::tryFrom($strategy) ?? throw new UsageException(\sprintf('Unknown strategy "%s": expected %s.', $strategy, \implode(', ', array_map(static fn (StrategyEnum $strategyEnum): string => $strategyEnum->value, StrategyEnum::cases()))));
             if (DsnParser::parse($dsn)->strategy !== $expected) {
                 throw new UsageException(\sprintf('--strategy=%s does not match the DSN "%s".', $strategy, DsnParser::redact($dsn)));
             }

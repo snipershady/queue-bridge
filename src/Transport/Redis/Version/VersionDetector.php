@@ -36,8 +36,8 @@ final readonly class VersionDetector
             return null;
         }
 
-        if (\is_string($info) && 1 === preg_match('/^redis_version:([^\r\n]+)/m', $info, $matches)) {
-            return trim($matches[1]);
+        if (\is_string($info) && 1 === \preg_match('/^redis_version:([^\r\n]+)/m', $info, $matches)) {
+            return \trim($matches[1]);
         }
 
         $this->logger->warning('INFO server did not report redis_version.');

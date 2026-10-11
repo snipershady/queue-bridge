@@ -33,7 +33,7 @@ final readonly class ScriptRunner
         try {
             return $this->client->execute(['EVALSHA', sha1($script), ...$tail]);
         } catch (CommandFailedException $commandFailedException) {
-            if (!str_contains($commandFailedException->getMessage(), 'NOSCRIPT')) {
+            if (!\str_contains($commandFailedException->getMessage(), 'NOSCRIPT')) {
                 throw $commandFailedException;
             }
 

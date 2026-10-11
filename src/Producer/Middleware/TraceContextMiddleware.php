@@ -31,7 +31,7 @@ final readonly class TraceContextMiddleware implements ProducerMiddlewareInterfa
 
         if (\array_key_exists(self::HEADER_TRACEPARENT, $message->headers)
             || null === $traceparent
-            || 1 !== preg_match(self::TRACEPARENT_PATTERN, $traceparent)) {
+            || 1 !== \preg_match(self::TRACEPARENT_PATTERN, $traceparent)) {
             $next($message);
 
             return;

@@ -39,4 +39,10 @@ interface WorkerInterface
      * @return int messaggi elaborati (confermati, ritentati, in DLQ o scartati)
      */
     public function runOnce(): int;
+
+    /**
+     * Chiede al worker di uscire dopo il messaggio corrente; i messaggi già ricevuti e non elaborati tornano
+     * in coda con release(). Sicuro da chiamare da un signal handler o da un altro worker.
+     */
+    public function stop(): void;
 }

@@ -28,7 +28,7 @@ require __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Support/Backend.php';
 
 $config = new QueueConfig(name: 'example-manual', prefix: 'examples', maxAttempts: 2);
-$queue = QueueBridge::factory()->create(Backend::fromArguments($argv), $config);
+$queue = QueueBridge::factory()->create(Backend::fromCommandLine(), $config);
 $queue->setup();
 
 $lines = file(__DIR__.'/data/messages.txt', FILE_IGNORE_NEW_LINES);

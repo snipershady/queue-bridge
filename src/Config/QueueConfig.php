@@ -53,7 +53,7 @@ final readonly class QueueConfig
 
     private function assertName(string $field, string $value): void
     {
-        if (\strlen($value) > self::MAX_NAME_LENGTH || 1 !== preg_match(self::NAME_PATTERN, $value)) {
+        if (\strlen($value) > self::MAX_NAME_LENGTH || 1 !== \preg_match(self::NAME_PATTERN, $value)) {
             throw new InvalidArgumentException(\sprintf('Invalid %s "%s": expected 1-%d characters matching %s.', $field, $value, self::MAX_NAME_LENGTH, self::NAME_PATTERN));
         }
     }

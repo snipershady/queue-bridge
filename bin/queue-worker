@@ -4,6 +4,7 @@
 declare(strict_types=1);
 
 use snipershady\Queue\Cli\Application;
+use snipershady\Queue\Cli\CommandLine;
 use snipershady\Queue\Cli\Output;
 
 // Progetto clonato (vendor/ accanto a bin/) oppure libreria installata come dipendenza (vendor/bin/).
@@ -17,4 +18,4 @@ foreach ([__DIR__.'/../vendor/autoload.php', __DIR__.'/../../../autoload.php'] a
 
 $environment = getenv();
 
-exit((new Application(new Output(STDOUT, STDERR), environment: $environment))->run(array_values(array_slice($argv, 1))));
+exit((new Application(new Output(STDOUT, STDERR), environment: $environment))->run(CommandLine::arguments()));

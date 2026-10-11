@@ -22,7 +22,7 @@ final class UnsupportedStrategyException extends QueueException
             'No transport builder supports the "%s" strategy (%s). Registered builders: %s.',
             $strategyDto->name(),
             $strategyDto::class,
-            [] === $builders ? 'none' : implode(', ', $builders),
+            [] === $builders ? 'none' : \implode(', ', $builders),
         ));
     }
 }

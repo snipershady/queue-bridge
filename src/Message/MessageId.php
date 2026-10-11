@@ -34,7 +34,7 @@ final readonly class MessageId implements Stringable
     public static function fromString(string $value): self
     {
         $normalized = strtolower($value);
-        if (1 !== preg_match(self::PATTERN, $normalized)) {
+        if (1 !== \preg_match(self::PATTERN, $normalized)) {
             throw new InvalidArgumentException(\sprintf('Invalid message id "%s": expected an RFC 9562 UUID.', $value));
         }
 
@@ -54,11 +54,11 @@ final readonly class MessageId implements Stringable
 
         return self::fromString(\sprintf(
             '%s-%s-%s-%s-%s',
-            substr($hex, 0, 8),
-            substr($hex, 8, 4),
-            substr($hex, 12, 4),
-            substr($hex, 16, 4),
-            substr($hex, 20, 12),
+            \substr($hex, 0, 8),
+            \substr($hex, 8, 4),
+            \substr($hex, 12, 4),
+            \substr($hex, 16, 4),
+            \substr($hex, 20, 12),
         ));
     }
 

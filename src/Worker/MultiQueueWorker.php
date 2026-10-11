@@ -58,9 +58,7 @@ final class MultiQueueWorker
     {
         $this->stopRequested = true;
         foreach ($this->workers as $worker) {
-            if ($worker instanceof Worker) {
-                $worker->stop();
-            }
+            $worker->stop();
         }
     }
 

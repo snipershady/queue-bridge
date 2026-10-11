@@ -442,7 +442,7 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
      */
     private function publishDelayed(AmqpChannelInterface $amqpChannel, array $fields, int $dueAtMs): void
     {
-        $tier = $this->retryTiers->tierFor(max(1, $dueAtMs - $this->nowMs()));
+        $tier = $this->retryTiers->tierFor(\max(1, $dueAtMs - $this->nowMs()));
         $amqpChannel->publish($this->toAmqp($fields, [self::HEADER_DUE_AT => (string) $dueAtMs]), '', $this->topology->retryQueue($tier));
     }
 
@@ -453,7 +453,7 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     {
         $failed = $amqpChannel->confirm($this->confirmTimeoutMs);
         if ([] !== $failed) {
-            throw CommandFailedException::rejected('basic.publish', \sprintf('message %s was not confirmed by the broker', implode(', ', $failed)));
+            throw CommandFailedException::rejected('basic.publish', \sprintf('message %s was not confirmed by the broker', \implode(', ', $failed)));
         }
     }
 
@@ -533,8 +533,8 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     {
         $fields = [];
         foreach ($amqpMessage->headers as $name => $value) {
-            if (str_starts_with($name, self::HEADER_PREFIX) && self::HEADER_DUE_AT !== $name && !str_starts_with($name, self::HEADER_PREFIX.'failure-')) {
-                $fields[substr($name, \strlen(self::HEADER_PREFIX))] = (string) $value;
+            if (\str_starts_with($name, self::HEADER_PREFIX) && self::HEADER_DUE_AT !== $name && !\str_starts_with($name, self::HEADER_PREFIX.'failure-')) {
+                $fields[\substr($name, \strlen(self::HEADER_PREFIX))] = (string) $value;
             }
         }
 

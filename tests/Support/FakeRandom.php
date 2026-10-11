@@ -30,6 +30,6 @@ final class FakeRandom implements RandomInterface
 
         $chunk = array_shift($this->chunks) ?? '';
 
-        return substr($chunk.str_repeat(\chr($this->byte), $length), 0, $length);
+        return \substr($chunk.str_repeat(\chr($this->byte), $length), 0, $length);
     }
 }

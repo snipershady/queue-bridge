@@ -136,7 +136,7 @@ final class RabbitMqTransportTest extends TransportContractTestCase
             $parts['port'] ?? 5672,
             $parts['user'] ?? 'guest',
             $parts['pass'] ?? 'guest',
-            isset($parts['path']) && '' !== trim($parts['path'], '/') ? urldecode(trim($parts['path'], '/')) : '/',
+            isset($parts['path']) && '' !== \trim($parts['path'], '/') ? urldecode(\trim($parts['path'], '/')) : '/',
             connection_timeout: 2.0,
             read_write_timeout: 10.0,
         );

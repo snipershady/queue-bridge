@@ -17,7 +17,9 @@ enum OrphanRecovery: string
     case Native = 'native';
 
     /**
-     * Vanno recuperati con `MaintenanceAwareInterface::maintain()` (Redis, InMemory).
+     * Vanno recuperati esplicitamente: con `MaintenanceAwareInterface::maintain()` (InMemory, Redis < 8.4) oppure
+     * dal transport stesso in receive() (Redis >= 8.4, XREADGROUP ... CLAIM; maintain() ne riporta 0). In ogni caso
+     * solo dopo `claimIdleMs`: per questo il worker limita l'età delle consegne che inizia a elaborare.
      */
     case Explicit = 'explicit';
 }

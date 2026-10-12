@@ -40,8 +40,9 @@ final readonly class Input
         for ($i = 0, $count = \count($arguments); $i < $count; ++$i) {
             $argument = $arguments[$i];
 
-            if ('-v' === $argument || '-vv' === $argument) {
-                $verbosity = \max($verbosity, \strlen($argument) - 1);
+            if (1 === \preg_match('/^-v+$/D', $argument)) {
+                // -v info, -vv (o più) debug.
+                $verbosity = \max($verbosity, \min(2, \strlen($argument) - 1));
 
                 continue;
             }
@@ -83,8 +84,12 @@ final readonly class Input
 
             if (null === $value) {
                 $value = $arguments[$i + 1] ?? null;
-                if (null === $value || \str_starts_with($value, '-')) {
+                if (null === $value) {
                     throw new UsageException(\sprintf('Option --%s requires a value.', $name));
+                }
+
+                if (\str_starts_with($value, '-')) {
+                    throw new UsageException(\sprintf('Option --%s requires a value (got "%s": write --%s=<value> for a value starting with "-").', $name, $value, $name));
                 }
 
                 ++$i;
@@ -94,6 +99,25 @@ final readonly class Input
         }
 
         return new self($command, $options, $verbosity);
+    }
+
+    /**
+     * Rifiuta le opzioni non previste dal comando: un nome scritto male (`--max-message=5`) non deve far girare
+     * il comando con il valore di default.
+     *
+     * Complessità: O(o·a), o = opzioni presenti, a = opzioni ammesse.
+     *
+     * @param list<string> $allowed
+     *
+     * @throws UsageException
+     */
+    public function assertOptions(string $command, array $allowed): void
+    {
+        foreach (array_keys($this->options) as $name) {
+            if (!\in_array($name, $allowed, strict: true)) {
+                throw new UsageException(\sprintf('Unknown option --%s for "%s". Run with --help for the list of options.', $name, $command));
+            }
+        }
     }
 
     /**

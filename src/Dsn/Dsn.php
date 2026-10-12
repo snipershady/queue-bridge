@@ -32,6 +32,24 @@ final readonly class Dsn
     }
 
     /**
+     * Rifiuta le opzioni non previste: un nome scritto male non deve essere ignorato in silenzio.
+     *
+     * Complessità: O(o·a), o = opzioni presenti, a = opzioni ammesse.
+     *
+     * @param list<string> $allowed
+     *
+     * @throws InvalidArgumentException con l'elenco delle opzioni ammesse
+     */
+    public function assertOptions(array $allowed): void
+    {
+        foreach (array_keys($this->options) as $name) {
+            if (!\in_array($name, $allowed, strict: true)) {
+                throw new InvalidArgumentException(\sprintf('Unknown DSN option "%s": expected %s.', $name, \implode(', ', $allowed)));
+            }
+        }
+    }
+
+    /**
      * Complessità: O(1).
      */
     public function option(string $name, string $default): string

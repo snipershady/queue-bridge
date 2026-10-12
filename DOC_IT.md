@@ -1264,7 +1264,7 @@ versioni diverse possono convivere durante un rolling deploy.
 | `maxAttempts` | 3 | >= 1 | tentativi falliti prima della DLQ |
 | `maxDeliveries` | 10 | >= `maxAttempts + 1` | consegne senza ack prima della DLQ (protezione dai messaggi velenosi) |
 | `claimIdleMs` | 300.000 | >= 1000 | inattività dopo la quale un messaggio in elaborazione è orfano (Redis, InMemory) |
-| `dlqMaxLength` | 100.000 | >= 1 | retention della DLQ (Redis `MAXLEN ~`, InMemory) |
+| `dlqMaxLength` | 100.000 | >= 1 | retention della DLQ (Redis `MAXLEN ~`, RabbitMQ `x-max-length` con `drop-head`, InMemory) |
 
 `WorkerConfig`:
 
@@ -1303,8 +1303,16 @@ supervisor lo riavvia. Le eccezioni degli handler non fermano mai il worker.
 - `ack`, `retry`, `reject`, `release` su una consegna non più posseduta (già confermata, o recuperata da un altro consumer)
   non hanno effetto.
 - `retry` e `reject`: la nuova copia viene scritta prima di confermare l'originale: mai persa, al più duplicata.
-- `release`: il messaggio è di nuovo disponibile subito, `attempts` invariato, `deliveryCount` non azzerato.
-- Riaccodamento dalla DLQ: `attempts = 0`, stesso ID.
+- `release`: il messaggio è di nuovo disponibile subito, dietro a quelli già in attesa, `attempts` invariato,
+  `deliveryCount` non azzerato.
+- Riaccodamento dalla DLQ: `attempts = 0`, stesso ID. Le dead letter non decodificabili non lo bloccano mai: Redis elimina
+  le entry senza campi del messaggio e riaccoda le altre (una non decodificabile torna in DLQ), RabbitMQ le sposta in
+  fondo alla DLQ.
+- Retention della DLQ: al più `dlqMaxLength` dead letter, restano le più recenti (in modo approssimato su Redis).
+- `stats`: sola lettura (nessuna promozione dei differiti scaduti); `lag` conta tutti i messaggi pronti non ancora letti,
+  comprese le copie restituite e recuperate.
+- I dati corrotti scritti da altri non bloccano mai una coda: un membro dei differiti non valido su Redis diventa un'entry
+  non decodificabile e va in DLQ (`Serialization`) come ogni messaggio non decodificabile.
 - `purge`: rimuove i messaggi pronti e differiti presenti alla chiamata; messaggi in elaborazione, DLQ e risorse del backend
   restano.
 - `browse`: non consuma (ID e `attempts` invariati); in elaborazione, poi pronti in ordine di consegna, poi differiti per
@@ -1353,9 +1361,10 @@ stream principale: il trim cancellerebbe messaggi non letti o pending; lo stream
 | `rq.messages` (exchange) | topic, durevole | routing key = canale |
 | `rq.messages` (coda) | quorum, durevole, binding `#` | `x-delivery-limit = maxDeliveries`, `x-dead-letter-strategy = at-least-once`, `x-overflow = reject-publish`, dead letter verso `rq.messages.dlq` |
 | `rq.messages.retry.<ms>` | quorum, una per scaglione | `x-message-ttl = <ms>`, dead letter at-least-once verso la coda principale |
-| `rq.messages.dlq` | classic, durevole | ispezione con `basic.get` + `nack` |
+| `rq.messages.dlq` | classic, durevole | `x-max-length = dlqMaxLength`, `x-overflow = drop-head`; ispezione con `basic.get` + `nack` |
 
-I messaggi sono persistenti e `mandatory`; i publisher confirm sono attivi di default. Le ricevute sono
+I messaggi sono persistenti e `mandatory`; i publisher confirm sono sempre attivi (retry, reject e riaccodamento
+confermano l'originale solo dopo che la copia è stata confermata e instradata). Le ricevute sono
 `generazione:delivery-tag`, quindi dopo la riapertura del canale le ricevute vecchie non hanno effetto.
 
 ### 6.10 Eccezioni
@@ -1376,9 +1385,11 @@ I messaggi sono persistenti e `mandatory`; i publisher confirm sono attivi di de
 
 Comandi di `bin/queue-worker`: `work --bootstrap=<file.php>`, `stats`, `ping`, `queue:list`, `queue:purge --force`,
 `dlq:list`, `dlq:requeue [--id]`, `dlq:purge --force`. Exit code: `0` ok, `1` errore del backend, `2` errore d'uso.
+Un'opzione non prevista dal comando è un errore d'uso; `work` valida opzioni e DSN prima di caricare il file di bootstrap.
 
 DSN: `redis[s]://[user:pass@]host[:port][/db]?client=phpredis|predis&version=&verify_version=&consumer=&timeout=`,
-`amqp[s]://user:pass@host[:port][/vhost]?prefetch=&confirms=&tiers=ms,ms&heartbeat=&timeout=`, `memory://`.
+`amqp[s]://user:pass@host[:port][/vhost]?prefetch=&tiers=ms,ms&heartbeat=&timeout=&rpc_timeout=`, `memory://` (niente dopo
+lo schema). Le opzioni sconosciute, vuote o ripetute sono un errore.
 
 ---
 

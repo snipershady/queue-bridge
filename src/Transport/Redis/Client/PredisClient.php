@@ -9,6 +9,7 @@ use Predis\Client;
 use Predis\ClientInterface;
 use Predis\Command\RawCommand;
 use Predis\Connection\ConnectionException as PredisConnectionException;
+use Predis\Connection\RelayConnection;
 use Predis\Response\ErrorInterface;
 use Predis\Response\ServerException;
 use Predis\Response\Status;
@@ -19,9 +20,9 @@ use QueueBridge\Exception\ConnectionException;
  * Adapter per `predis/predis`. Predis si riconnette da solo al comando successivo: dopo un errore di
  * connessione il comando viene ritentato una volta.
  *
- * Pipeline: con un `Predis\Client` si usa la pipeline nativa. Se il client ha l'opzione `exceptions`
- * attiva, un errore in pipeline interrompe la lettura delle risposte e tutti i comandi risultano falliti:
- * per errori per singolo comando configurare `exceptions => false`.
+ * Pipeline: con un `Predis\Client` si usa una pipeline (un round trip) che riporta l'esito di ogni comando,
+ * con qualunque valore dell'opzione `exceptions`. Con una connessione Relay, o con un altro `ClientInterface`,
+ * i comandi vengono eseguiti uno alla volta.
  *
  * @api
  */
@@ -45,13 +46,14 @@ final readonly class PredisClient implements RedisClientInterface
     }
 
     /**
-     * Complessità: O(c + r) sull'intera pipeline; un round trip con `Predis\Client`, uno per comando con altri
-     * `ClientInterface`.
+     * Complessità: O(c + r) sull'intera pipeline; un round trip con `Predis\Client`, uno per comando con Relay o con
+     * altri `ClientInterface`.
      */
     #[Override]
     public function pipeline(array $commands): array
     {
-        if (!$this->client instanceof Client) {
+        $client = $this->client;
+        if (!$client instanceof Client || $client->getConnection() instanceof RelayConnection) {
             return array_map(function (array $command): array|int|string|CommandFailedException {
                 try {
                     return $this->execute($command) ?? CommandFailedException::rejected($command[0], 'nil reply');
@@ -61,23 +63,16 @@ final readonly class PredisClient implements RedisClientInterface
             }, $commands);
         }
 
-        $client = $this->client;
-
         return $this->withRetry(static function () use ($client, $commands): array {
-            try {
-                $replies = $client->pipeline(static function (mixed $pipeline) use ($commands): void {
-                    \assert($pipeline instanceof ClientInterface);
-                    foreach ($commands as $command) {
-                        $pipeline->executeCommand(RawCommand::create(...$command));
-                    }
-                });
-            } catch (ServerException $serverException) {
-                return array_map(static fn (array $command): CommandFailedException => CommandFailedException::rejected($command[0], $serverException->getMessage(), $serverException), $commands);
-            }
+            $replies = (new PredisPipeline($client))->execute(static function (PredisPipeline $predisPipeline) use ($commands): void {
+                foreach ($commands as $command) {
+                    $predisPipeline->executeCommand(RawCommand::create(...$command));
+                }
+            });
 
             $results = [];
             foreach ($commands as $index => $command) {
-                $reply = \is_array($replies) ? ($replies[$index] ?? null) : null;
+                $reply = $replies[$index] ?? null;
                 $results[] = match (true) {
                     $reply instanceof ErrorInterface => CommandFailedException::rejected($command[0], $reply->getMessage()),
                     null === $reply => CommandFailedException::rejected($command[0], 'nil reply'),

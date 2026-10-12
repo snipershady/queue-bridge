@@ -47,11 +47,13 @@ final class InMemoryBroker
     }
 
     /**
-     * Complessità: O(r), r = messaggi pronti (array_unshift reindicizza).
+     * Rimette in fondo ai pronti, come XADD di una nuova copia su Redis.
+     *
+     * Complessità: O(1) ammortizzato.
      */
-    public function pushFront(InMemoryEntry $inMemoryEntry): void
+    public function pushBack(InMemoryEntry $inMemoryEntry): void
     {
-        array_unshift($this->ready, $inMemoryEntry);
+        $this->ready[] = $inMemoryEntry;
     }
 
     /**
@@ -239,16 +241,6 @@ final class InMemoryBroker
     public function readyCount(): int
     {
         return \count($this->ready);
-    }
-
-    /**
-     * Messaggi pronti mai consegnati: l'equivalente del lag di un consumer group.
-     *
-     * Complessità: O(r), r = messaggi pronti.
-     */
-    public function neverDeliveredCount(): int
-    {
-        return \count(array_filter($this->ready, static fn (InMemoryEntry $inMemoryEntry): bool => 0 === $inMemoryEntry->deliveries));
     }
 
     /**

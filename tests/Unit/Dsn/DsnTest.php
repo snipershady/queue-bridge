@@ -88,13 +88,13 @@ final class DsnTest extends TestCase
 
     public function testParsesAmqpDsnWithEncodedVhost(): void
     {
-        $dsn = DsnParser::parse('amqp://guest:guest@rabbit/%2F?prefetch=5&skip[]=x');
+        $dsn = DsnParser::parse('amqp://guest:guest@rabbit/%2F?prefetch=5&skip[]=x&verify.version=1&flag&&a%20b=c+d&eq=x=y');
 
         self::assertSame(StrategyEnum::RabbitMq, $dsn->strategy);
         self::assertFalse($dsn->secure);
         self::assertNull($dsn->port);
         self::assertSame('/', $dsn->path);
-        self::assertSame(['prefetch' => '5'], $dsn->options, 'array options are ignored');
+        self::assertSame(['prefetch' => '5', 'skip[]' => 'x', 'verify.version' => '1', 'flag' => '', 'a b' => 'c d', 'eq' => 'x=y'], $dsn->options, 'names are kept verbatim, so that a typo can be rejected');
     }
 
     public function testParsesMinimalDsns(): void
@@ -118,7 +118,12 @@ final class DsnTest extends TestCase
         yield 'empty scheme' => ['://host', 'expected scheme://'];
         yield 'no host' => ['redis://', 'a host is required'];
         yield 'unix socket' => ['redis:///tmp/redis.sock', 'a host is required'];
+        yield 'port out of range' => ['redis://h:999999', 'a host is required'];
         yield 'unknown scheme' => ['kafka://broker', 'Unsupported DSN scheme'];
+        yield 'memory with a host' => ['memory://anything', 'the in-memory backend takes no host'];
+        yield 'memory with options' => ['memory://?x=1', 'the in-memory backend takes no host'];
+        yield 'repeated option' => ['redis://h?timeout=1&timeout=2', 'empty or repeated option "timeout"'];
+        yield 'empty option name' => ['redis://h?=1', 'empty or repeated option ""'];
     }
 
     #[DataProvider('invalidDsns')]
@@ -135,6 +140,8 @@ final class DsnTest extends TestCase
         self::assertSame('amqp://guest:***@host/vh', DsnParser::redact('amqp://guest:secret@host/vh'));
         self::assertSame('redis://:***@host', DsnParser::redact('redis://:secret@host'));
         self::assertSame('redis://host', DsnParser::redact('redis://host'));
+        self::assertSame('amqp://user:***@host/vh?prefetch=1', DsnParser::redact('amqp://user:p@ss@word@host/vh?prefetch=1'), 'a raw "@" in the password does not leak');
+        self::assertSame('redis://host?consumer=a@b', DsnParser::redact('redis://host?consumer=a@b'));
     }
 
     public function testOptionAccessors(): void
@@ -365,7 +372,7 @@ final class DsnTest extends TestCase
             return $connection;
         });
 
-        $dto = $strategyDtoFactory->fromDsn('amqps://app:pw@rabbit/orders?prefetch=25&confirms=0&heartbeat=30&timeout=1.5&tiers=500,%202000');
+        $dto = $strategyDtoFactory->fromDsn('amqps://app:pw@rabbit/orders?prefetch=25&rpc_timeout=12.5&heartbeat=30&timeout=1.5&tiers=500,%202000');
 
         self::assertInstanceOf(StrategyDtoRabbitMq::class, $dto);
         self::assertCount(0, $captured, 'the connection is lazy');
@@ -376,9 +383,28 @@ final class DsnTest extends TestCase
         $captured = $captured->getArrayCopy()[0] ?? null;
         self::assertInstanceOf(AMQPConnectionConfig::class, $captured);
         self::assertSame(
-            ['rabbit', 5671, 'app', 'pw', 'orders', true, 30, 1.5],
-            [$captured->getHost(), $captured->getPort(), $captured->getUser(), $captured->getPassword(), $captured->getVhost(), $captured->isSecure(), $captured->getHeartbeat(), $captured->getConnectionTimeout()],
+            ['rabbit', 5671, 'app', 'pw', 'orders', true, 30, 1.5, 12.5, 12.5, 12.5],
+            [$captured->getHost(), $captured->getPort(), $captured->getUser(), $captured->getPassword(), $captured->getVhost(), $captured->isSecure(), $captured->getHeartbeat(), $captured->getConnectionTimeout(), $captured->getChannelRPCTimeout(), $captured->getReadTimeout(), $captured->getWriteTimeout()],
         );
+    }
+
+    public function testShortRpcTimeoutKeepsTheDefaultSocketTimeout(): void
+    {
+        $captured = new ArrayObject();
+        $connection = $this->createMock(AbstractConnection::class);
+        $connection->method('isConnected')->willReturn(true);
+        $connection->method('channel')->willReturn(self::createStub(AMQPChannel::class));
+        $dto = (new StrategyDtoFactory(newAmqp: static function (AMQPConnectionConfig $amqpConnectionConfig) use ($captured, $connection): AbstractConnection {
+            $captured->exchangeArray([$amqpConnectionConfig]);
+
+            return $connection;
+        }))->fromDsn('amqp://rabbit?rpc_timeout=1');
+        self::assertInstanceOf(StrategyDtoRabbitMq::class, $dto);
+        $dto->connector->channel();
+
+        $captured = $captured->getArrayCopy()[0] ?? null;
+        self::assertInstanceOf(AMQPConnectionConfig::class, $captured);
+        self::assertSame([1.0, 3.0, 3.0], [$captured->getChannelRPCTimeout(), $captured->getReadTimeout(), $captured->getWriteTimeout()]);
     }
 
     public function testAmqpDefaults(): void
@@ -400,7 +426,7 @@ final class DsnTest extends TestCase
 
         $captured = $captured->getArrayCopy()[0] ?? null;
         self::assertInstanceOf(AMQPConnectionConfig::class, $captured);
-        self::assertSame(['rabbit', 5672, 'guest', 'guest', '/', false, 0, 3.0], [$captured->getHost(), $captured->getPort(), $captured->getUser(), $captured->getPassword(), $captured->getVhost(), $captured->isSecure(), $captured->getHeartbeat(), $captured->getConnectionTimeout()]);
+        self::assertSame(['rabbit', 5672, 'guest', 'guest', '/', false, 0, 3.0, 10.0, 10.0, 10.0], [$captured->getHost(), $captured->getPort(), $captured->getUser(), $captured->getPassword(), $captured->getVhost(), $captured->isSecure(), $captured->getHeartbeat(), $captured->getConnectionTimeout(), $captured->getChannelRPCTimeout(), $captured->getReadTimeout(), $captured->getWriteTimeout()]);
         self::assertSame(10, $dto->prefetch);
         self::assertSame((new RetryTiers())->tiersMs, $dto->retryTiers->tiersMs);
     }
@@ -417,6 +443,12 @@ final class DsnTest extends TestCase
         yield 'tiers with leading garbage' => ['amqp://h?tiers=x1', 'must list milliseconds'];
         yield 'database with trailing newline' => ['redis://h/1%0A', 'Invalid Redis database'];
         yield 'zero prefetch' => ['amqp://h?prefetch=0', 'must be an integer >= 1'];
+        yield 'misspelled redis option' => ['redis://h?verison=8.0', 'Unknown DSN option "verison": expected client, version, verify_version, consumer, timeout'];
+        yield 'dotted redis option' => ['redis://h?verify.version=0', 'Unknown DSN option "verify.version"'];
+        yield 'removed confirms option' => ['amqp://h?confirms=0', 'Unknown DSN option "confirms": expected prefetch, heartbeat, timeout, rpc_timeout, tiers'];
+        yield 'redis option on amqp' => ['amqp://h?client=predis', 'Unknown DSN option "client"'];
+        yield 'zero rpc timeout' => ['amqp://h?rpc_timeout=0', 'must be a number > 0'];
+        yield 'redis user without password' => ['redis://app@h', 'a user requires a password'];
     }
 
     #[DataProvider('invalidFactoryDsns')]

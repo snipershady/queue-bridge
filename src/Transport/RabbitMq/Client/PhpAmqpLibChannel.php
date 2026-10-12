@@ -17,8 +17,9 @@ use QueueBridge\Exception\ConnectionException;
 use Throwable;
 
 /**
- * Adapter per un canale `php-amqplib`. Con le publisher confirms attive, confirm() attende ack/nack del
- * broker; un messaggio restituito (non instradabile) conta come fallito anche se poi viene confermato.
+ * Adapter per un canale `php-amqplib`. Le publisher confirms sono sempre attive: confirm() attende ack/nack del
+ * broker e un messaggio restituito (non instradabile) conta come fallito anche se poi viene confermato. Senza
+ * conferme retry, reject e riaccodamento confermerebbero l'originale senza sapere se la copia è arrivata.
  *
  * @api
  */
@@ -28,16 +29,13 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
     private array $failed = [];
 
     /**
-     * Complessità: O(1), un round trip per `confirm.select` se le conferme sono attive.
+     * Complessità: O(1), un round trip per `confirm.select`.
+     *
+     * @throws CommandFailedException|ConnectionException
      */
     public function __construct(
         private readonly AMQPChannel $channel,
-        private readonly bool $publisherConfirms = true,
     ) {
-        if (!$publisherConfirms) {
-            return;
-        }
-
         $this->guard('confirm.select', static fn () => $channel->confirm_select());
         $channel->set_nack_handler(function (NativeMessage $nativeMessage): void {
             $this->failed[] = self::messageId($nativeMessage);
@@ -164,9 +162,7 @@ final class PhpAmqpLibChannel implements AmqpChannelInterface
     #[Override]
     public function confirm(int $timeoutMs): array
     {
-        if ($this->publisherConfirms) {
-            $this->guard('confirm', fn () => $this->channel->wait_for_pending_acks_returns($timeoutMs / 1000));
-        }
+        $this->guard('confirm', fn () => $this->channel->wait_for_pending_acks_returns($timeoutMs / 1000));
 
         $failed = $this->failed;
         $this->failed = [];

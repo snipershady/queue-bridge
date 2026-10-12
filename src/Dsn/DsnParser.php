@@ -28,20 +28,16 @@ final class DsnParser
 
         $strategy = StrategyEnum::fromScheme($scheme);
         if (StrategyEnum::InMemory === $strategy) {
+            if ($scheme.'://' !== $dsn) {
+                throw new InvalidArgumentException(\sprintf('Invalid DSN "%s": the in-memory backend takes no host, path or options.', self::redact($dsn)));
+            }
+
             return new Dsn($strategy, secure: false);
         }
 
         $parts = parse_url($dsn);
         if (false === $parts || !isset($parts['host'])) {
             throw new InvalidArgumentException(\sprintf('Invalid DSN "%s": a host is required.', self::redact($dsn)));
-        }
-
-        parse_str($parts['query'] ?? '', $query);
-        $options = [];
-        foreach ($query as $name => $value) {
-            if (\is_string($value)) {
-                $options[(string) $name] = $value;
-            }
         }
 
         return new Dsn(
@@ -52,7 +48,7 @@ final class DsnParser
             user: isset($parts['user']) && '' !== $parts['user'] ? urldecode($parts['user']) : null,
             password: isset($parts['pass']) ? urldecode($parts['pass']) : null,
             path: urldecode(ltrim($parts['path'] ?? '', '/')),
-            options: $options,
+            options: self::options($parts['query'] ?? '', $dsn),
         );
     }
 
@@ -63,6 +59,35 @@ final class DsnParser
      */
     public static function redact(string $dsn): string
     {
-        return (string) \preg_replace('#(://[^:/@]*:)[^@/]*@#', '$1***@', $dsn);
+        // Fino all'ultima "@" prima della query: una password con "@" non codificata non trapela.
+        return (string) \preg_replace('#(://[^:/@]*:)[^?\#]*@#', '$1***@', $dsn);
+    }
+
+    /**
+     * Query string → opzioni, senza parse_str (che riscrive "." e spazi in "_" e accetta array): un nome
+     * scritto male deve restare riconoscibile per essere rifiutato.
+     *
+     * @throws InvalidArgumentException se un'opzione è vuota o ripetuta
+     *
+     * @return array<string, string>
+     */
+    private static function options(string $query, string $dsn): array
+    {
+        $options = [];
+        foreach (explode('&', $query) as $pair) {
+            if ('' === $pair) {
+                continue;
+            }
+
+            [$name, $value] = explode('=', $pair, 2) + [1 => ''];
+            $name = urldecode($name);
+            if ('' === $name || \array_key_exists($name, $options)) {
+                throw new InvalidArgumentException(\sprintf('Invalid DSN "%s": empty or repeated option "%s".', self::redact($dsn), $name));
+            }
+
+            $options[$name] = urldecode($value);
+        }
+
+        return $options;
     }
 }

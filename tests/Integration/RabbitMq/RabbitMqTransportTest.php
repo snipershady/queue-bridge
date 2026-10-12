@@ -107,6 +107,13 @@ final class RabbitMqTransportTest extends TransportContractTestCase
     }
 
     #[Override]
+    protected function delayResolutionMs(): int
+    {
+        // Scaglioni di default 1 s, 5 s, ...: 1 s e 2 s + 3 s = 5 s cadono in code di attesa diverse.
+        return 3000;
+    }
+
+    #[Override]
     protected function browsesInFlightAndDelayed(): bool
     {
         return false;

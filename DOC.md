@@ -1260,7 +1260,7 @@ versions can run together during a rolling deploy.
 | `maxAttempts` | 3 | >= 1 | failed attempts before the DLQ |
 | `maxDeliveries` | 10 | >= `maxAttempts + 1` | deliveries without ack before the DLQ (poison protection) |
 | `claimIdleMs` | 300,000 | >= 1000 | idle time after which an in-flight message is an orphan (Redis, InMemory) |
-| `dlqMaxLength` | 100,000 | >= 1 | DLQ retention (Redis `MAXLEN ~`, InMemory) |
+| `dlqMaxLength` | 100,000 | >= 1 | DLQ retention (Redis `MAXLEN ~`, RabbitMQ `x-max-length` with `drop-head`, InMemory) |
 
 `WorkerConfig`:
 
@@ -1299,8 +1299,15 @@ restarts it. Handler exceptions never stop the worker.
 - `ack`, `retry`, `reject`, `release` on a delivery no longer owned (already acknowledged, or recovered by another consumer)
   have no effect.
 - `retry` and `reject`: the new copy is written before the original is acknowledged: never lost, at most duplicated.
-- `release`: the message is available again at once, `attempts` unchanged, `deliveryCount` not reset.
-- DLQ requeue: `attempts = 0`, same ID.
+- `release`: the message is available again at once, behind the messages already waiting, `attempts` unchanged,
+  `deliveryCount` not reset.
+- DLQ requeue: `attempts = 0`, same ID. Undecodable dead letters never block it: Redis drops entries without message
+  fields and requeues the others (an undecodable one comes back to the DLQ), RabbitMQ moves them to the back of the DLQ.
+- DLQ retention: at most `dlqMaxLength` dead letters, the newest are kept (approximate on Redis).
+- `stats`: read-only (no promotion of due delayed messages); `lag` counts every unread ready message, released and
+  recovered copies included.
+- Corrupt data written by others never blocks a queue: an invalid delayed member on Redis becomes an undecodable entry and
+  goes to the DLQ (`Serialization`) like any undecodable message.
 - `purge`: removes ready and delayed messages present at the call; in-flight messages, the DLQ and the backend resources stay.
 - `browse`: does not consume (IDs and `attempts` unchanged); in flight, then ready in delivery order, then delayed by due
   time; undecodable entries are skipped.
@@ -1348,9 +1355,10 @@ trimming would delete unread or pending messages; the stream empties itself thro
 | `rq.messages` (exchange) | topic, durable | routing key = channel |
 | `rq.messages` (queue) | quorum, durable, bound with `#` | `x-delivery-limit = maxDeliveries`, `x-dead-letter-strategy = at-least-once`, `x-overflow = reject-publish`, dead letter to `rq.messages.dlq` |
 | `rq.messages.retry.<ms>` | quorum, one per tier | `x-message-ttl = <ms>`, at-least-once dead letter to the main queue |
-| `rq.messages.dlq` | classic, durable | inspection with `basic.get` + `nack` |
+| `rq.messages.dlq` | classic, durable | `x-max-length = dlqMaxLength`, `x-overflow = drop-head`; inspection with `basic.get` + `nack` |
 
-Messages are persistent and `mandatory`; publisher confirms are on by default. Receipts are `generation:delivery-tag`, so
+Messages are persistent and `mandatory`; publisher confirms are always on (retry, reject and requeue acknowledge the
+original only after the copy is confirmed and routed). Receipts are `generation:delivery-tag`, so
 after the channel is reopened old receipts have no effect.
 
 ### 6.10 Exceptions
@@ -1370,10 +1378,12 @@ after the channel is reopened old receipts have no effect.
 ### 6.11 CLI and DSN
 
 `bin/queue-worker` commands: `work --bootstrap=<file.php>`, `stats`, `ping`, `queue:list`, `queue:purge --force`,
-`dlq:list`, `dlq:requeue [--id]`, `dlq:purge --force`. Exit codes: `0` success, `1` backend error, `2` usage error.
+`dlq:list`, `dlq:requeue [--id]`, `dlq:purge --force`. Exit codes: `0` success, `1` backend error, `2` usage error. An
+option the command does not accept is a usage error; `work` validates options and DSN before loading the bootstrap file.
 
 DSN: `redis[s]://[user:pass@]host[:port][/db]?client=phpredis|predis&version=&verify_version=&consumer=&timeout=`,
-`amqp[s]://user:pass@host[:port][/vhost]?prefetch=&confirms=&tiers=ms,ms&heartbeat=&timeout=`, `memory://`.
+`amqp[s]://user:pass@host[:port][/vhost]?prefetch=&tiers=ms,ms&heartbeat=&timeout=&rpc_timeout=`, `memory://` (nothing after
+the scheme). Unknown, empty or repeated options are an error.
 
 ---
 

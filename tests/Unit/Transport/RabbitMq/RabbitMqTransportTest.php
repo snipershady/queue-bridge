@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace QueueBridge\Tests\Unit\Transport\RabbitMq;
 
 use DateTimeImmutable;
+use Generator;
 use InvalidArgumentException;
 use LogicException;
 use Override;
@@ -38,6 +39,7 @@ use QueueBridge\Transport\RabbitMq\RabbitMqTransport;
 use QueueBridge\Transport\RabbitMq\RetryTiers;
 use QueueBridge\Transport\RabbitMq\Topology;
 use QueueBridge\Transport\TransportCapabilities;
+use RuntimeException;
 
 #[CoversClass(RabbitMqTransport::class)]
 #[UsesClass(Topology::class)]
@@ -158,6 +160,24 @@ final class RabbitMqTransportTest extends TestCase
         }
 
         self::assertSame(0, $this->fakeAmqpConnector->resets);
+    }
+
+    public function testSendBatchPublishesNothingWhenTheIterableFails(): void
+    {
+        $message = $this->message();
+
+        try {
+            $this->transport()->sendBatch((static function () use ($message): Generator {
+                yield new Envelope($message);
+
+                throw new RuntimeException('source failed');
+            })());
+            self::fail('Expected RuntimeException');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame('source failed', $runtimeException->getMessage());
+        }
+
+        self::assertSame([[], []], [$this->fakeAmqpChannel->published, $this->fakeAmqpChannel->calls]);
     }
 
     // --- ricezione ------------------------------------------------------------------------------------------
@@ -346,6 +366,35 @@ final class RabbitMqTransportTest extends TestCase
         $rabbitMqTransport->ack(new Delivery($first->message, '9:1', $this->fakeClock->now()));
 
         self::assertSame([1, 2], $this->fakeAmqpChannel->acked);
+    }
+
+    public function testMalformedReceiptsHaveNoEffect(): void
+    {
+        $rabbitMqTransport = $this->transport();
+        [$delivery] = $this->received($rabbitMqTransport);
+        [$generation] = explode(':', $delivery->receipt);
+
+        foreach ([$generation.':1:2', $generation.':', $generation.':-1', $generation.': 1'] as $receipt) {
+            $rabbitMqTransport->ack(new Delivery($delivery->message, $receipt, $this->fakeClock->now()));
+        }
+
+        self::assertSame([], $this->fakeAmqpChannel->acked);
+    }
+
+    public function testDeliveriesOfAChannelClosedByTheBrokerAreNotSettledOnTheReopenedOne(): void
+    {
+        $rabbitMqTransport = $this->transport();
+        $this->fakeAmqpChannel->incoming = [[$this->amqp(1), $this->amqp(2), $this->amqp(3)]];
+        [$first, $second, $third] = $rabbitMqTransport->receive(3);
+
+        // consumer_timeout o coda cancellata: il broker chiude il canale e rimette in coda i messaggi non confermati.
+        $this->fakeAmqpChannel->open = false;
+        $rabbitMqTransport->ack($first);
+        $rabbitMqTransport->retry($second, 0);
+        $rabbitMqTransport->release($third);
+
+        self::assertSame([[], [], []], [$this->fakeAmqpChannel->acked, $this->fakeAmqpChannel->published, $this->fakeAmqpChannel->nacked]);
+        self::assertTrue($this->fakeAmqpChannel->open, 'the channel was reopened');
     }
 
     public function testRetryNowPublishesTheNextAttemptToTheQueueThenAcknowledges(): void
@@ -556,8 +605,52 @@ final class RabbitMqTransportTest extends TestCase
         [$amqpMessage, $exchange, $routingKey] = $this->fakeAmqpChannel->published[0];
         self::assertSame(['', 'rq.q', '0'], [$exchange, $routingKey, $amqpMessage->headers['x-qb-attempts']]);
         self::assertArrayNotHasKey('x-qb-failure-kind', $amqpMessage->headers);
-        self::assertSame([1], $this->fakeAmqpChannel->acked);
-        self::assertSame([[2, true]], $this->fakeAmqpChannel->nacked);
+
+        // Il messaggio non decodificabile resta in DLQ, ma in fondo: copia confermata, poi ack dell'originale.
+        [$corrupt, $exchange, $routingKey] = $this->fakeAmqpChannel->published[1];
+        self::assertSame(['', 'rq.q.dlq', 'corrupt', [], 'c'], [$exchange, $routingKey, $corrupt->body, $corrupt->headers, $corrupt->messageId]);
+        self::assertSame([1, 2], $this->fakeAmqpChannel->acked);
+        self::assertSame([], $this->fakeAmqpChannel->nacked);
+    }
+
+    public function testRequeueDeadLettersProgressesPastAHeadOfUndecodableMessages(): void
+    {
+        $this->fakeAmqpChannel->queues['rq.q.dlq'] = [new AmqpMessage('corrupt 1', [], 'c1', 1), new AmqpMessage('corrupt 2', [], 'c2', 2)];
+
+        self::assertSame(0, $this->transport()->requeueDeadLetters(2));
+        self::assertSame(['rq.q.dlq', 'rq.q.dlq'], array_map(static fn (array $published): string => $published[2], $this->fakeAmqpChannel->published));
+        self::assertSame([1, 2], $this->fakeAmqpChannel->acked);
+        self::assertContains('confirm:5000', $this->fakeAmqpChannel->calls);
+    }
+
+    public function testRequeueDeadLettersDoesNotAcknowledgeWhenTheCopiesAreNotConfirmed(): void
+    {
+        $this->fakeAmqpChannel->queues['rq.q.dlq'] = [$this->amqp(1), new AmqpMessage('corrupt', [], 'c', 2)];
+        $this->fakeAmqpChannel->failedConfirms[] = ['c'];
+
+        try {
+            $this->transport()->requeueDeadLetters();
+            self::fail('Expected CommandFailedException');
+        } catch (CommandFailedException $commandFailedException) {
+            self::assertStringContainsString('message c was not confirmed', $commandFailedException->getMessage());
+        }
+
+        self::assertSame([], $this->fakeAmqpChannel->acked);
+        self::assertSame(1, $this->fakeAmqpConnector->resets, 'the channel is abandoned: the broker gives the messages back');
+    }
+
+    public function testDeadLetterOperationsBeforeSetupAbandonTheClosedChannel(): void
+    {
+        $this->fakeAmqpChannel->queueInfo['rq.q.dlq'] = CommandFailedException::rejected('queue.declare', "NOT_FOUND - no queue 'rq.q.dlq'");
+        $rabbitMqTransport = $this->transport();
+
+        self::assertSame([], $rabbitMqTransport->deadLetters());
+        self::assertSame(0, $rabbitMqTransport->requeueDeadLetters());
+        self::assertFalse($rabbitMqTransport->requeueDeadLetter(MessageId::fromString('0190f2a4-5b6c-7d8e-9f01-000000000001')));
+        self::assertSame(0, $rabbitMqTransport->purgeDeadLetters());
+
+        self::assertSame(4, $this->fakeAmqpConnector->resets);
+        self::assertSame([], array_values(array_filter($this->fakeAmqpChannel->calls, static fn (string $call): bool => \str_starts_with($call, 'get:') || \str_starts_with($call, 'purgeQueue:'))));
     }
 
     public function testRequeueOfAnEmptyDeadLetterQueue(): void

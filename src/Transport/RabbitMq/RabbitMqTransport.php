@@ -136,20 +136,29 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     }
 
     /**
+     * Gli envelope vengono letti e codificati tutti prima di pubblicare: un errore durante l'iterazione non lascia
+     * il batch inviato a metà (come su Redis). Un fallimento si attribuisce per ID del messaggio: due envelope con
+     * lo stesso ID risultano falliti insieme (al più duplicati, mai persi).
+     *
      * Complessità: O(n·(t + h + T)), n = messaggi; publish senza attesa, poi una sola attesa di conferma.
      */
     #[Override]
     public function sendBatch(iterable $envelopes): void
     {
-        $ids = [];
-        $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($envelopes, &$ids): void {
-            foreach ($envelopes as $envelope) {
-                $this->publishMessage($amqpChannel, $this->codec->encode($envelope->message), $envelope->delayMs);
-                $ids[] = $envelope->message->id;
-            }
+        $batch = [];
+        foreach ($envelopes as $envelope) {
+            $batch[] = [$envelope->message->id, $this->codec->encode($envelope->message), $envelope->delayMs];
+        }
 
-            if ([] === $ids) {
-                return;
+        if ([] === $batch) {
+            return;
+        }
+
+        $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($batch): void {
+            $ids = [];
+            foreach ($batch as [$id, $fields, $delayMs]) {
+                $this->publishMessage($amqpChannel, $fields, $delayMs);
+                $ids[] = $id;
             }
 
             $failed = $amqpChannel->confirm($this->confirmTimeoutMs);
@@ -209,12 +218,7 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     #[Override]
     public function ack(Delivery $delivery): void
     {
-        $tag = $this->ownedTag($delivery);
-        if (null === $tag) {
-            return;
-        }
-
-        $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($tag): void {
+        $this->whenOwned($delivery, function (AmqpChannelInterface $amqpChannel, int $tag): void {
             $amqpChannel->ack($tag);
             unset($this->handedOut[$tag]);
         });
@@ -262,17 +266,15 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     }
 
     /**
+     * `basic.nack` con requeue. Su RabbitMQ 3.13 il broker incrementa `x-delivery-count` anche così (su 4.x no):
+     * ogni release consuma una consegna del budget di `maxDeliveries` / `x-delivery-limit`.
+     *
      * Complessità: O(1), nessuna attesa.
      */
     #[Override]
     public function release(Delivery $delivery): void
     {
-        $tag = $this->ownedTag($delivery);
-        if (null === $tag) {
-            return;
-        }
-
-        $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($tag): void {
+        $this->whenOwned($delivery, function (AmqpChannelInterface $amqpChannel, int $tag): void {
             $amqpChannel->nack($tag, requeue: true);
             unset($this->handedOut[$tag]);
         });
@@ -353,7 +355,7 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     }
 
     /**
-     * Complessità: O(limit): limit + 1 round trip (basic.get), poi nack senza attesa.
+     * Complessità: O(limit): limit + 2 round trip (dichiarazione passiva e basic.get), poi nack senza attesa.
      */
     #[Override]
     public function deadLetters(int $limit = 100): array
@@ -361,6 +363,10 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         $this->assertLimit($limit);
 
         return $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($limit): array {
+            if (!$this->deadLetterQueueDeclared($amqpChannel)) {
+                return [];
+            }
+
             $taken = $this->takeDeadLetters($amqpChannel, $limit);
             $deadLetters = [];
             foreach ($taken as $amqpMessage) {
@@ -377,7 +383,10 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     }
 
     /**
-     * Complessità: O(limit): limit + 1 round trip (basic.get), poi una attesa di conferma.
+     * I messaggi non decodificabili restano in DLQ ma passano in fondo: se fossero restituiti in testa, una DLQ
+     * che inizia con $limit messaggi corrotti non verrebbe mai riaccodata.
+     *
+     * Complessità: O(limit): limit + 2 round trip (dichiarazione passiva e basic.get), poi una attesa di conferma.
      */
     #[Override]
     public function requeueDeadLetters(int $limit = 100): int
@@ -385,30 +394,36 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
         $this->assertLimit($limit);
 
         return $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($limit): int {
+            if (!$this->deadLetterQueueDeclared($amqpChannel)) {
+                return 0;
+            }
+
             $requeue = [];
-            $keep = [];
+            $undecodable = [];
             foreach ($this->takeDeadLetters($amqpChannel, $limit) as $amqpMessage) {
                 if ($this->toDeadLetter($amqpMessage) instanceof DeadLetter) {
                     $requeue[] = $amqpMessage;
                 } else {
-                    $keep[] = $amqpMessage;
+                    $undecodable[] = $amqpMessage;
                 }
             }
 
-            $this->returnAll($amqpChannel, $keep);
-
-            return $this->requeue($amqpChannel, $requeue);
+            return $this->requeue($amqpChannel, $requeue, $undecodable);
         });
     }
 
     /**
-     * Complessità: O(L), L = messaggi in DLQ prima di quello cercato: L + 1 round trip e O(L) memoria (i messaggi letti
+     * Complessità: O(L), L = messaggi in DLQ prima di quello cercato: L + 2 round trip e O(L) memoria (i messaggi letti
      * restano non confermati fino al nack).
      */
     #[Override]
     public function requeueDeadLetter(MessageId $id): bool
     {
         return $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($id): bool {
+            if (!$this->deadLetterQueueDeclared($amqpChannel)) {
+                return false;
+            }
+
             $others = [];
             $found = null;
             while (($amqpMessage = $amqpChannel->get($this->topology->deadLetterQueue)) instanceof AmqpMessage) {
@@ -428,12 +443,14 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     }
 
     /**
-     * Complessità: O(1) round trip; lato broker O(L), L = messaggi in DLQ.
+     * Complessità: due round trip (dichiarazione passiva e purge); lato broker O(L), L = messaggi in DLQ.
      */
     #[Override]
     public function purgeDeadLetters(): int
     {
-        return $this->withChannel(fn (AmqpChannelInterface $amqpChannel): int => $amqpChannel->purgeQueue($this->topology->deadLetterQueue));
+        return $this->withChannel(fn (AmqpChannelInterface $amqpChannel): int => $this->deadLetterQueueDeclared($amqpChannel)
+            ? $amqpChannel->purgeQueue($this->topology->deadLetterQueue)
+            : 0);
     }
 
     /**
@@ -576,16 +593,33 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
      */
     private function republishThenAck(Delivery $delivery, Closure $publish): void
     {
-        $tag = $this->ownedTag($delivery);
-        if (null === $tag) {
-            return;
-        }
-
-        $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($publish, $tag): void {
+        $this->whenOwned($delivery, function (AmqpChannelInterface $amqpChannel, int $tag) use ($publish): void {
             $publish($amqpChannel);
             $this->confirmed($amqpChannel);
             $amqpChannel->ack($tag);
             unset($this->handedOut[$tag]);
+        });
+    }
+
+    /**
+     * Esegue $operation con il delivery tag solo se la consegna è ancora posseduta. Il controllo si ripete dopo
+     * aver ottenuto il canale: se il broker lo ha chiuso nel frattempo (consumer_timeout, coda cancellata) il
+     * connector ne apre uno nuovo, e un tag del canale vecchio lì provocherebbe PRECONDITION_FAILED.
+     *
+     * @param Closure(AmqpChannelInterface, int): void $operation
+     */
+    private function whenOwned(Delivery $delivery, Closure $operation): void
+    {
+        if (null === $this->ownedTag($delivery)) {
+            // Consegna già confermata o di un canale precedente: nessun effetto, e nessun canale da aprire.
+            return;
+        }
+
+        $this->withChannel(function (AmqpChannelInterface $amqpChannel) use ($delivery, $operation): void {
+            $tag = $this->ownedTag($delivery);
+            if (null !== $tag) {
+                $operation($amqpChannel, $tag);
+            }
         });
     }
 
@@ -647,13 +681,15 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     }
 
     /**
-     * Ripubblica nella coda principale con attempts = 0 e conferma i messaggi prelevati dalla DLQ.
+     * Ripubblica nella coda principale con attempts = 0 i messaggi prelevati dalla DLQ ($amqpMessages) e in fondo
+     * alla DLQ quelli da lasciarvi ($toTail); dopo la conferma del broker li conferma tutti.
      *
      * @param list<AmqpMessage> $amqpMessages
+     * @param list<AmqpMessage> $toTail
      */
-    private function requeue(AmqpChannelInterface $amqpChannel, array $amqpMessages): int
+    private function requeue(AmqpChannelInterface $amqpChannel, array $amqpMessages, array $toTail = []): int
     {
-        if ([] === $amqpMessages) {
+        if ([] === $amqpMessages && [] === $toTail) {
             return 0;
         }
 
@@ -661,12 +697,34 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
             $amqpChannel->publish($this->toAmqp([...$this->fields($amqpMessage), EnvelopeCodec::FIELD_ATTEMPTS => '0']), '', $this->topology->queue);
         }
 
+        foreach ($toTail as $amqpMessage) {
+            $amqpChannel->publish(new AmqpMessage($amqpMessage->body, $amqpMessage->headers, $amqpMessage->messageId), '', $this->topology->deadLetterQueue);
+        }
+
         $this->confirmed($amqpChannel);
-        foreach ($amqpMessages as $amqpMessage) {
+        foreach ([...$amqpMessages, ...$toTail] as $amqpMessage) {
             $amqpChannel->ack($this->tag($amqpMessage));
         }
 
         return \count($amqpMessages);
+    }
+
+    /**
+     * false se la DLQ non esiste ancora (topologia non dichiarata): la dichiarazione passiva fallita ha chiuso il
+     * canale, che viene abbandonato. Come stats(), purge() e browse(), le operazioni sulla DLQ danno allora un
+     * risultato vuoto invece di un errore.
+     */
+    private function deadLetterQueueDeclared(AmqpChannelInterface $amqpChannel): bool
+    {
+        try {
+            $amqpChannel->declareQueue($this->topology->deadLetterQueue, passive: true);
+        } catch (CommandFailedException) {
+            $this->close();
+
+            return false;
+        }
+
+        return true;
     }
 
     private function toDeadLetter(AmqpMessage $amqpMessage): ?DeadLetter
@@ -780,7 +838,7 @@ final class RabbitMqTransport implements TransportInterface, SetupAwareInterface
     private function ownedTag(Delivery $delivery): ?int
     {
         [$generation, $tag] = explode(':', $delivery->receipt, 2) + [1 => ''];
-        if ((string) $this->connector->generation() !== $generation || !isset($this->handedOut[(int) $tag])) {
+        if ((string) $this->connector->generation() !== $generation || 1 !== \preg_match('/^\d+$/D', $tag) || !isset($this->handedOut[(int) $tag])) {
             return null;
         }
 

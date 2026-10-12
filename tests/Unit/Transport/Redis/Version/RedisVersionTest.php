@@ -39,6 +39,7 @@ final class RedisVersionTest extends TestCase
         yield '8.4.0' => ['8.4.0', RedisVersionEnum::GE84];
         yield '9.0.0' => ['9.0.0', RedisVersionEnum::GE84];
         yield '10.1' => ['10.1', RedisVersionEnum::GE84];
+        yield 'v8.0.0' => ['v8.0.0', RedisVersionEnum::GE80];
     }
 
     #[DataProvider('serverVersions')]
@@ -126,8 +127,26 @@ final class RedisVersionTest extends TestCase
         $versionDetector = new VersionDetector($recordingRedisClient, $recordingLogger);
 
         self::assertSame(RedisVersionEnum::GE60, $versionDetector->resolve());
-        self::assertStringContainsString('did not report redis_version', $recordingLogger->records[0]['message']);
+        self::assertStringContainsString('did not report a recognizable redis_version', $recordingLogger->records[0]['message']);
         self::assertNull((new VersionDetector((new RecordingRedisClient())->reply('INFO', ['not', 'a', 'string'])))->serverVersion());
+    }
+
+    public function testDetectorFallsBackWhenTheVersionIsNotRecognizable(): void
+    {
+        $recordingLogger = new RecordingLogger();
+        $recordingRedisClient = (new RecordingRedisClient())->reply('INFO', "# Server\r\nredis_version:unknown\r\n");
+
+        self::assertSame(RedisVersionEnum::GE60, (new VersionDetector($recordingRedisClient, $recordingLogger))->resolve());
+        self::assertSame(['warning', 'warning'], $recordingLogger->levels(), 'same path as a forbidden INFO');
+    }
+
+    public function testDetectorAcceptsAVersionPrefixAndStillRejectsOldServers(): void
+    {
+        self::assertSame(RedisVersionEnum::GE80, (new VersionDetector((new RecordingRedisClient())->reply('INFO', "redis_version: v8.0.1\r\n")))->resolve());
+
+        $this->expectException(VersionMismatchException::class);
+
+        (new VersionDetector((new RecordingRedisClient())->reply('INFO', "redis_version:5.0.14\r\n")))->resolve();
     }
 
     public function testOverrideNotAboveTheServerIsAccepted(): void

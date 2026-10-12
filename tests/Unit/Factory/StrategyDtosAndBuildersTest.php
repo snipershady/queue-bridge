@@ -261,7 +261,6 @@ final class StrategyDtosAndBuildersTest extends TestCase
 
         foreach ([
             StrategyDtoRabbitMq::fromConnection($connection),
-            StrategyDtoRabbitMq::fromConnection($connection, publisherConfirms: false),
             StrategyDtoRabbitMq::fromPhpAmqpLib($channel),
             StrategyDtoRabbitMq::fromConnectionFactory($factory),
         ] as $strategyDtoRabbitMq) {

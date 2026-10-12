@@ -51,13 +51,14 @@ final class PhpAmqpLibChannelTest extends TestCase
         self::assertSame([], $phpAmqpLibChannel->confirm(2500));
     }
 
-    public function testWithoutConfirmsConfirmDoesNotWait(): void
+    public function testConfirmModeFailureBecomesConnectionException(): void
     {
         $channel = $this->channel();
-        $channel->expects(self::never())->method('confirm_select');
-        $channel->expects(self::never())->method('wait_for_pending_acks_returns');
+        $channel->method('confirm_select')->willThrowException(new AMQPConnectionClosedException('closed'));
 
-        self::assertSame([], (new PhpAmqpLibChannel($channel, publisherConfirms: false))->confirm(100));
+        $this->expectException(ConnectionException::class);
+
+        new PhpAmqpLibChannel($channel);
     }
 
     public function testDeclarationsAndBindings(): void
@@ -70,7 +71,7 @@ final class PhpAmqpLibChannelTest extends TestCase
         $channel->expects(self::once())->method('queue_bind')->with('q', 'ex', '#');
         $channel->expects(self::once())->method('basic_qos')->with(0, 7, false);
 
-        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel, publisherConfirms: false);
+        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel);
         $phpAmqpLibChannel->declareExchange('ex', 'topic', ['a' => 1]);
         self::assertSame([4, 2], $phpAmqpLibChannel->declareQueue('q', ['x-queue-type' => 'quorum']));
         self::assertSame([0, 0], $phpAmqpLibChannel->declareQueue('q', passive: true));
@@ -83,7 +84,7 @@ final class PhpAmqpLibChannelTest extends TestCase
         $channel = $this->channel();
         $channel->method('queue_declare')->willReturn(['q', '4', '2']);
 
-        self::assertSame([0, 0], (new PhpAmqpLibChannel($channel, publisherConfirms: false))->declareQueue('q'));
+        self::assertSame([0, 0], (new PhpAmqpLibChannel($channel))->declareQueue('q'));
     }
 
     public function testQueuesAreDurableNonExclusiveAndNeverAutoDeleted(): void
@@ -93,7 +94,7 @@ final class PhpAmqpLibChannelTest extends TestCase
             ->with('q', false, true, false, false, false, self::isInstanceOf(AMQPTable::class))
             ->willReturn(['q', 0, 0]);
 
-        (new PhpAmqpLibChannel($channel, publisherConfirms: false))->declareQueue('q');
+        (new PhpAmqpLibChannel($channel))->declareQueue('q');
     }
 
     public function testConsumerRequiresExplicitAcknowledgements(): void
@@ -103,7 +104,7 @@ final class PhpAmqpLibChannelTest extends TestCase
             ->with('q', '', false, false, false, false, self::isInstanceOf(Closure::class))
             ->willReturn('ctag');
 
-        (new PhpAmqpLibChannel($channel, publisherConfirms: false))->consume('q', static function (AmqpMessage $amqpMessage): void {
+        (new PhpAmqpLibChannel($channel))->consume('q', static function (AmqpMessage $amqpMessage): void {
         });
     }
 
@@ -118,7 +119,7 @@ final class PhpAmqpLibChannelTest extends TestCase
                 return null;
             });
 
-        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel, publisherConfirms: false);
+        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel);
         $phpAmqpLibChannel->wait(0);
         $phpAmqpLibChannel->wait(250);
     }
@@ -128,7 +129,7 @@ final class PhpAmqpLibChannelTest extends TestCase
         $channel = $this->channel();
         $channel->method('queue_purge')->willReturnOnConsecutiveCalls(5, null);
 
-        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel, publisherConfirms: false);
+        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel);
 
         self::assertSame(5, $phpAmqpLibChannel->purgeQueue('dlq'));
         self::assertSame(0, $phpAmqpLibChannel->purgeQueue('dlq'));
@@ -148,7 +149,7 @@ final class PhpAmqpLibChannelTest extends TestCase
             return 'ctag';
         });
 
-        (new PhpAmqpLibChannel($channel, publisherConfirms: false))->consume('q', static function (AmqpMessage $amqpMessage) use (&$received): void {
+        (new PhpAmqpLibChannel($channel))->consume('q', static function (AmqpMessage $amqpMessage) use (&$received): void {
             $received[] = $amqpMessage;
         });
 
@@ -169,7 +170,7 @@ final class PhpAmqpLibChannelTest extends TestCase
             return null;
         });
 
-        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel, publisherConfirms: false);
+        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel);
 
         self::assertFalse($phpAmqpLibChannel->wait(500));
         self::assertTrue($phpAmqpLibChannel->wait(0));
@@ -184,7 +185,7 @@ final class PhpAmqpLibChannelTest extends TestCase
         $this->expectException(ConnectionException::class);
         $this->expectExceptionMessage('RabbitMQ backend is unreachable: closed');
 
-        (new PhpAmqpLibChannel($channel, publisherConfirms: false))->wait(100);
+        (new PhpAmqpLibChannel($channel))->wait(100);
     }
 
     public function testGet(): void
@@ -194,7 +195,7 @@ final class PhpAmqpLibChannelTest extends TestCase
         $nativeMessage->setDeliveryTag(3);
         $channel->method('basic_get')->with('dlq')->willReturnOnConsecutiveCalls($nativeMessage, null);
 
-        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel, publisherConfirms: false);
+        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel);
 
         self::assertSame(3, $phpAmqpLibChannel->get('dlq')?->deliveryTag);
         self::assertNull($phpAmqpLibChannel->get('dlq'));
@@ -210,7 +211,7 @@ final class PhpAmqpLibChannelTest extends TestCase
             return null;
         });
 
-        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel, publisherConfirms: false);
+        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel);
         $phpAmqpLibChannel->publish(new AmqpMessage('body', ['x-qb-v' => '1'], 'm-1'), 'ex', 'rk');
         $phpAmqpLibChannel->publish(new AmqpMessage('anonymous'), '', 'q');
 
@@ -232,7 +233,7 @@ final class PhpAmqpLibChannelTest extends TestCase
         $channel->method('is_open')->willReturn(true);
         $channel->expects(self::exactly(2))->method('close')->willReturnOnConsecutiveCalls(null, self::throwException(new RuntimeException('already closed')));
 
-        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel, publisherConfirms: false);
+        $phpAmqpLibChannel = new PhpAmqpLibChannel($channel);
         $phpAmqpLibChannel->ack(4);
         $phpAmqpLibChannel->nack(5, requeue: true);
 
@@ -249,7 +250,7 @@ final class PhpAmqpLibChannelTest extends TestCase
         $this->expectException(CommandFailedException::class);
         $this->expectExceptionMessage("queue.declare failed: NOT_FOUND - no queue 'q'");
 
-        (new PhpAmqpLibChannel($channel, publisherConfirms: false))->declareQueue('q', passive: true);
+        (new PhpAmqpLibChannel($channel))->declareQueue('q', passive: true);
     }
 
     public function testOtherErrorsBecomeConnectionException(): void

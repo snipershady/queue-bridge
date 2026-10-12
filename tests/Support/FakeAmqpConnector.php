@@ -9,7 +9,8 @@ use QueueBridge\Transport\RabbitMq\Client\AmqpChannelInterface;
 use QueueBridge\Transport\RabbitMq\Client\AmqpConnectorInterface;
 
 /**
- * Connector finto: un canale "riaperto" dopo reset() è lo stesso FakeAmqpChannel con una generazione nuova.
+ * Connector finto: un canale "riaperto" dopo reset(), o dopo una chiusura del broker (open = false), è lo stesso
+ * FakeAmqpChannel con una generazione nuova.
  */
 final class FakeAmqpConnector implements AmqpConnectorInterface
 {
@@ -26,7 +27,7 @@ final class FakeAmqpConnector implements AmqpConnectorInterface
     #[Override]
     public function channel(): AmqpChannelInterface
     {
-        if (!$this->current) {
+        if (!$this->current || !$this->channel->open) {
             $this->current = true;
             $this->channel->open = true;
             ++$this->generation;

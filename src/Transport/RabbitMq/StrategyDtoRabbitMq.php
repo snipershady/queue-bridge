@@ -45,22 +45,22 @@ final readonly class StrategyDtoRabbitMq implements StrategyDtoInterface
      *
      * @throws InvalidArgumentException se il canale non ha più una connessione
      */
-    public static function fromPhpAmqpLib(AMQPChannel $channel, bool $publisherConfirms = true): self
+    public static function fromPhpAmqpLib(AMQPChannel $channel): self
     {
         $connection = $channel->getConnection();
         if (!$connection instanceof AbstractConnection) {
             throw new InvalidArgumentException('The AMQP channel is not attached to a connection.');
         }
 
-        return self::fromConnection($connection, $publisherConfirms);
+        return self::fromConnection($connection);
     }
 
     /**
      * Complessità: O(1).
      */
-    public static function fromConnection(AbstractConnection $connection, bool $publisherConfirms = true): self
+    public static function fromConnection(AbstractConnection $connection): self
     {
-        return new self(new PhpAmqpLibConnector($connection, $publisherConfirms));
+        return new self(new PhpAmqpLibConnector($connection));
     }
 
     /**
@@ -70,9 +70,9 @@ final readonly class StrategyDtoRabbitMq implements StrategyDtoInterface
      *
      * @param Closure(): AbstractConnection $factory
      */
-    public static function fromConnectionFactory(Closure $factory, bool $publisherConfirms = true): self
+    public static function fromConnectionFactory(Closure $factory): self
     {
-        return new self(new PhpAmqpLibConnector($factory, $publisherConfirms));
+        return new self(new PhpAmqpLibConnector($factory));
     }
 
     /**

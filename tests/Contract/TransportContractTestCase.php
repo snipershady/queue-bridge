@@ -22,6 +22,7 @@ use QueueBridge\Transport\Capability\MaintenanceAwareInterface;
 use QueueBridge\Transport\Capability\PurgeAwareInterface;
 use QueueBridge\Transport\Capability\SetupAwareInterface;
 use QueueBridge\Transport\Capability\StatsAwareInterface;
+use QueueBridge\Transport\DeadLetter;
 use QueueBridge\Transport\OrphanRecovery;
 use QueueBridge\Transport\QueuedMessage;
 use QueueBridge\Transport\QueuedMessageState;
@@ -107,6 +108,37 @@ abstract class TransportContractTestCase extends TestCase
         self::assertSame([], $this->receive($transport, 10));
     }
 
+    final public function testBatchAckWithStaleAndFreshReceiptsConfirmsOnlyTheFreshOnes(): void
+    {
+        $transport = $this->transport();
+        $transport->send($this->message('test', 'one'));
+
+        $stale = $this->receive($transport, 1);
+        self::assertCount(1, $stale);
+
+        $this->crash($transport);
+        $transport->send($this->message('test', 'two'));
+        $fresh = [];
+        while (\count($fresh) < 2 && [] !== ($batch = $this->receive($transport, 2))) {
+            array_push($fresh, ...$batch);
+        }
+
+        self::assertCount(2, $fresh);
+        $two = array_values(array_filter($fresh, static fn (Delivery $delivery): bool => 'two' === $delivery->message->text));
+        self::assertCount(1, $two);
+
+        // Una ricevuta non più posseduta nel batch non deve far fallire né annullare la conferma delle altre.
+        if ($transport instanceof BatchAckAwareInterface) {
+            $transport->ackBatch([...$stale, ...$two]);
+        } else {
+            $transport->ack($stale[0]);
+            $transport->ack($two[0]);
+        }
+
+        $this->crash($transport);
+        self::assertNotContains('two', $this->texts($this->drain($transport)), 'the fresh delivery was confirmed');
+    }
+
     final public function testUnacknowledgedMessageIsRecoveredWithIncreasingDeliveryCount(): void
     {
         $transport = $this->transport();
@@ -152,6 +184,11 @@ abstract class TransportContractTestCase extends TestCase
 
         $transport->ack($stale);
         $transport->release($stale);
+        $transport->retry($stale, 0);
+        $transport->reject($stale, new FailureReason(FailureKind::Unrecoverable, $stale->message->id, $this->clock()->now()));
+        if ($transport instanceof DeadLetterAwareInterface) {
+            self::assertSame([], $transport->deadLetters(), 'a stale reject does not reach the dead letter queue');
+        }
 
         // L'ack della vecchia consegna non ha confermato quella nuova: dopo claimIdle torna di nuovo.
         $this->crash($consumer);
@@ -214,6 +251,34 @@ abstract class TransportContractTestCase extends TestCase
         self::assertSame(['delayed'], $this->texts($this->drain($transport)));
     }
 
+    final public function testSendBatchHonoursTheDelayOfEachEnvelope(): void
+    {
+        $transport = $this->transport();
+        $transport->sendBatch([
+            new Envelope($this->message('test', 'later'), 2000),
+            new Envelope($this->message('test', 'now')),
+        ]);
+
+        self::assertSame(['now'], $this->texts($this->drain($transport)));
+
+        $this->maintain($transport, 2500);
+
+        self::assertSame(['later'], $this->texts($this->drain($transport)));
+    }
+
+    final public function testDelayedMessagesBecomeAvailableInOrderOfDueTime(): void
+    {
+        $transport = $this->transport();
+        // RabbitMQ ordina per scadenza solo tra scaglioni diversi: i ritardi devono cadere in scaglioni distinti.
+        $later = 2000 + $this->delayResolutionMs();
+        $transport->send($this->message('test', 'second'), $later);
+        $transport->send($this->message('test', 'first'), 1000);
+
+        $this->maintain($transport, $later + 1500);
+
+        self::assertSame(['first', 'second'], $this->texts($this->drain($transport)));
+    }
+
     final public function testRejectMovesToDeadLetterQueueAndRequeueResetsAttempts(): void
     {
         $transport = $this->transport();
@@ -274,6 +339,31 @@ abstract class TransportContractTestCase extends TestCase
         self::assertSame(1, $transport->purgeDeadLetters());
         self::assertSame([], $transport->deadLetters());
         self::assertSame(0, $transport->purgeDeadLetters());
+    }
+
+    final public function testDeadLetterQueueKeepsTheNewestMessagesWithinItsRetention(): void
+    {
+        $transport = $this->createTransport(new QueueConfig(name: 'contract', claimIdleMs: self::CLAIM_IDLE_MS, dlqMaxLength: 2));
+        if (!$transport instanceof DeadLetterAwareInterface) {
+            self::markTestSkipped('Transport without dead letter queue.');
+        }
+
+        foreach (['oldest', 'middle', 'newest'] as $text) {
+            $message = $this->message('test', $text);
+            $transport->send($message);
+            [$delivery] = $this->receive($transport, 1);
+            $transport->reject($delivery, new FailureReason(FailureKind::Unrecoverable, $message->id, $this->clock()->now()));
+        }
+
+        $texts = array_map(static fn (DeadLetter $deadLetter): string => $deadLetter->message->text, $transport->deadLetters(10));
+        if ($this->deadLetterRetentionIsExact()) {
+            self::assertSame(['middle', 'newest'], $texts);
+
+            return;
+        }
+
+        // Retention approssimata (Redis, MAXLEN ~): mai meno messaggi del limite, e i più recenti restano.
+        self::assertSame(['middle', 'newest'], \array_slice($texts, -2));
     }
 
     final public function testReleaseReturnsTheMessageWithoutCountingAnAttempt(): void
@@ -373,6 +463,28 @@ abstract class TransportContractTestCase extends TestCase
         self::assertSame(0, $queueStats->deadLetters);
         if ($transport->capabilities()->consumerLag) {
             self::assertSame(1, $queueStats->lag);
+        }
+    }
+
+    final public function testStatsAfterReleaseCountTheReleasedMessageAsReadyAndUnread(): void
+    {
+        $transport = $this->transport();
+        if (!$transport instanceof StatsAwareInterface) {
+            self::markTestSkipped('Transport without stats.');
+        }
+
+        $transport->send($this->message('test', 'released'));
+        $transport->send($this->message('test', 'untouched'));
+        [$delivery] = $this->receive($transport, 1);
+        $transport->release($delivery);
+        // Su RabbitMQ il nack è asincrono: subito dopo il messaggio può essere in transito verso il consumer.
+        $this->advanceTimeMs(200);
+
+        $queueStats = $transport->stats();
+
+        self::assertSame([2, 0], [$queueStats->ready, $queueStats->inFlight]);
+        if ($transport->capabilities()->consumerLag) {
+            self::assertSame(2, $queueStats->lag, 'a released message is unread again, as a new stream entry is on Redis');
         }
     }
 
@@ -561,6 +673,23 @@ abstract class TransportContractTestCase extends TestCase
     abstract protected function advanceTimeMs(int $milliseconds): void;
 
     abstract protected function clock(): ClockInterface;
+
+    /**
+     * Ritardo oltre il quale due differiti tornano disponibili in ordine di scadenza: 0 per i backend con ritardo
+     * esatto; RabbitMQ ordina solo tra scaglioni diversi (precisione di circa uno scaglione).
+     */
+    protected function delayResolutionMs(): int
+    {
+        return 0;
+    }
+
+    /**
+     * false per i backend che applicano `dlqMaxLength` in modo approssimato (Redis, MAXLEN ~).
+     */
+    protected function deadLetterRetentionIsExact(): bool
+    {
+        return true;
+    }
 
     /**
      * false per i backend che elencano solo i messaggi pronti (RabbitMQ).

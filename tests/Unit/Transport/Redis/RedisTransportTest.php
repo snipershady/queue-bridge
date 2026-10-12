@@ -294,7 +294,7 @@ final class RedisTransportTest extends TestCase
     public function testReceiveMovesUndecodableEntriesToTheDeadLetterQueue(): void
     {
         $recordingLogger = new RecordingLogger();
-        $this->recordingRedisClient->reply('XREADGROUP', [[self::STREAM, [['5-0', ['v', '9', 'id', self::ID]]]]]);
+        $this->recordingRedisClient->reply('XREADGROUP', [[self::STREAM, [['5-0', ['v', '9', 'id', self::ID]]]]])->reply('EVALSHA', 0)->reply('EVALSHA', 1);
 
         self::assertSame([], $this->transport(logger: $recordingLogger)->receive());
 
@@ -339,6 +339,25 @@ final class RedisTransportTest extends TestCase
         self::assertSame(['EVALSHA', sha1(RedisScripts::ack()), '1', self::STREAM, 'queue-bridge', 'consumer-1', 'xackdel', '1-0', '2-0'], $this->recordingRedisClient->commands[0]);
         self::assertSame(['EVALSHA', sha1(RedisScripts::ack()), '1', self::STREAM, 'queue-bridge', 'consumer-1', 'xack_xdel', '3-0'], $this->recordingRedisClient->commands[1]);
         self::assertCount(2, $this->recordingRedisClient->commands);
+    }
+
+    public function testDeliveriesNoLongerOwnedAreIgnoredWithADebugLog(): void
+    {
+        $recordingLogger = new RecordingLogger();
+        $redisTransport = $this->transport(logger: $recordingLogger);
+        $this->recordingRedisClient->reply('EVALSHA', 2)->reply('EVALSHA', 1)->reply('EVALSHA', 1);
+
+        $redisTransport->ackBatch([$this->delivery('1-0'), $this->delivery('2-0')]);
+        $redisTransport->ack($this->delivery('3-0'));
+        $redisTransport->release($this->delivery('4-0'));
+        self::assertSame([], $recordingLogger->levels(), 'owned deliveries: nothing to report');
+
+        $redisTransport->ackBatch([$this->delivery('5-0'), $this->delivery('6-0')]);
+        $redisTransport->retry($this->delivery('7-0'), 0);
+
+        self::assertSame(['debug', 'debug'], $recordingLogger->levels());
+        self::assertSame(['count' => 2], $recordingLogger->records[0]['context']);
+        self::assertSame(['target' => 'stream', 'id' => '7-0'], $recordingLogger->records[1]['context']);
     }
 
     public function testRetryNowAddsTheNextAttemptToTheStream(): void

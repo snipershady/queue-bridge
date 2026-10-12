@@ -50,7 +50,8 @@ use QueueBridge\Transport\TransportInterface;
  * - Gli orfani vengono rimessi in coda (non assegnati a chi fa manutenzione), con il totale delle consegne
  *   nel campo `deliveries`; su Redis >= 8.4 li recupera direttamente XREADGROUP ... CLAIM.
  * - I differiti stanno in un sorted set e vengono promossi a ogni receive() e in maintain().
- * - Le entry non decodificabili vanno in DLQ con FailureKind::Serialization e non raggiungono il worker.
+ * - Le entry non decodificabili vanno in DLQ con FailureKind::Serialization e non raggiungono il worker; un
+ *   differito corrotto (membro non JSON) entra nello stream come entry non decodificabile e segue la stessa via.
  * - purge() svuota a pagine (uno script atomico per pagina) fino all'ultima entry presente all'inizio:
  *   non blocca Redis con backlog grandi e non insegue i messaggi pubblicati nel frattempo.
  *
@@ -233,11 +234,15 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
             return;
         }
 
-        $this->scripts->run(
+        $acked = RedisReply::int($this->scripts->run(
             RedisScripts::ack(),
             [$this->keys->stream()],
             [$this->keys->group(), $this->consumer, $this->features->ack->mode(), ...array_map(static fn (Delivery $delivery): string => $delivery->receipt, $deliveries)],
-        );
+        ), 'ack');
+
+        if ($acked < \count($deliveries)) {
+            $this->logger->debug('Ignored the ack of {count} delivery(ies) no longer owned by this consumer.', ['count' => \count($deliveries) - $acked]);
+        }
     }
 
     /**
@@ -676,11 +681,15 @@ final readonly class RedisTransport implements TransportInterface, SetupAwareInt
      */
     private function settle(string $receipt, string $target, string $score, string $member, array $fields): void
     {
-        $this->scripts->run(
+        $settled = RedisReply::int($this->scripts->run(
             RedisScripts::settle(),
             [$this->keys->stream(), $this->keys->delayed(), $this->keys->deadLetters()],
             [$this->keys->group(), $this->consumer, $this->features->ack->mode(), $receipt, $target, $score, $member, ...$this->flatten($fields)],
-        );
+        ), 'settle');
+
+        if (0 === $settled) {
+            $this->logger->debug('Ignored the {target} of entry {id}: no longer owned by this consumer.', ['target' => $target, 'id' => $receipt]);
+        }
     }
 
     /**

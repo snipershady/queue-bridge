@@ -85,12 +85,20 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
     }
 
     /**
+     * Gli envelope vengono letti tutti prima di accodarli: un errore durante l'iterazione non lascia il batch
+     * accodato a metà (come su Redis, che costruisce la pipeline prima di inviarla).
+     *
      * Complessità: O(n), n = messaggi.
      */
     #[Override]
     public function sendBatch(iterable $envelopes): void
     {
+        $batch = [];
         foreach ($envelopes as $envelope) {
+            $batch[] = $envelope;
+        }
+
+        foreach ($batch as $envelope) {
             $this->send($envelope->message, $envelope->delayMs);
         }
     }
@@ -173,14 +181,16 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
     }
 
     /**
-     * Complessità: O(r), r = messaggi pronti.
+     * Rimette il messaggio in fondo ai pronti, come Redis: l'ordine dopo un release non è garantito su nessun backend.
+     *
+     * Complessità: O(1) ammortizzato.
      */
     #[Override]
     public function release(Delivery $delivery): void
     {
         $inMemoryEntry = $this->inMemoryBroker->settle($delivery->receipt);
         if ($inMemoryEntry instanceof InMemoryEntry) {
-            $this->inMemoryBroker->pushFront($inMemoryEntry);
+            $this->inMemoryBroker->pushBack($inMemoryEntry);
         }
     }
 
@@ -224,19 +234,23 @@ final readonly class InMemoryTransport implements TransportInterface, SetupAware
     }
 
     /**
-     * Complessità: O(d log d + r), d = differiti, r = messaggi pronti.
+     * Sola lettura, come su Redis: un differito già scaduto resta tra i differiti finché receive() o maintain() non
+     * lo promuovono. Il lag sono i messaggi pronti non ancora letti, comprese le copie rimesse in coda da release()
+     * o dal recupero degli orfani (su Redis sono entry nuove dello stream).
+     *
+     * Complessità: O(1).
      */
     #[Override]
     public function stats(): QueueStats
     {
-        $this->inMemoryBroker->promoteDue($this->nowMs());
+        $ready = $this->inMemoryBroker->readyCount();
 
         return new QueueStats(
-            ready: $this->inMemoryBroker->readyCount(),
+            ready: $ready,
             inFlight: $this->inMemoryBroker->inFlightCount(),
             delayed: $this->inMemoryBroker->delayedCount(),
             deadLetters: $this->inMemoryBroker->deadLetterCount(),
-            lag: $this->inMemoryBroker->neverDeliveredCount(),
+            lag: $ready,
         );
     }
 

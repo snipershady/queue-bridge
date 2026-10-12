@@ -21,6 +21,8 @@ use QueueBridge\Transport\DeadLetter;
 use QueueBridge\Transport\QueuedMessage;
 use QueueBridge\Transport\QueueStats;
 use QueueBridge\Worker\WorkerConfig;
+use QueueBridge\Worker\WorkerInterface;
+use Throwable;
 
 /**
  * CLI `bin/queue-worker`. Exit code: 0 ok, 1 errore del backend, 2 errore d'uso.
@@ -51,19 +53,35 @@ final readonly class Application
 
         Options:
           --dsn=<dsn>          Backend DSN (or the QUEUE_DSN environment variable):
-                               redis[s]://[user:pass@]host[:port][/db][?version=&client=&consumer=]
-                               amqp[s]://user:pass@host[:port][/vhost][?prefetch=&confirms=&tiers=]
+                               redis[s]://[user:pass@]host[:port][/db][?version=&client=&consumer=&verify_version=&timeout=]
+                               amqp[s]://user:pass@host[:port][/vhost][?prefetch=&tiers=&heartbeat=&timeout=&rpc_timeout=]
                                memory://
           --strategy=<name>    redis | rabbitmq | in-memory (must match the DSN scheme)
           --queue=<name>       Queue name (default: default)
           --prefix=<prefix>    Key/resource prefix (default: rq)
           --json               JSON output (stats, queue:list, dlq:list)
           -v | -vv             More log output (info | debug)
+          Unknown options are an error.
           -h, --help           Show this help
 
         Worker options:
           --batch-size=<n> --timeout=<ms> --max-messages=<n> --max-runtime=<s> --memory-limit=<mb> --stop-when-empty
         TXT;
+
+    /** Opzioni comuni a tutti i comandi. */
+    private const array COMMON_OPTIONS = ['dsn', 'strategy', 'queue', 'prefix', 'help'];
+
+    /** Opzioni proprie di ogni comando. */
+    private const array COMMAND_OPTIONS = [
+        'work' => ['bootstrap', 'batch-size', 'timeout', 'max-messages', 'max-runtime', 'memory-limit', 'stop-when-empty'],
+        'stats' => ['json'],
+        'ping' => [],
+        'queue:list' => ['limit', 'json'],
+        'queue:purge' => ['force'],
+        'dlq:list' => ['limit', 'json'],
+        'dlq:requeue' => ['limit', 'id'],
+        'dlq:purge' => ['force'],
+    ];
 
     /** @var Closure(LoggerInterface): QueueFactoryInterface */
     private Closure $queueFactory;
@@ -99,6 +117,8 @@ final readonly class Application
                 return null === $input->command && !$input->flag('help') ? self::USAGE : self::SUCCESS;
             }
 
+            $options = self::COMMAND_OPTIONS[$input->command] ?? throw new UsageException(\sprintf('Unknown command "%s". Run with --help for the list of commands.', $input->command));
+            $input->assertOptions($input->command, [...self::COMMON_OPTIONS, ...$options]);
             $logger = new ConsoleLogger($this->output, $input->verbosity);
 
             return match ($input->command) {
@@ -109,8 +129,7 @@ final readonly class Application
                 'queue:purge' => $this->queuePurge($input, $logger),
                 'dlq:list' => $this->deadLetterList($input, $logger),
                 'dlq:requeue' => $this->deadLetterRequeue($input, $logger),
-                'dlq:purge' => $this->deadLetterPurge($input, $logger),
-                default => throw new UsageException(\sprintf('Unknown command "%s". Run with --help for the list of commands.', $input->command)),
+                default => $this->deadLetterPurge($input, $logger),
             };
         } catch (InvalidArgumentException $invalidArgumentException) {
             $this->output->error('Error: '.$invalidArgumentException->getMessage());
@@ -130,27 +149,53 @@ final readonly class Application
             throw new UsageException(\sprintf('Bootstrap file "%s" not found.', $bootstrap));
         }
 
-        $configure = (static fn (string $file): mixed => require $file)($bootstrap);
-        if (!$configure instanceof Closure) {
-            throw new UsageException(\sprintf('Bootstrap file "%s" must return a Closure(WorkerInterface): void.', $bootstrap));
-        }
-
-        $queue = $this->queue($input, $logger);
-        $queue->setup();
-
-        $worker = $queue->worker(new WorkerConfig(
+        // Opzioni e DSN prima del bootstrap: un errore d'uso non deve eseguire il codice dell'applicazione.
+        $workerConfig = new WorkerConfig(
             batchSize: $input->int('batch-size', 10) ?? 10,
             receiveTimeoutMs: $input->int('timeout', 1000, 0) ?? 1000,
             maxMessages: $input->int('max-messages', default: null),
             maxRuntimeSeconds: $input->int('max-runtime', default: null),
             memoryLimitMb: $input->int('memory-limit', default: null),
             stopWhenEmpty: $input->flag('stop-when-empty'),
-        ));
-        $configure($worker);
+        );
+        $queue = $this->queue($input, $logger);
+
+        $configure = $this->bootstrap($bootstrap);
+        $queue->setup();
+
+        $worker = $queue->worker($workerConfig);
+
+        try {
+            $configure($worker);
+        } catch (InvalidArgumentException|QueueException $exception) {
+            throw $exception;
+        } catch (Throwable $throwable) {
+            throw new UsageException(\sprintf('Bootstrap file "%s" failed to register the handlers: %s', $bootstrap, $throwable->getMessage()), 0, $throwable);
+        }
 
         $this->output->line('Worker stopped: '.$worker->run()->value);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @throws UsageException se il file non si carica o non restituisce una Closure
+     *
+     * @return Closure(WorkerInterface): mixed
+     */
+    private function bootstrap(string $file): Closure
+    {
+        try {
+            $configure = (static fn (string $file): mixed => require $file)($file);
+        } catch (Throwable $throwable) {
+            throw new UsageException(\sprintf('Bootstrap file "%s" failed: %s', $file, $throwable->getMessage()), 0, $throwable);
+        }
+
+        if (!$configure instanceof Closure) {
+            throw new UsageException(\sprintf('Bootstrap file "%s" must return a Closure(WorkerInterface): void.', $file));
+        }
+
+        return $configure;
     }
 
     private function stats(Input $input, LoggerInterface $logger): int

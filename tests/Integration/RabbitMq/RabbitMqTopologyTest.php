@@ -12,6 +12,9 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use QueueBridge\Config\QueueConfig;
+use QueueBridge\Exception\CommandFailedException;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
 use QueueBridge\Message\Message;
 use QueueBridge\System\SystemClock;
 use QueueBridge\System\UuidV7Generator;
@@ -135,6 +138,45 @@ final class RabbitMqTopologyTest extends TestCase
         $rabbitMqTransport->send($this->message('after channel error'));
 
         self::assertSame('after channel error', $rabbitMqTransport->receive(1, 1000)[0]->message->text);
+    }
+
+    public function testDeadLetterOperationsBeforeSetupReturnEmptyResults(): void
+    {
+        $rabbitMqTransport = $this->transport();
+
+        self::assertSame([], $rabbitMqTransport->deadLetters());
+        self::assertSame(0, $rabbitMqTransport->requeueDeadLetters());
+        self::assertFalse($rabbitMqTransport->requeueDeadLetter($this->message('x')->id));
+        self::assertSame(0, $rabbitMqTransport->purgeDeadLetters());
+
+        $rabbitMqTransport->setup();
+        $rabbitMqTransport->send($this->message('after setup'));
+        self::assertSame('after setup', $rabbitMqTransport->receive(1, 1000)[0]->message->text);
+    }
+
+    public function testRejectIsNotAcknowledgedWhenTheBrokerCannotRouteTheCopy(): void
+    {
+        $rabbitMqTransport = $this->transport();
+        $rabbitMqTransport->setup();
+        $rabbitMqTransport->send($message = $this->message('must survive'));
+        [$delivery] = $rabbitMqTransport->receive(1, 1000);
+
+        // DLQ cancellata da fuori: la copia non è instradabile (basic.return), quindi l'originale non va confermato.
+        $connection = $this->connection();
+        $connection->channel()->queue_delete((new Topology($this->queueConfig, new RetryTiers()))->deadLetterQueue);
+        $connection->close();
+
+        try {
+            $rabbitMqTransport->reject($delivery, new FailureReason(FailureKind::Unrecoverable, $message->id, $this->systemClock->now()));
+            self::fail('Expected CommandFailedException');
+        } catch (CommandFailedException $commandFailedException) {
+            self::assertStringContainsString('was not confirmed', $commandFailedException->getMessage());
+        }
+
+        $again = $rabbitMqTransport->receive(1, 2000);
+        self::assertCount(1, $again);
+        self::assertTrue($again[0]->message->id->equals($message->id));
+        self::assertSame(2, $again[0]->deliveryCount);
     }
 
     public function testReconnectsAfterTheConnectionDrops(): void

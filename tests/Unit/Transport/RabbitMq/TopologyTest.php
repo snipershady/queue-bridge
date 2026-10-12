@@ -38,7 +38,7 @@ final class TopologyTest extends TestCase
     {
         $fakeAmqpChannel = new FakeAmqpChannel();
 
-        (new Topology(new QueueConfig(name: 'messages', maxAttempts: 2, maxDeliveries: 7), new RetryTiers([1000])))->declare($fakeAmqpChannel);
+        (new Topology(new QueueConfig(name: 'messages', maxAttempts: 2, maxDeliveries: 7, dlqMaxLength: 500), new RetryTiers([1000])))->declare($fakeAmqpChannel);
 
         self::assertSame([['rq.messages', 'topic']], $fakeAmqpChannel->declaredExchanges);
         self::assertSame([['rq.messages', 'rq.messages', '#']], $fakeAmqpChannel->bindings);
@@ -51,7 +51,7 @@ final class TopologyTest extends TestCase
                 'x-dead-letter-strategy' => 'at-least-once',
                 'x-overflow' => 'reject-publish',
             ], false],
-            ['rq.messages.dlq', ['x-queue-type' => 'classic'], false],
+            ['rq.messages.dlq', ['x-queue-type' => 'classic', 'x-max-length' => 500, 'x-overflow' => 'drop-head'], false],
             ['rq.messages.retry.1000', [
                 'x-queue-type' => 'quorum',
                 'x-message-ttl' => 1000,

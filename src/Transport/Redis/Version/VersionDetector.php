@@ -27,7 +27,9 @@ final readonly class VersionDetector
     }
 
     /**
-     * Versione del server da `INFO server`; null se il comando è vietato (ACL) o la risposta non la contiene.
+     * Versione del server da `INFO server`; null se il comando è vietato (ACL) o la risposta non contiene una
+     * versione riconoscibile (`major.minor`): in entrambi i casi resolve() ripiega sulla baseline con un warning.
+     * Una versione riconoscibile ma sotto 6.0 resta invece un errore (server non supportato).
      *
      * Complessità: O(i), i = dimensione della risposta di INFO server; un round trip.
      */
@@ -41,11 +43,11 @@ final readonly class VersionDetector
             return null;
         }
 
-        if (\is_string($info) && 1 === \preg_match('/^redis_version:([^\r\n]+)/m', $info, $matches)) {
+        if (\is_string($info) && 1 === \preg_match('/^redis_version:[ \t]*(v?\d+\.\d+[^\r\n]*)/m', $info, $matches)) {
             return \trim($matches[1]);
         }
 
-        $this->logger->warning('INFO server did not report redis_version.');
+        $this->logger->warning('INFO server did not report a recognizable redis_version.');
 
         return null;
     }

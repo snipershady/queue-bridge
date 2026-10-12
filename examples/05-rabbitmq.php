@@ -30,6 +30,7 @@ require __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Support/Backend.php';
 
 // The connector reopens the channel after every AMQP error and, with a factory, the whole connection.
+// Publisher confirms are always on: retry, reject and requeue ack the original only after the broker confirms the copy.
 $connector = new PhpAmqpLibConnector(
     static fn (): AbstractConnection => new AMQPStreamConnection(
         Backend::env('AMQP_HOST', '127.0.0.1'),
@@ -38,7 +39,6 @@ $connector = new PhpAmqpLibConnector(
         Backend::env('AMQP_PASSWORD', 'guest'),
         heartbeat: 0, // see the README: a synchronous worker cannot answer heartbeats during a long handler
     ),
-    publisherConfirms: true,
 );
 
 // Delays and retries use wait queues with fixed TTLs: one per tier (here 1 s, 10 s, 1 min).

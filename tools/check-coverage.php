@@ -43,7 +43,14 @@ function main(array $arguments): int
         $counts[$total] = [(int) $metrics[$total], (int) $metrics[$covered]];
     }
 
-    if ($counts['methods'][0] > 0 && 0 === $counts['conditionals'][0]) {
+    if (0 === $counts['methods'][0] || 0 === $counts['statements'][0]) {
+        // Tutti i confronti sarebbero 0 === 0: un <source> o un filtro della suite sbagliati non devono passare.
+        fwrite(\STDERR, "Il report è vuoto (nessun metodo o istruzione misurati): controlla <source> e la suite eseguita.\n");
+
+        return 1;
+    }
+
+    if (0 === $counts['conditionals'][0]) {
         fwrite(\STDERR, "Il report non contiene la branch coverage: generalo con Xdebug e --path-coverage.\n");
 
         return 1;

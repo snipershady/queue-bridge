@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace QueueBridge\Tests\Unit\Transport\InMemory;
 
+use Generator;
 use InvalidArgumentException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -31,6 +32,7 @@ use QueueBridge\Transport\QueuedMessage;
 use QueueBridge\Transport\QueueStats;
 use QueueBridge\Transport\TransportCapabilities;
 use QueueBridge\Transport\TransportInterface;
+use RuntimeException;
 
 #[CoversClass(InMemoryTransport::class)]
 #[CoversClass(InMemoryBroker::class)]
@@ -160,7 +162,7 @@ final class InMemoryTransportTest extends TransportContractTestCase
         self::assertSame(['a', 'c'], array_map(static fn (DeadLetter $deadLetter): string => $deadLetter->message->text, $inMemoryTransport->deadLetters()));
     }
 
-    public function testStatsCountsDueDelayedMessagesAsReady(): void
+    public function testStatsIsReadOnlyAndKeepsDueDelayedMessagesAsDelayed(): void
     {
         $inMemoryTransport = $this->inMemory();
         $inMemoryTransport->send($this->message('test', 'delayed'), 1000);
@@ -168,11 +170,15 @@ final class InMemoryTransportTest extends TransportContractTestCase
         $this->fakeClock->advanceMs(1000);
         $queueStats = $inMemoryTransport->stats();
 
-        self::assertSame(1, $queueStats->ready);
-        self::assertSame(0, $queueStats->delayed);
+        // Come su Redis (ZCARD): la promozione avviene solo in receive() e maintain().
+        self::assertSame([0, 1], [$queueStats->ready, $queueStats->delayed]);
+        self::assertSame([0, 1], [$inMemoryTransport->stats()->ready, $inMemoryTransport->stats()->delayed]);
+
+        self::assertSame(1, $inMemoryTransport->maintain()->promotedDelayed);
+        self::assertSame([1, 0], [$inMemoryTransport->stats()->ready, $inMemoryTransport->stats()->delayed]);
     }
 
-    public function testStatsLagCountsOnlyNeverDeliveredMessages(): void
+    public function testStatsLagCountsEveryUnreadMessageIncludingReleasedOnes(): void
     {
         $inMemoryTransport = $this->inMemory();
         $inMemoryTransport->send($this->message('test', 'released'));
@@ -182,9 +188,40 @@ final class InMemoryTransportTest extends TransportContractTestCase
 
         $queueStats = $inMemoryTransport->stats();
 
+        // Su Redis il release aggiunge una entry nuova allo stream, che il gruppo non ha ancora letto.
         self::assertSame(2, $queueStats->ready);
-        self::assertSame(1, $queueStats->lag);
+        self::assertSame(2, $queueStats->lag);
         self::assertNull($queueStats->consumers);
+    }
+
+    public function testReleaseMovesTheMessageBehindTheOthersLikeRedis(): void
+    {
+        $inMemoryTransport = $this->inMemory();
+        $inMemoryTransport->send($this->message('test', 'first'));
+        $inMemoryTransport->send($this->message('test', 'second'));
+        [$delivery] = $inMemoryTransport->receive();
+        $inMemoryTransport->release($delivery);
+
+        self::assertSame(['second', 'first'], $this->texts($inMemoryTransport->receive(10)));
+    }
+
+    public function testSendBatchEnqueuesNothingWhenTheIterableFails(): void
+    {
+        $inMemoryTransport = $this->inMemory();
+        $first = $this->message('test', 'first');
+
+        try {
+            $inMemoryTransport->sendBatch((static function () use ($first): Generator {
+                yield new Envelope($first);
+
+                throw new RuntimeException('source failed');
+            })());
+            self::fail('Expected RuntimeException');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame('source failed', $runtimeException->getMessage());
+        }
+
+        self::assertSame(0, $inMemoryTransport->stats()->ready);
     }
 
     public function testDeadLettersRejectsNonPositiveLimit(): void

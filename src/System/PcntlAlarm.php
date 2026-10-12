@@ -8,7 +8,8 @@ use InvalidArgumentException;
 use Override;
 
 /**
- * Allarme basato su SIGALRM (`ext-pcntl`), con risoluzione al secondo.
+ * Allarme basato su SIGALRM (`ext-pcntl`), con risoluzione al secondo. Senza `ext-pcntl` isSupported() è false
+ * e chi lo usa (TimeoutMiddleware) non pianifica nulla.
  *
  * @api
  */
@@ -20,7 +21,7 @@ final readonly class PcntlAlarm implements AlarmInterface
     #[Override]
     public function isSupported(): bool
     {
-        return true;
+        return \function_exists('pcntl_alarm');
     }
 
     /**

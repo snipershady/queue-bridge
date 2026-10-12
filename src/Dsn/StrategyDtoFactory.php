@@ -27,13 +27,19 @@ use Redis;
  * comando, e dopo una caduta vengono ricreate.
  *
  * Opzioni Redis: `client` (phpredis | predis; default phpredis se ext-redis è caricata), `version`
- * (6.0 … 8.4), `verify_version` (bool), `consumer`, `timeout` (s). Opzioni AMQP: `prefetch`, `confirms`
- * (bool), `heartbeat` (s), `timeout` (s), `tiers` (ms separati da virgola).
+ * (6.0 … 8.4), `verify_version` (bool), `consumer`, `timeout` (s). Opzioni AMQP: `prefetch`, `heartbeat` (s),
+ * `timeout` (s, connessione), `rpc_timeout` (s, attesa di una risposta del broker, default 10; il timeout di
+ * lettura/scrittura del socket sale a pari se è più basso), `tiers` (ms
+ * separati da virgola). Un'opzione sconosciuta è un errore.
  *
  * @api
  */
 final readonly class StrategyDtoFactory
 {
+    private const array REDIS_OPTIONS = ['client', 'version', 'verify_version', 'consumer', 'timeout'];
+
+    private const array AMQP_OPTIONS = ['prefetch', 'heartbeat', 'timeout', 'rpc_timeout', 'tiers'];
+
     /** @var Closure(): Redis */
     private Closure $newPhpRedis;
 
@@ -86,6 +92,12 @@ final readonly class StrategyDtoFactory
 
     private function redis(Dsn $dsn): StrategyDtoRedis
     {
+        $dsn->assertOptions(self::REDIS_OPTIONS);
+        if (null !== $dsn->user && null === $dsn->password) {
+            // Senza password né ext-redis né Predis eseguirebbero AUTH: l'utente verrebbe ignorato.
+            throw new InvalidArgumentException('Redis DSN: a user requires a password (an ACL user with "nopass" accepts any).');
+        }
+
         $version = '' === $dsn->option('version', '') ? null : (RedisVersionEnum::tryFrom($dsn->option('version', ''))
             ?? throw new InvalidArgumentException(\sprintf('DSN option "version" must be one of %s.', \implode(', ', array_map(static fn (RedisVersionEnum $redisVersionEnum): string => $redisVersionEnum->value, RedisVersionEnum::cases())))));
         if (1 !== \preg_match('/^\d{0,4}$/D', $dsn->path)) {
@@ -136,6 +148,7 @@ final readonly class StrategyDtoFactory
 
     private function rabbitMq(Dsn $dsn): StrategyDtoRabbitMq
     {
+        $dsn->assertOptions(self::AMQP_OPTIONS);
         $amqpConnectionConfig = new AMQPConnectionConfig();
         $amqpConnectionConfig->setHost($dsn->host);
         $amqpConnectionConfig->setPort($dsn->port ?? ($dsn->secure ? 5671 : 5672));
@@ -145,11 +158,18 @@ final readonly class StrategyDtoFactory
         $amqpConnectionConfig->setIsSecure($dsn->secure);
         $amqpConnectionConfig->setHeartbeat($dsn->intOption('heartbeat', 0));
         $amqpConnectionConfig->setConnectionTimeout($dsn->floatOption('timeout', 3.0));
+        // Senza un limite, con una rete che scarta i pacchetti in silenzio (e heartbeat a 0) una RPC attenderebbe per sempre.
+        // php-amqplib rifiuta un timeout delle RPC più grande di quello di lettura/scrittura: quest'ultimo sale a pari.
+        $rpcTimeout = $dsn->floatOption('rpc_timeout', 10.0);
+        $ioTimeout = \max($amqpConnectionConfig->getReadTimeout(), $rpcTimeout);
+        $amqpConnectionConfig->setReadTimeout($ioTimeout);
+        $amqpConnectionConfig->setWriteTimeout($ioTimeout);
+        $amqpConnectionConfig->setChannelRPCTimeout($rpcTimeout);
 
         $tiers = $dsn->option('tiers', '');
 
         return new StrategyDtoRabbitMq(
-            new PhpAmqpLibConnector(fn (): AbstractConnection => ($this->newAmqp)($amqpConnectionConfig), $dsn->boolOption('confirms', default: true)),
+            new PhpAmqpLibConnector(fn (): AbstractConnection => ($this->newAmqp)($amqpConnectionConfig)),
             retryTiers: '' === $tiers ? new RetryTiers() : new RetryTiers($this->tiers($tiers)),
             prefetch: $dsn->intOption('prefetch', 10, 1),
         );

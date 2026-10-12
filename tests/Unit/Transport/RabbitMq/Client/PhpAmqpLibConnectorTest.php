@@ -30,7 +30,7 @@ final class PhpAmqpLibConnectorTest extends TestCase
         $connection = $this->connection(connected: true);
         $connection->expects(self::exactly(2))->method('channel')->willReturnOnConsecutiveCalls($first, $second);
 
-        $phpAmqpLibConnector = new PhpAmqpLibConnector($connection, publisherConfirms: false);
+        $phpAmqpLibConnector = new PhpAmqpLibConnector($connection);
         self::assertSame(0, $phpAmqpLibConnector->generation());
 
         $channel = $phpAmqpLibConnector->channel();
@@ -51,7 +51,7 @@ final class PhpAmqpLibConnectorTest extends TestCase
         $connection = $this->connection(connected: true);
         $connection->expects(self::exactly(2))->method('channel')->willReturn($amqpChannel);
 
-        $phpAmqpLibConnector = new PhpAmqpLibConnector($connection, publisherConfirms: false);
+        $phpAmqpLibConnector = new PhpAmqpLibConnector($connection);
         $phpAmqpLibConnector->reset();
         $phpAmqpLibConnector->channel();
         $phpAmqpLibConnector->reset();
@@ -60,7 +60,7 @@ final class PhpAmqpLibConnectorTest extends TestCase
         self::assertSame(2, $phpAmqpLibConnector->generation());
     }
 
-    public function testEnablesPublisherConfirmsByDefault(): void
+    public function testAlwaysEnablesPublisherConfirms(): void
     {
         $amqpChannel = $this->amqpChannel(open: true);
         $amqpChannel->expects(self::once())->method('confirm_select');
@@ -81,7 +81,7 @@ final class PhpAmqpLibConnectorTest extends TestCase
             $callLog->record('connect');
 
             return 1 === \count($callLog->calls) ? $dropped : $healthy;
-        }, publisherConfirms: false);
+        });
         self::assertSame([], $callLog->calls);
 
         try {

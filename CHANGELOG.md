@@ -37,7 +37,7 @@ Prima release stabile.
 - DTO `StrategyDtoInMemory`, `StrategyDtoRedis` (`fromPhpRedis`, `fromPredis`), `StrategyDtoRabbitMq` (`fromPhpAmqpLib`, `fromConnection`, `fromConnectionFactory`) e i builder `InMemoryTransportBuilder`, `RedisTransportBuilder` (rilevamento e verifica della versione), `RabbitMqTransportBuilder`.
 - `RedisIdempotencyStore::create()`, `UnsupportedStrategyException`.
 - `MultiQueueWorker`: consuma più code a turno nello stesso processo, con limiti, `stopWhenEmpty` e graceful shutdown comuni; lo stop viene inoltrato a ogni `WorkerInterface`, anche alle implementazioni custom (decoratori, test double).
-- `Dsn/`: `DsnParser`, `Dsn`, `StrategyEnum` e `StrategyDtoFactory::fromDsn()` per `redis://`, `rediss://`, `amqp://`, `amqps://` e `memory://`, con opzioni in query string (client, versione, consumer, prefetch, confirms, scaglioni, heartbeat, timeout).
+- `Dsn/`: `DsnParser`, `Dsn`, `StrategyEnum` e `StrategyDtoFactory::fromDsn()` per `redis://`, `rediss://`, `amqp://`, `amqps://` e `memory://`, con opzioni in query string (client, versione, consumer, prefetch, scaglioni, heartbeat, timeout, rpc_timeout).
 - CLI `bin/queue-worker` scritta senza dipendenze: `work` (handler da file di bootstrap), `stats`, `ping`, `dlq:list`, `dlq:requeue`, `dlq:purge --force`; DSN da `--dsn` o `QUEUE_DSN`, output JSON, log su stderr, exit code 0/1/2.
 - Svuotamento ed elenco della coda: interfacce opzionali `PurgeAwareInterface::purge()` (pronti e differiti; in elaborazione e DLQ restano) e `BrowseAwareInterface::browse()` (`QueuedMessage` con stato `InFlight`/`Ready`/`Delayed`, senza consumare), implementate da InMemory, Redis (script Lua a pagine che saltano le entry nella PEL) e RabbitMQ (`queue.purge` su coda principale e code di attesa; `basic.get` + requeue per l'elenco, solo messaggi pronti); `QueueInterface::purge()`/`browse()` e comandi CLI `queue:list` e `queue:purge --force`.
 - `DOC.md` (in inglese, traduzione in `DOC_IT.md`): introduzione alle code con esempi d'uso della libreria, diagrammi UML in Mermaid (classi, sequenza, attività), specifiche, concorrenza e schedulazione del worker.
@@ -49,6 +49,30 @@ Prima release stabile.
 - CI: test unitari su PHP 8.3, 8.4, 8.5 (8.6 sperimentale), integrazione su Redis 6.0, 6.2, 7.0, 7.4, 8.0, 8.2, 8.4 e RabbitMQ 3.13, 4.x per ogni versione di PHP, job end-to-end (cambio di backend, esempi, CLI, benchmark) con Redis 6.0 e 8.4; mutation testing bloccante (MSI >= 85%).
 - API pubblica marcata `@api`; strategie Redis, script Lua, topologia RabbitMQ, parsing dei DSN, interni di CLI e Worker marcati `@internal`.
 - Complessità (`O(...)` e round trip verso il backend) nel PHPDoc di ogni metodo pubblico.
+
+### Changed
+
+Rispetto agli snapshot di sviluppo, dopo la code review del 2026-10-11 (passi di migrazione in `UPGRADE.md`):
+
+- RabbitMQ: le publisher confirms sono sempre attive. Rimossi il parametro `publisherConfirms` di `StrategyDtoRabbitMq::fromPhpAmqpLib()`, `fromConnection()`, `fromConnectionFactory()`, `PhpAmqpLibConnector` e `PhpAmqpLibChannel`, e l'opzione DSN `confirms`: senza conferme retry, reject e riaccodamento confermavano l'originale senza sapere se la copia era arrivata (perdita possibile).
+- RabbitMQ: la DLQ è dichiarata con `x-max-length = dlqMaxLength` e `x-overflow = drop-head`, quindi `dlqMaxLength` vale anche su RabbitMQ (prima la DLQ cresceva senza limite).
+- DSN: le opzioni sconosciute, vuote o ripetute sono un errore (prima venivano ignorate, e `parse_str` riscriveva `.` e spazi in `_`); `memory://` non accetta altro dopo lo schema; un utente Redis senza password è un errore; nuova opzione AMQP `rpc_timeout` (default 10 s; il timeout di lettura/scrittura del socket sale a pari) contro le attese infinite su una rete muta.
+- CLI: le opzioni non previste dal comando sono un errore d'uso (`work --max-message=5` partiva con il limite di default); `-vvv` vale come `-vv`; `work` valida opzioni e DSN prima di caricare il bootstrap, e un bootstrap che lancia un'eccezione esce con il codice 2 invece di un errore fatale.
+- InMemory allineato a Redis: `release()` rimette il messaggio in fondo ai pronti, `stats()` non promuove più i differiti scaduti, `lag` conta tutti i messaggi pronti non letti (comprese le copie restituite e recuperate), `sendBatch()` non accoda nulla se l'iterazione dell'input fallisce (come su RabbitMQ).
+- `RedisVersionEnum::fromServerVersion()` accetta il prefisso `v`; una `redis_version` non riconoscibile ripiega sulla baseline 6.0 con un warning, come un `INFO` vietato.
+
+### Fixed
+
+- Redis: un membro corrotto nel sorted set dei differiti bloccava per sempre `receive()` e `maintain()` di tutti i consumer (`cjson.decode` senza `pcall`); ora entra nello stream come entry non decodificabile e va in DLQ (`serialization`).
+- Redis: `requeueDeadLetters()` falliva a ogni chiamata su un'entry della DLQ senza campi del messaggio; ora l'entry viene eliminata e non conta.
+- RabbitMQ: `requeueDeadLetters()` non avanzava mai se la DLQ iniziava con `limit` messaggi non decodificabili; ora vengono spostati in fondo alla DLQ.
+- RabbitMQ: le operazioni sulla DLQ prima di `setup()` restituiscono risultati vuoti, come `stats()`, `purge()` e `browse()`, invece di propagare l'errore 404.
+- RabbitMQ: la proprietà di una consegna viene ricontrollata dopo aver ottenuto il canale, così un tag di un canale chiuso dal broker non viene inviato sul canale riaperto (`PRECONDITION_FAILED`); le ricevute con un tag non numerico non hanno effetto.
+- Predis: con l'opzione `exceptions` attiva (il default di Predis) un errore a metà pipeline faceva risultare falliti anche i comandi eseguiti; ora la pipeline riporta l'esito di ogni comando qualunque sia l'opzione (con Relay i comandi vengono eseguiti uno alla volta).
+- `tools/check-coverage.php` falliva solo con metodi presenti: un report vuoto passava con "Coverage 100%".
+- `DsnParser::redact()` lasciava trapelare parte di una password con `@` non codificato.
+- `PcntlAlarm::isSupported()` restituisce `false` senza `ext-pcntl`.
+- Redis: una consegna non più posseduta confermata, ritentata o restituita viene ignorata con un log `debug`.
 
 [Unreleased]: https://github.com/snipershady/queue-bridge/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/snipershady/queue-bridge/releases/tag/v1.0.0

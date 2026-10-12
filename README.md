@@ -170,6 +170,10 @@ $queue->setup(); // exchange, quorum queue, wait queues and DLQ; idempotent
 ```
 
 `StrategyDtoRabbitMq::fromConnection($connection)` and `fromPhpAmqpLib($channel)` reuse an existing connection.
+Publisher confirms are always on: retry, reject and requeue acknowledge the original only after the broker has confirmed
+the copy, so they cannot be turned off. When you build the connection yourself, give it a `channel_rpc_timeout`
+(`AMQPConnectionConfig::setChannelRPCTimeout()`): without one, a network that silently drops packets makes `stats()` or
+`deadLetters()` wait forever (the DSN sets 10 s).
 
 ### InMemory
 
@@ -207,12 +211,13 @@ memory://
 | Redis | `consumer` | random | consumer name in the group |
 | Redis | `timeout` | `2.0` | connection timeout in seconds |
 | RabbitMQ | `prefetch` | `10` | `basic_qos` prefetch count |
-| RabbitMQ | `confirms` | `true` | publisher confirms |
 | RabbitMQ | `tiers` | `1000,5000,30000,120000,600000,3600000` | retry/delay tiers in ms |
 | RabbitMQ | `heartbeat` | `0` | heartbeat in seconds |
 | RabbitMQ | `timeout` | `3.0` | connection timeout in seconds |
+| RabbitMQ | `rpc_timeout` | `10.0` | maximum wait for a broker reply, in seconds (the socket read/write timeout is raised to match) |
 
-Credentials must be URL-encoded. Boolean options accept `1/0`, `true/false`, `yes/no`, `on/off`. The AMQP vhost defaults
+Unknown options are an error, so a typo (`?verison=8.0`) is not silently ignored; `memory://` takes no host or option.
+A Redis user needs a password (an ACL user with `nopass` accepts any). Credentials must be URL-encoded. Boolean options accept `1/0`, `true/false`, `yes/no`, `on/off`. The AMQP vhost defaults
 to `/`. Example: `redis://app:secret@cache:6379/2?consumer=web-1&timeout=1.5`.
 
 ## Producing messages
@@ -234,7 +239,9 @@ $ids = $producer->publishBatch([
 - `text` is any valid UTF-8 string up to `maxTextBytes` (default 1 MiB): JSON, structured data or plain text.
 - Channel names match `^[A-Za-z0-9._:-]+$` (max 255 characters).
 - `publishBatch()` uses one pipeline on Redis and batched confirms on RabbitMQ. A partial failure throws
-  `BatchSendException` with the sent and the failed IDs.
+  `BatchSendException` with the sent and the failed IDs. The messages are all read and encoded before anything is sent:
+  an error while iterating the input sends nothing. With Predis the outcome of each command is reported whatever the
+  client's `exceptions` option.
 - Producer middleware: `CorrelationIdMiddleware` adds `correlation_id`/`causation_id` from the message being handled,
   `TraceContextMiddleware` adds a W3C `traceparent`. Pass them to `QueueBridge::factory(producerMiddlewares: [...])`.
 
@@ -391,7 +398,9 @@ vendor/bin/queue-worker <command> --dsn=<dsn> [--queue=<name>] [--prefix=<prefix
 | `queue:purge --force` | delete the ready and delayed messages |
 
 The DSN can also come from the `QUEUE_DSN` environment variable; `--strategy=redis|rabbitmq|in-memory` is an optional check
-against the DSN scheme. `-v`/`-vv` print info/debug logs on stderr. Exit codes: `0` success, `1` backend error, `2` usage
+against the DSN scheme. `-v`/`-vv` print info/debug logs on stderr. An option that the command does not accept is a usage
+error (`work --max-message=5` does not run with the default limit). `work` validates its options and the DSN before loading
+the bootstrap file; a bootstrap that throws is a usage error too. Exit codes: `0` success, `1` backend error, `2` usage
 error.
 
 Run workers under a supervisor with `--max-runtime` and `--memory-limit`: the process exits cleanly and is restarted.
@@ -430,13 +439,14 @@ Sample payloads are in [`examples/data/`](examples/data/), deployment files in [
 | `maxAttempts` | 3 | handler failures before the DLQ |
 | `maxDeliveries` | 10 | deliveries (crashes included) before the DLQ; at least `maxAttempts` + 1 |
 | `claimIdleMs` | 300000 | Redis: after this idle time an unacknowledged message is taken from a crashed worker |
-| `dlqMaxLength` | 100000 | Redis: approximate DLQ retention |
+| `dlqMaxLength` | 100000 | DLQ retention (newest kept): approximate on Redis (`MAXLEN ~`), exact on RabbitMQ (`x-max-length`) and InMemory |
 
 Redis layout (hash tags keep the keys of a queue in one cluster slot): `rq:{orders}:stream`, `rq:{orders}:delayed`,
 `rq:{orders}:dlq`, `rq:{orders}:idem:<id>`; consumer group `queue-bridge`.
 
 RabbitMQ topology created by `setup()`: topic exchange `rq.orders` (routing key = channel), quorum queue `rq.orders` with
-`x-delivery-limit`, wait queues `rq.orders.retry.<ms>`, classic DLQ `rq.orders.dlq`.
+`x-delivery-limit`, wait queues `rq.orders.retry.<ms>`, classic DLQ `rq.orders.dlq` with `x-max-length` = `dlqMaxLength`
+(overflow `drop-head`: the oldest dead letters are dropped, a reject never fails because the DLQ is full).
 
 ## Recommended server configuration
 
@@ -467,8 +477,9 @@ falls back to the 6.0 baseline and logs a warning).
   network failure or an expired lock produce a **duplicate**: **handlers must be idempotent** (or use
   `IdempotencyMiddleware`). Retries and DLQ moves are atomic on Redis (Lua) and publish-confirm-then-ack on RabbitMQ: never
   lost, at worst duplicated.
-- **No ordering guarantee**: retries, delays, released and recovered messages change the order. Messages arrive in
-  publishing order only in the absence of these events.
+- **No ordering guarantee**: retries, delays, released and recovered messages change the order (a released or recovered
+  message goes behind the others, on InMemory as on Redis). Messages arrive in publishing order only in the absence of
+  these events. Delayed messages become available in order of due time; on RabbitMQ only across different tiers.
 - **No fan-out**: one `QueueConfig` is one queue; each message is handled by one worker. For publish/subscribe, publish to
   several queues.
 - **Scaling with processes**: the worker is single-process and never forks. Run more processes, on more machines, on the
@@ -481,7 +492,8 @@ falls back to the 6.0 baseline and logs a warning).
   warning shows up, lower `batchSize`.
 - **RabbitMQ**: orphans come back as soon as the connection closes; the limits are the heartbeat and `consumer_timeout`
   described above. `x-delivery-limit` equals `maxDeliveries`, so a message that keeps crashing the worker is dead-lettered by
-  the broker as a last resort.
+  the broker as a last resort. On RabbitMQ 3.13 `release()` also counts as a delivery. Statistics are a snapshot: right
+  after a `release()` the message may be in transit and missing from `ready` for a moment.
 - **Delay precision on RabbitMQ**: delays use wait queues with fixed TTL tiers (default 1 s, 5 s, 30 s, 2 min, 10 min, 1 h).
   The largest tier not above the remaining delay is used and a message that comes back early waits again: precision is
   about one tier (1500 ms is delivered between 1.5 and 3.5 s). Beyond the largest tier the message cycles through it until
@@ -527,7 +539,7 @@ process. "consume" includes receive, a no-op handler and the ack.
 | InMemory | 300,000 msg/s | 327,000 msg/s | 68,000 msg/s |
 | Redis, ext-redis | 3,000 msg/s | 115,000 msg/s | 30,600 msg/s |
 | Redis, Predis | 3,400 msg/s | 95,500 msg/s | 32,000 msg/s |
-| RabbitMQ (confirms on) | 1,100 msg/s | 25,000 msg/s | 6,000 msg/s |
+| RabbitMQ (publisher confirms) | 1,100 msg/s | 25,000 msg/s | 6,000 msg/s |
 
 Redis levels forced on the same 8.4 server (ext-redis):
 

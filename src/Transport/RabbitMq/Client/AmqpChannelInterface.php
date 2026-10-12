@@ -100,7 +100,10 @@ interface AmqpChannelInterface
     public function publish(AmqpMessage $amqpMessage, string $exchange, string $routingKey): void;
 
     /**
-     * Attende le conferme del broker per i messaggi pubblicati dall'ultima chiamata.
+     * Attende le conferme del broker per i messaggi pubblicati dall'ultima chiamata. Un'implementazione deve
+     * usare davvero le publisher confirms (e i `basic.return`): retry, reject e riaccodamento confermano
+     * l'originale solo se questo metodo non segnala la copia come fallita, e una lista vuota senza conferme
+     * reali può far perdere messaggi.
      *
      * Complessità: O(c), c = publish in attesa di conferma; attende al più $timeoutMs.
      *

@@ -13,7 +13,7 @@ use Throwable;
 
 /**
  * Connector per `php-amqplib`. Riapre il canale dopo ogni errore; con una factory ricrea anche la
- * connessione quando è caduta.
+ * connessione quando è caduta. I canali hanno sempre le publisher confirms attive.
  *
  * @api
  */
@@ -33,10 +33,8 @@ final class PhpAmqpLibConnector implements AmqpConnectorInterface
      *
      * @param AbstractConnection|Closure(): AbstractConnection $connection connessione aperta, o factory che ne crea una
      */
-    public function __construct(
-        AbstractConnection|Closure $connection,
-        private readonly bool $publisherConfirms = true,
-    ) {
+    public function __construct(AbstractConnection|Closure $connection)
+    {
         $this->connection = $connection instanceof AbstractConnection ? $connection : null;
         $this->factory = $connection instanceof Closure ? $connection : null;
     }
@@ -51,7 +49,7 @@ final class PhpAmqpLibConnector implements AmqpConnectorInterface
             return $this->channel;
         }
 
-        $this->channel = new PhpAmqpLibChannel($this->openChannel(), $this->publisherConfirms);
+        $this->channel = new PhpAmqpLibChannel($this->openChannel());
         ++$this->generation;
 
         return $this->channel;

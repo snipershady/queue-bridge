@@ -164,6 +164,7 @@ final class CliTest extends TestCase
         self::assertNull($input->value('stop-when-empty'));
         self::assertSame(2, $input->verbosity);
         self::assertSame(1, Input::parse(['-v'])->verbosity);
+        self::assertSame(2, Input::parse(['-vvv'])->verbosity, 'more than two "v" is still debug');
         self::assertSame(0, Input::parse([])->verbosity);
         self::assertNull(Input::parse([])->command);
     }
@@ -178,13 +179,14 @@ final class CliTest extends TestCase
         self::assertNull($input->int('missing', default: null));
         self::assertSame('1=2', Input::parse(['--a=1=2'])->value('a'), 'only the first "=" separates the value');
 
-        $malformed = Input::parse(['--x=x1', '--y=1x', "--z=1\n"]);
+        $malformed = Input::parse(['--x=x1', '--y=1x', "--z=1\n", '--w=x0']);
         foreach ([
             static fn (): ?int => $input->int('b', default: null),
             static fn (): ?int => $input->int('c', default: null),
             static fn (): ?int => $malformed->int('x', default: null),
             static fn (): ?int => $malformed->int('y', default: null),
             static fn (): ?int => $malformed->int('z', default: null),
+            static fn (): ?int => $malformed->int('w', default: null, minimum: 0),
         ] as $call) {
             try {
                 $call();
@@ -204,7 +206,22 @@ final class CliTest extends TestCase
         yield 'empty option' => [['--'], 'Empty option name'];
         yield 'flag with value' => [['--json=1'], 'does not take a value'];
         yield 'missing value at the end' => [['--dsn'], 'requires a value'];
-        yield 'missing value before an option' => [['--dsn', '--json'], 'requires a value'];
+        yield 'missing value before an option' => [['--dsn', '--json'], 'requires a value (got "--json"'];
+        yield 'negative value without "="' => [['--limit', '-5'], 'write --limit=<value> for a value starting with "-"'];
+        yield 'not a verbosity flag' => [['work', '-vx'], 'Unexpected argument "-vx"'];
+        yield 'verbosity flag not at the start' => [['work', 'x-v'], 'Unexpected argument "x-v"'];
+        yield 'verbosity flag with a newline' => [['work', "-v\n"], 'Unexpected argument'];
+    }
+
+    public function testInputRejectsOptionsOutsideTheAllowedList(): void
+    {
+        $input = Input::parse(['work', '--max-message=5', '--json']);
+        $input->assertOptions('work', ['max-message', 'json']);
+
+        $this->expectException(UsageException::class);
+        $this->expectExceptionMessage('Unknown option --max-message for "work"');
+
+        $input->assertOptions('work', ['max-messages', 'json']);
     }
 
     /**
@@ -548,6 +565,15 @@ final class CliTest extends TestCase
         yield 'bootstrap not returning a closure' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap-invalid.php'], Application::USAGE, 'must return a Closure'];
         yield 'invalid worker option' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap.php', '--batch-size=0'], Application::USAGE, '--batch-size must be an integer >= 1'];
         yield 'malformed arguments' => [['ping', 'extra'], Application::USAGE, 'Unexpected argument'];
+        yield 'misspelled worker option' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap.php', '--max-message=5'], Application::USAGE, 'Unknown option --max-message for "work"'];
+        yield 'option of another command' => [['ping', '--dsn=memory://', '--force'], Application::USAGE, 'Unknown option --force for "ping"'];
+        yield 'json on purge' => [['dlq:purge', '--dsn=memory://', '--force', '--json'], Application::USAGE, 'Unknown option --json for "dlq:purge"'];
+        yield 'bootstrap failing to load' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap-throws.php'], Application::USAGE, 'cli-bootstrap-throws.php" failed: cannot load the container'];
+        yield 'bootstrap failing to register handlers' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap-handler-error.php'], Application::USAGE, 'failed to register the handlers: missing service "mailer"'];
+        yield 'bootstrap registering an invalid channel' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap-invalid-channel.php'], Application::USAGE, 'Error: Invalid channel'];
+        yield 'bootstrap hitting a backend error' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap-backend-error.php'], Application::FAILURE, 'Error: Test backend is unreachable: down'];
+        yield 'invalid dsn before the bootstrap runs' => [['work', '--dsn=kafka://broker', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap-throws.php'], Application::USAGE, 'Unsupported DSN scheme'];
+        yield 'invalid worker option before the bootstrap runs' => [['work', '--dsn=memory://', '--bootstrap='.__DIR__.'/../../Fixtures/cli-bootstrap-throws.php', '--timeout=x'], Application::USAGE, '--timeout must be an integer'];
     }
 
     /**

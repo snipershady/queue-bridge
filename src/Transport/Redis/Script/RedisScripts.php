@@ -123,6 +123,10 @@ final class RedisScripts
     /**
      * Sposta nello stream i differiti scaduti. I membri sono oggetti JSON {campo: valore}.
      *
+     * Un membro non valido (non JSON, non un oggetto, valori non stringa, oggetto vuoto: solo per corruzione
+     * esterna) non deve bloccare la promozione, che gira a ogni receive(): entra nello stream come unico campo
+     * `delayed_member`, così il transport non riesce a decodificarlo e lo sposta in DLQ (`serialization`).
+     *
      * KEYS: delayed, stream. ARGV: istante attuale in ms, limite → numero di messaggi promossi.
      *
      * Complessità: O(1) (testo costante). Lo script: O(p·(f + log d)), p = differiti promossi (al più il limite), f =
@@ -134,10 +138,18 @@ final class RedisScripts
             local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, ARGV[2])
             for _, member in ipairs(due) do
               local fields = {}
-              for name, value in pairs(cjson.decode(member)) do
-                fields[#fields + 1] = name
-                fields[#fields + 1] = value
+              local ok, decoded = pcall(cjson.decode, member)
+              if ok and type(decoded) == 'table' then
+                for name, value in pairs(decoded) do
+                  if type(name) ~= 'string' or type(value) ~= 'string' then
+                    fields = {}
+                    break
+                  end
+                  fields[#fields + 1] = name
+                  fields[#fields + 1] = value
+                end
               end
+              if #fields == 0 then fields = {'delayed_member', member} end
               redis.call('XADD', KEYS[2], '*', unpack(fields))
               redis.call('ZREM', KEYS[1], member)
             end
@@ -146,7 +158,10 @@ final class RedisScripts
     }
 
     /**
-     * Riaccoda dalla DLQ con attempts = 0, togliendo i campi `failure_*` e `deliveries`.
+     * Riaccoda dalla DLQ con attempts = 0, togliendo i campi `failure_*` e `deliveries`. Un'entry senza altri
+     * campi (solo per corruzione esterna) non contiene un messaggio: viene eliminata e non conta, altrimenti
+     * XADD senza campi fallirebbe a ogni chiamata. Le entry con campi non decodificabili vengono riaccodate e
+     * il transport le rimette in DLQ (`serialization`): la DLQ avanza comunque.
      *
      * KEYS: dlq, stream. ARGV: `first` + limite, oppure `id` + ID dell'entry → numero di messaggi riaccodati.
      *
@@ -161,6 +176,7 @@ final class RedisScripts
             else
               entries = redis.call('XRANGE', KEYS[1], '-', '+', 'COUNT', ARGV[2])
             end
+            local requeued = 0
             for _, entry in ipairs(entries) do
               local fields = {}
               local source = entry[2]
@@ -174,10 +190,13 @@ final class RedisScripts
                   fields[#fields + 1] = source[j + 1]
                 end
               end
-              redis.call('XADD', KEYS[2], '*', unpack(fields))
+              if #fields > 0 then
+                redis.call('XADD', KEYS[2], '*', unpack(fields))
+                requeued = requeued + 1
+              end
               redis.call('XDEL', KEYS[1], entry[1])
             end
-            return #entries
+            return requeued
             LUA;
     }
 

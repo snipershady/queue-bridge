@@ -34,6 +34,12 @@ interface IdempotencyStoreInterface
     /**
      * Marca il messaggio come completato per $ttlMs (sostituisce il lock).
      *
+     * Incondizionato, a differenza di release(): se il lock di A è scaduto e B lo ha acquisito, A che ha davvero
+     * finito marca comunque il messaggio come completato. È voluto: B lo elabora già (duplicato inevitabile
+     * con at-least-once), ma se poi fallisce il suo release() condizionato non cancella lo stato "completato" e
+     * nessun terzo worker lo rielabora. Un complete() condizionato al token permetterebbe invece una terza
+     * esecuzione di un messaggio già completato.
+     *
      * Complessità: O(1) negli store forniti (un round trip su Redis).
      *
      * @throws InvalidArgumentException se $ttlMs < 1

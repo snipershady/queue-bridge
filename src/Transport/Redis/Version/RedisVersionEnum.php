@@ -21,7 +21,7 @@ enum RedisVersionEnum: string
     case GE84 = '8.4';
 
     /**
-     * Livello più alto <= alla versione del server (es. "7.4.2" → GE70).
+     * Livello più alto <= alla versione del server (es. "7.4.2" → GE70; tollera il prefisso "v").
      *
      * Complessità: O(1) (numero fisso di livelli).
      *
@@ -29,7 +29,7 @@ enum RedisVersionEnum: string
      */
     public static function fromServerVersion(string $version): self
     {
-        if (1 !== \preg_match('/^(\d+)\.(\d+)/', $version, $matches)) {
+        if (1 !== \preg_match('/^v?(\d+)\.(\d+)/', $version, $matches)) {
             throw VersionMismatchException::unsupported($version, self::GE60->value);
         }
 

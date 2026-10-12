@@ -32,7 +32,23 @@ First stable release: nothing to migrate.
 - Redis layout: `{prefix}:{<queue>}:stream`, `{prefix}:{<queue>}:delayed`, `{prefix}:{<queue>}:dlq`,
   `{prefix}:{<queue>}:idem:<id>`, consumer group `queue-bridge`.
 - RabbitMQ topology: topic exchange `{prefix}.{queue}`, quorum queue `{prefix}.{queue}` with `x-delivery-limit`, wait queues
-  `{prefix}.{queue}.retry.<ms>`, classic DLQ `{prefix}.{queue}.dlq`.
+  `{prefix}.{queue}.retry.<ms>`, classic DLQ `{prefix}.{queue}.dlq` with `x-max-length` and `x-overflow = drop-head`.
+
+Changes from pre-release snapshots (development versions before the 1.0.0 tag):
+
+- **RabbitMQ publisher confirms are always on.** Remove the `publisherConfirms:` argument from
+  `StrategyDtoRabbitMq::fromPhpAmqpLib()`, `fromConnection()`, `fromConnectionFactory()` and `new PhpAmqpLibConnector()`,
+  and the `confirms=` option from AMQP DSNs. A custom `AmqpChannelInterface` must really wait for the broker in `confirm()`.
+- **RabbitMQ dead letter queue retention.** `setup()` now declares `{prefix}.{queue}.dlq` with `x-max-length` =
+  `dlqMaxLength` and `x-overflow` = `drop-head`. On a broker where the DLQ already exists without these arguments,
+  `setup()` fails with `PRECONDITION_FAILED`. To migrate: stop the workers, requeue or export what you need from the DLQ
+  (`queue-worker dlq:requeue`, `dlq:list --json`), delete the queue (`rabbitmqctl delete_queue {prefix}.{queue}.dlq` or the
+  management UI), then run `setup()` again. If you change `dlqMaxLength` later, repeat the same steps.
+- **Unknown DSN and CLI options are errors.** Check your DSNs and worker command lines: an option that used to be ignored
+  (a typo, `confirms=`, an option of another backend) now stops the process with exit code 2.
+- **InMemory follows Redis**: `release()` puts the message behind the ready ones, `stats()` no longer promotes due delayed
+  messages (call `receive()` or `maintain()`), and `lag` counts released and recovered copies. Tests that relied on the
+  previous behaviour need updating.
 
 If you wrote your own `IdempotencyStoreInterface` against a pre-release snapshot: `acquire()` now returns an
 `AcquireResult` instead of `?LockToken`. Return `AcquireResult::acquired($token)`, `AcquireResult::completed()` when the

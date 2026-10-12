@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace QueueBridge\Tests\Unit\Transport\Redis\Client;
 
+use ArrayObject;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Predis\Client;
@@ -12,15 +14,18 @@ use Predis\ClientInterface;
 use Predis\Command\CommandInterface;
 use Predis\Connection\ConnectionException as PredisConnectionException;
 use Predis\Connection\NodeConnectionInterface;
+use Predis\Connection\RelayConnection;
 use Predis\Response\Error;
 use Predis\Response\ServerException;
 use Predis\Response\Status;
 use QueueBridge\Exception\CommandFailedException;
 use QueueBridge\Exception\ConnectionException;
 use QueueBridge\Transport\Redis\Client\PredisClient;
+use QueueBridge\Transport\Redis\Client\PredisPipeline;
 use stdClass;
 
 #[CoversClass(PredisClient::class)]
+#[CoversClass(PredisPipeline::class)]
 #[UsesClass(CommandFailedException::class)]
 #[UsesClass(ConnectionException::class)]
 final class PredisClientTest extends TestCase
@@ -117,54 +122,85 @@ final class PredisClientTest extends TestCase
         self::assertSame('ZADD failed: nil reply', $results[2]->getMessage());
     }
 
-    public function testNativePipelineReportsErrorsPerCommand(): void
+    /**
+     * @return iterable<string, array{array<string, bool>}>
+     */
+    public static function exceptionOptions(): iterable
     {
-        $client = $this->createMock(Client::class);
-        $queued = [];
-        $client->method('pipeline')->willReturnCallback(static function (callable $callback) use (&$queued): array {
-            $pipeline = (new self('pipeline'))->createMock(ClientInterface::class);
-            $pipeline->method('executeCommand')->willReturnCallback(static function (CommandInterface $command) use (&$queued): null {
-                $queued[] = $command->getId();
+        yield 'exceptions on (Predis default)' => [[]];
+        yield 'exceptions off' => [['exceptions' => false]];
+    }
 
-                return null;
-            });
-            $callback($pipeline);
+    /**
+     * @param array<string, bool> $options
+     */
+    #[DataProvider('exceptionOptions')]
+    public function testPipelineReportsErrorsPerCommandWhateverTheExceptionsOption(array $options): void
+    {
+        $written = new ArrayObject();
+        $client = $this->pipelinedClient($written, $options, ['1-0', new Error('WRONGTYPE Operation against a key holding the wrong kind of value'), null, 1]);
 
-            return ['1-0', new Error('OOM'), null, 1];
-        });
+        $results = (new PredisClient($client))->pipeline([['XADD', 's', '*', 'a', '1'], ['XADD', 'z', '*', 'b', '2'], ['XADD', 's', '*', 'c', '3'], ['ZADD', 'z', '1', 'm']]);
 
-        $results = (new PredisClient($client))->pipeline([['XADD', 's', '*', 'a', '1'], ['XADD', 's', '*', 'b', '2'], ['XADD', 's', '*', 'c', '3'], ['ZADD', 'z', '1', 'm']]);
-
-        self::assertSame(['XADD', 'XADD', 'XADD', 'ZADD'], $queued);
+        self::assertSame(['XADD', 'XADD', 'XADD', 'ZADD'], $written->getArrayCopy(), 'one round trip: every command is written before reading');
         self::assertSame('1-0', $results[0]);
         self::assertInstanceOf(CommandFailedException::class, $results[1]);
+        self::assertStringContainsString('WRONGTYPE', $results[1]->getMessage());
         self::assertInstanceOf(CommandFailedException::class, $results[2]);
         self::assertSame('XADD failed: nil reply', $results[2]->getMessage());
-        self::assertSame(1, $results[3]);
+        self::assertSame(1, $results[3], 'the commands after an error are reported as executed');
     }
 
-    public function testNativePipelineWithExceptionsMarksEveryCommandAsFailed(): void
+    public function testPipelineIsRetriedOnceAfterAConnectionError(): void
     {
-        $client = $this->createMock(Client::class);
-        $client->method('pipeline')->willThrowException(new ServerException('WRONGTYPE'));
+        $written = new ArrayObject();
+        $connection = $this->createMock(NodeConnectionInterface::class);
+        $connection->method('writeRequest')->willReturnCallback(static function (CommandInterface $command) use ($written): void {
+            $written->append($command->getId());
+        });
+        $reads = 0;
+        $connection->method('readResponse')->willReturnCallback(static function () use (&$reads): Status {
+            if (1 === ++$reads) {
+                throw new PredisConnectionException(self::createStub(NodeConnectionInterface::class), 'Connection reset');
+            }
 
-        $results = (new PredisClient($client))->pipeline([['XADD', 's', '*', 'a', '1'], ['ZADD', 'z', '1', 'm']]);
+            return new Status('OK');
+        });
 
-        self::assertCount(2, $results);
-        foreach ($results as $result) {
-            self::assertInstanceOf(CommandFailedException::class, $result);
-            self::assertStringContainsString('WRONGTYPE', $result->getMessage());
-        }
+        $results = (new PredisClient(new Client($connection)))->pipeline([['SET', 'k', 'v']]);
+
+        self::assertSame(['OK'], $results);
+        self::assertSame(['SET', 'SET'], $written->getArrayCopy());
     }
 
-    public function testNativePipelineWithoutRepliesMarksEveryCommandAsFailed(): void
+    public function testPipelineOverRelayRunsCommandsOneByOne(): void
     {
-        $client = $this->createMock(Client::class);
-        $client->method('pipeline')->willReturn(null);
+        $relayConnection = $this->createMock(RelayConnection::class);
+        $relayConnection->expects(self::never())->method('writeRequest');
+        $relayConnection->method('executeCommand')->willReturnOnConsecutiveCalls('1-0', new Error('OOM'));
 
-        $results = (new PredisClient($client))->pipeline([['XADD', 's', '*', 'a', '1']]);
+        $results = (new PredisClient(new Client($relayConnection)))->pipeline([['XADD', 's', '*', 'a', '1'], ['XADD', 's', '*', 'b', '2']]);
 
-        self::assertInstanceOf(CommandFailedException::class, $results[0]);
+        self::assertSame('1-0', $results[0]);
+        self::assertInstanceOf(CommandFailedException::class, $results[1]);
+    }
+
+    /**
+     * Client Predis reale su una connessione finta: la pipeline scrive tutti i comandi, poi legge $replies in ordine.
+     *
+     * @param ArrayObject<int, string> $written
+     * @param array<string, bool>      $options
+     * @param list<mixed>              $replies
+     */
+    private function pipelinedClient(ArrayObject $written, array $options, array $replies): Client
+    {
+        $connection = $this->createMock(NodeConnectionInterface::class);
+        $connection->method('writeRequest')->willReturnCallback(static function (CommandInterface $command) use ($written): void {
+            $written->append($command->getId());
+        });
+        $connection->method('readResponse')->willReturnOnConsecutiveCalls(...$replies);
+
+        return new Client($connection, $options);
     }
 
     private function connectionError(): PredisConnectionException

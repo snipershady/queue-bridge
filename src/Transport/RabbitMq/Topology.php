@@ -16,6 +16,8 @@ use QueueBridge\Transport\RabbitMq\Client\AmqpChannelInterface;
  * - `rq.messages` quorum queue, `x-delivery-limit = maxDeliveries` e dead-letter at-least-once verso la DLQ
  *   (rete di sicurezza: il worker sposta in DLQ prima, con il motivo);
  * - `rq.messages.dlq` classic queue: l'ispezione con get + requeue non deve far crescere un delivery-limit;
+ *   `x-max-length = dlqMaxLength` con overflow `drop-head` (retention come `MAXLEN ~` su Redis: con
+ *   `reject-publish` un reject() a DLQ piena fallirebbe e l'originale tornerebbe in coda all'infinito);
  * - `rq.messages.retry.<ms>` quorum queue a TTL fisso, che fanno dead-letter at-least-once verso la coda principale.
  *
  * @internal
@@ -78,7 +80,11 @@ final readonly class Topology
             'x-overflow' => 'reject-publish',
         ]);
         $amqpChannel->bindQueue($this->queue, $this->exchange, '#');
-        $amqpChannel->declareQueue($this->deadLetterQueue, ['x-queue-type' => 'classic']);
+        $amqpChannel->declareQueue($this->deadLetterQueue, [
+            'x-queue-type' => 'classic',
+            'x-max-length' => $this->config->dlqMaxLength,
+            'x-overflow' => 'drop-head',
+        ]);
 
         foreach ($this->retryTiers->tiersMs as $tierMs) {
             $amqpChannel->declareQueue($this->retryQueue($tierMs), [

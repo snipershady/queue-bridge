@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace QueueBridge\Tests\Integration\Redis;
 
 use Override;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use QueueBridge\Config\QueueConfig;
+use QueueBridge\Message\FailureKind;
+use QueueBridge\Message\FailureReason;
 use QueueBridge\System\SystemClock;
 use QueueBridge\Tests\Contract\TransportContractTestCase;
 use QueueBridge\Transport\Redis\Client\PhpRedisClient;
 use QueueBridge\Transport\Redis\Client\RedisClientInterface;
 use QueueBridge\Transport\Redis\Feature\FeatureSelector;
+use QueueBridge\Transport\Redis\RedisKeys;
+use QueueBridge\Transport\Redis\RedisReply;
 use QueueBridge\Transport\Redis\RedisTransport;
 use QueueBridge\Transport\Redis\Version\RedisCapabilities;
 use QueueBridge\Transport\Redis\Version\RedisVersionEnum;
@@ -65,7 +70,62 @@ abstract class RedisTransportTestCase extends TransportContractTestCase
         } while ('0' !== $cursor);
     }
 
+    /**
+     * Un membro corrotto dei differiti (scritto da fuori) non deve bloccare la promozione, che gira a ogni receive().
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function corruptDelayedMembers(): iterable
+    {
+        yield 'not json' => ['not json'];
+        yield 'json array' => ['["v","1"]'];
+        yield 'nested value' => ['{"v":{"x":"1"}}'];
+        yield 'number value' => ['{"v":1}'];
+        yield 'empty object' => ['{}'];
+        yield 'json scalar' => ['"text"'];
+    }
+
+    #[DataProvider('corruptDelayedMembers')]
+    public function testCorruptDelayedMemberGoesToTheDeadLetterQueueWithoutBlockingTheQueue(string $member): void
+    {
+        $transport = $this->createTransport($this->queueConfig());
+        self::assertInstanceOf(RedisTransport::class, $transport);
+        $keys = $this->keys();
+        $this->client()->execute(['ZADD', $keys->delayed(), '1', $member]);
+        $transport->send($message = $this->message('test', 'valid'));
+
+        $deliveries = $transport->receive(10, 200);
+
+        self::assertSame(['valid'], $this->texts($deliveries));
+        self::assertTrue($deliveries[0]->message->id->equals($message->id));
+        self::assertSame(0, RedisReply::int($this->client()->execute(['ZCARD', $keys->delayed()]), 'ZCARD'));
+        self::assertSame(1, $transport->stats()->deadLetters, 'the corrupt member is kept for inspection');
+        self::assertSame([], $transport->deadLetters(), 'but it is not a valid dead letter');
+    }
+
+    public function testRequeueDeadLettersSkipsEntriesWithoutMessageFields(): void
+    {
+        $transport = $this->createTransport($this->queueConfig());
+        self::assertInstanceOf(RedisTransport::class, $transport);
+        $keys = $this->keys();
+        $this->client()->execute(['XADD', $keys->deadLetters(), '*', 'failure_kind', 'serialization', 'deliveries', '3']);
+        $message = $this->message('test', 'requeue me');
+        $transport->send($message);
+        [$delivery] = $transport->receive(1, 200);
+        $transport->reject($delivery, new FailureReason(FailureKind::Unrecoverable, $message->id, $this->clock()->now()));
+
+        self::assertSame(1, $transport->requeueDeadLetters());
+        self::assertSame(0, $transport->stats()->deadLetters, 'the empty entry is dropped');
+        self::assertSame(['requeue me'], $this->texts($this->drain($transport)));
+    }
+
     abstract protected function level(): RedisVersionEnum;
+
+    #[Override]
+    protected function deadLetterRetentionIsExact(): bool
+    {
+        return false;
+    }
 
     protected function connect(): RedisClientInterface
     {
@@ -136,6 +196,20 @@ abstract class RedisTransportTestCase extends TransportContractTestCase
     protected function clock(): ClockInterface
     {
         return $this->systemClock;
+    }
+
+    private function client(): RedisClientInterface
+    {
+        self::assertInstanceOf(RedisClientInterface::class, $this->redisClient);
+
+        return $this->redisClient;
+    }
+
+    private function keys(): RedisKeys
+    {
+        self::assertInstanceOf(QueueConfig::class, $this->queueConfig);
+
+        return new RedisKeys($this->queueConfig);
     }
 
     private function transportFor(QueueConfig $queueConfig): RedisTransport
